@@ -135,32 +135,10 @@ export default function FlashcardsPage() {
       setActiveIndex((prev) => (prev - 1 + filteredFlashcards.length) % filteredFlashcards.length);
     }
   };
-  // Add keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (filteredFlashcards.length === 0) return;
-      
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        // Next card with right arrow or space
-        handleNext();
-      } else if (e.key === 'ArrowLeft') {
-        // Previous card with left arrow
-        handlePrevious();
-      // } else if (e.key === 'f' || e.key === 'F') {
-      //   // Toggle filter panel with 'f' key
-      //   setIsFilterOpen(prev => !prev);
-      }
-    };
-      window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [filteredFlashcards.length]);
-
   // Show loading if user is not authenticated yet
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 flex items-center justify-center">
+      <div className="h-[90vh] bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4 mx-auto"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading...</p>
@@ -170,7 +148,7 @@ export default function FlashcardsPage() {
   }
 
     return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 py-28 px-4 relative">      
+    <div className="h-[91vh] bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 py-14 px-4 relative">
       <div className="max-w-screen-md mx-auto">
         {/* Header with user info and logout */}
         <div className="flex items-center justify-center mb-8">
@@ -443,12 +421,14 @@ export default function FlashcardsPage() {
                 frontText={filteredFlashcards[activeIndex].frontText}
                 backText={filteredFlashcards[activeIndex].backText}
                 audioSrc={filteredFlashcards[activeIndex].audioSrc}
-                imageUrl={filteredFlashcards[activeIndex].imageUrl}
-                category={filteredFlashcards[activeIndex].category}
-                difficulty={filteredFlashcards[activeIndex].difficulty}
+                imageUrl={filteredFlashcards[activeIndex].imageUrl}                category={filteredFlashcards[activeIndex].category}
                 mastered={filteredFlashcards[activeIndex].mastered}
                 onMasterToggle={handleMarkLearned}
-                onQualityRating={handleQualityRating}
+                onQualityRating={handleQualityRating}                // Additional vocabulary data for examples
+                example={filteredFlashcards[activeIndex].example}
+                translatedExample={filteredFlashcards[activeIndex].translatedExample}
+                originalWord={filteredFlashcards[activeIndex].originalWord}
+                translation={filteredFlashcards[activeIndex].translation}
                 // Spaced repetition props
                 easinessFactor={filteredFlashcards[activeIndex].easinessFactor}
                 repetitionNumber={filteredFlashcards[activeIndex].repetitionNumber}
@@ -456,14 +436,12 @@ export default function FlashcardsPage() {
                 nextReviewDate={filteredFlashcards[activeIndex].nextReviewDate}
                 isNew={filteredFlashcards[activeIndex].isNew}
                 showQualityRating={studyMode === 'review' || studyMode === 'all'}
-              />
-            </motion.div>
-            
-            {/* Modern Navigation buttons with Learned button in the middle */}
-            <div className="flex justify-center items-center mt-8 gap-4">
+              />            </motion.div>
+              {/* Modern Navigation buttons with Learned button in the middle - positioned at bottom */}
+            <div className="fixed bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex justify-center items-center gap-3 sm:gap-4 z-20 p-2">
               {/* Previous button */}              <motion.button
                 onClick={handlePrevious}
-                className="relative group w-12 h-12 flex items-center justify-center"
+                className="relative group w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center"
                 disabled={filteredFlashcards.length <= 1}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -503,11 +481,10 @@ export default function FlashcardsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </span>
-              </motion.button>
-                {/* Learned button in the middle */}
+              </motion.button>                {/* Learned button in the middle */}
               <motion.button
                 onClick={() => filteredFlashcards[activeIndex] && handleMarkLearned(filteredFlashcards[activeIndex].id, !filteredFlashcards[activeIndex].mastered)}
-                className="relative group w-14 h-14 flex items-center justify-center z-10"
+                className="relative group w-14 h-14 sm:w-14 sm:h-14 flex items-center justify-center z-10"
                 disabled={!filteredFlashcards[activeIndex]}
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.9 }}
@@ -532,11 +509,10 @@ export default function FlashcardsPage() {
                     </svg>
                   )}
                 </span>
-              </motion.button>
-                {/* Next button */}
+              </motion.button>                {/* Next button */}
               <motion.button
                 onClick={handleNext}
-                className="relative group w-12 h-12 flex items-center justify-center"
+                className="relative group w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center"
                 disabled={filteredFlashcards.length <= 1}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}

@@ -293,20 +293,6 @@ class SpacedRepetitionService {
     
     return streak;
   }
-
-  /**
-   * Adjust difficulty based on performance
-   * @param {Object} card - Current card data
-   * @returns {string} - Suggested difficulty level
-   */
-  suggestDifficulty(card) {
-    if (!card.averageQuality) return card.difficulty || 'medium';
-    
-    if (card.averageQuality >= 4.5) return 'easy';
-    if (card.averageQuality >= 3.5) return 'medium';
-    return 'hard';
-  }
-
   /**
    * Export user's learning progress
    * @param {Array} cards - Array of flashcards

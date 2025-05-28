@@ -1,243 +1,268 @@
-// AudioService - Centralized AWS Polly audio management with caching
+// AudioService - Centralized audio management with AWS Polly and browser fallback
 'use client';
-
-import AWS from 'aws-sdk';
 
 class AudioService {
   constructor() {
-    this.audioCache = new Map(); // Cache for audio URLs
-    this.synthesisCache = new Map(); // Cache for synthesis promises
-    this.currentAudio = null; // Currently playing audio
+    this.cache = new Map();
     this.isInitialized = false;
-    
-    this.initializeAWS();
+    this.currentAudio = null;
+    this.pollyClient = null;
+    this.initializePolly();
   }
-  initializeAWS() {
-    if (this.isInitialized) return;
-    
-    try {
-      // Configure AWS using environment variables
-      AWS.config.update({
-        region: process.env.NEXT_PUBLIC_AWS_REGION,
-        accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY
-      });
 
-      this.polly = new AWS.Polly();
+  async initializePolly() {
+    try {
+      // Only initialize Polly on the client side with proper environment variables
+      if (typeof window !== 'undefined') {
+        // Check if AWS credentials are available
+        const hasAwsCredentials = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID && 
+                                 process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY && 
+                                 process.env.NEXT_PUBLIC_AWS_REGION;
+        
+        if (hasAwsCredentials) {
+          const AWS = await import('aws-sdk');
+          
+          // Configure AWS
+          AWS.default.config.update({
+            accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
+            region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1'
+          });
+
+          this.pollyClient = new AWS.default.Polly();
+          console.log('AWS Polly initialized successfully');
+        } else {
+          console.log('AWS credentials not available, using browser speech synthesis as fallback');
+        }
+      }
       this.isInitialized = true;
     } catch (error) {
       console.error('Failed to initialize AWS Polly:', error);
+      this.isInitialized = true; // Still mark as initialized to allow fallback
     }
   }
 
-  // Language code mapping for Polly voices
-  languageVoices = {
-    french: { voice: 'Lea', code: 'fr-FR' },
-    spanish: { voice: 'Lucia', code: 'es-ES' },
-    german: { voice: 'Vicki', code: 'de-DE' },
-    italian: { voice: 'Bianca', code: 'it-IT' },
-    portuguese: { voice: 'Camila', code: 'pt-BR' },
-    russian: { voice: 'Tatyana', code: 'ru-RU' },
-    chinese: { voice: 'Zhiyu', code: 'cmn-CN' },
-    japanese: { voice: 'Mizuki', code: 'ja-JP' },
-    korean: { voice: 'Seoyeon', code: 'ko-KR' },
-    english: { voice: 'Joanna', code: 'en-US' }
-  };
-
-  // Generate a unique cache key for the text and language combination
-  generateCacheKey(text, language) {
-    return `${language.toLowerCase()}-${text.toLowerCase().trim()}`;
+  // Get appropriate voice ID for language
+  getVoiceId(language) {
+    const voiceMap = {
+      'french': 'Lea',
+      'spanish': 'Conchita',
+      'german': 'Marlene',
+      'italian': 'Carla',
+      'portuguese': 'Ines',
+      'english': 'Joanna',
+      'chinese': 'Zhiyu',
+      'japanese': 'Mizuki',
+      'korean': 'Seoyeon',
+      'arabic': 'Zeina',
+      'hindi': 'Aditi',
+      'russian': 'Tatyana'
+    };
+    return voiceMap[language?.toLowerCase()] || 'Joanna';
   }
 
-  // Get cached audio URL if it exists
-  getCachedAudio(text, language) {
-    const key = this.generateCacheKey(text, language);
-    return this.audioCache.get(key);
-  }
+  // Play audio using AWS Polly with browser fallback
+  async playAudio(text, language = 'english', options = {}) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Wait for initialization
+        if (!this.isInitialized) {
+          await new Promise(resolve => {
+            const checkInit = () => {
+              if (this.isInitialized) {
+                resolve();
+              } else {
+                setTimeout(checkInit, 100);
+              }
+            };
+            checkInit();
+          });
+        }
 
-  // Store audio URL in cache
-  setCachedAudio(text, language, audioUrl) {
-    const key = this.generateCacheKey(text, language);
-    this.audioCache.set(key, audioUrl);
-    
-    // Limit cache size to prevent memory issues (keep last 100 items)
-    if (this.audioCache.size > 100) {
-      const firstKey = this.audioCache.keys().next().value;
-      const oldUrl = this.audioCache.get(firstKey);
-      if (oldUrl && oldUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(oldUrl);
+        // Stop any currently playing audio
+        this.stop();
+
+        // Try AWS Polly first
+        if (this.pollyClient) {
+          try {
+            const audioData = await this.synthesizeWithPolly(text, language);
+            await this.playAudioData(audioData, options);
+            resolve();
+            return;
+          } catch (pollyError) {
+            console.warn('AWS Polly failed, falling back to browser speech synthesis:', pollyError);
+          }
+        }
+
+        // Fallback to browser speech synthesis
+        await this.playWithBrowserSpeech(text, language, options);
+        resolve();
+
+      } catch (error) {
+        if (options.onError) options.onError(error);
+        reject(error);
       }
-      this.audioCache.delete(firstKey);
-    }
+    });
   }
 
   // Synthesize speech using AWS Polly
-  async synthesizeSpeech(text, language = 'english') {
-    if (!this.isInitialized) {
-      throw new Error('AWS Polly not initialized');
-    }
-
-    const cacheKey = this.generateCacheKey(text, language);
-
-    // Check if synthesis is already in progress
-    if (this.synthesisCache.has(cacheKey)) {
-      return await this.synthesisCache.get(cacheKey);
-    }
-
-    // Check if audio is already cached
-    const cachedUrl = this.getCachedAudio(text, language);
-    if (cachedUrl) {
-      return cachedUrl;
-    }
-
-    // Create synthesis promise and cache it to prevent duplicate calls
-    const synthesisPromise = this._performSynthesis(text, language);
-    this.synthesisCache.set(cacheKey, synthesisPromise);
-
-    try {
-      const audioUrl = await synthesisPromise;
-      this.setCachedAudio(text, language, audioUrl);
-      return audioUrl;
-    } finally {
-      // Remove from synthesis cache once complete
-      this.synthesisCache.delete(cacheKey);
-    }
-  }
-
-  // Internal method to perform the actual synthesis
-  async _performSynthesis(text, language) {
-    const voiceSettings = this.languageVoices[language.toLowerCase()] || this.languageVoices.english;
+  async synthesizeWithPolly(text, language) {
+    const cacheKey = `${text}-${language}`;
     
+    // Check cache first
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
     const params = {
       Text: text,
       OutputFormat: 'mp3',
-      VoiceId: voiceSettings.voice,
-      LanguageCode: voiceSettings.code,
-      Engine: 'neural'
+      VoiceId: this.getVoiceId(language),
+      Engine: 'neural' // Use neural engine for better quality
     };
 
     try {
-      const data = await this.polly.synthesizeSpeech(params).promise();
-      const blob = new Blob([data.AudioStream], { type: 'audio/mp3' });
-      const url = URL.createObjectURL(blob);
-      return url;
+      const data = await this.pollyClient.synthesizeSpeech(params).promise();
+      const audioData = data.AudioStream;
+      
+      // Cache the result
+      this.cache.set(cacheKey, audioData);
+      
+      return audioData;
     } catch (error) {
-      console.error('Error synthesizing speech:', error);
+      console.error('Polly synthesis error:', error);
       throw error;
     }
   }
 
-  // Play audio with built-in controls
-  async playAudio(text, language = 'english', options = {}) {
-    const {
-      onStart = () => {},
-      onEnd = () => {},
-      onError = () => {},
-      stopCurrentAudio = true
-    } = options;
-
-    try {
-      // Stop current audio if requested
-      if (stopCurrentAudio && this.currentAudio) {
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
+  // Play audio data from Polly
+  async playAudioData(audioData, options = {}) {
+    return new Promise((resolve, reject) => {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
+        
+        audioContext.decodeAudioData(arrayBuffer, (buffer) => {
+          const source = audioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(audioContext.destination);
+          
+          this.currentAudio = { source, context: audioContext };
+          
+          source.onended = () => {
+            this.currentAudio = null;
+            if (options.onEnd) options.onEnd();
+            resolve();
+          };
+          
+          if (options.onStart) options.onStart();
+          source.start();
+        }, (error) => {
+          reject(new Error('Failed to decode audio data: ' + error));
+        });
+      } catch (error) {
+        reject(error);
       }
+    });
+  }
 
-      // Get or create audio URL
-      const audioUrl = await this.synthesizeSpeech(text, language);
-      
-      // Create new audio element
-      const audio = new Audio(audioUrl);
-      this.currentAudio = audio;
+  // Fallback to browser speech synthesis
+  async playWithBrowserSpeech(text, language, options = {}) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!('speechSynthesis' in window)) {
+          throw new Error('Speech synthesis not supported');
+        }
 
-      // Set up event listeners
-      audio.onplay = onStart;
-      audio.onended = () => {
-        this.currentAudio = null;
-        onEnd();
-      };
-      audio.onerror = (error) => {
-        this.currentAudio = null;
-        onError(error);
-      };
+        // Cancel any ongoing speech
+        speechSynthesis.cancel();
 
-      // Play the audio
-      await audio.play();
-      return audio;
-    } catch (error) {
-      onError(error);
-      throw error;
-    }
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Set language-specific voice
+        const voices = speechSynthesis.getVoices();
+        let languageCode = language?.toLowerCase();
+        
+        // Map language names to language codes
+        const languageCodeMap = {
+          'french': 'fr',
+          'spanish': 'es',
+          'german': 'de',
+          'italian': 'it',
+          'portuguese': 'pt',
+          'english': 'en',
+          'chinese': 'zh',
+          'japanese': 'ja',
+          'korean': 'ko',
+          'arabic': 'ar',
+          'hindi': 'hi',
+          'russian': 'ru'
+        };
+        
+        if (languageCodeMap[languageCode]) {
+          languageCode = languageCodeMap[languageCode];
+        }
+        
+        const languageVoice = voices.find(voice => 
+          voice.lang.toLowerCase().includes(languageCode || 'en')
+        );
+        
+        if (languageVoice) {
+          utterance.voice = languageVoice;
+        }
+        
+        utterance.rate = 0.8;
+        utterance.pitch = 1;
+        
+        utterance.onstart = () => {
+          if (options.onStart) options.onStart();
+        };
+        
+        utterance.onend = () => {
+          if (options.onEnd) options.onEnd();
+          resolve();
+        };
+        
+        utterance.onerror = (error) => {
+          if (options.onError) options.onError(error);
+          reject(error);
+        };
+        
+        speechSynthesis.speak(utterance);
+      } catch (error) {
+        if (options.onError) options.onError(error);
+        reject(error);
+      }
+    });
   }
 
   // Stop currently playing audio
-  stopAudio() {
+  stop() {
+    // Stop AWS Polly audio
     if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
+      try {
+        this.currentAudio.source.stop();
+        this.currentAudio.context.close();
+      } catch (error) {
+        console.warn('Error stopping Polly audio:', error);
+      }
       this.currentAudio = null;
     }
-  }
-
-  // Check if audio is currently playing
-  isPlaying() {
-    return this.currentAudio && !this.currentAudio.paused;
-  }
-
-  // Get current playing audio element
-  getCurrentAudio() {
-    return this.currentAudio;
-  }
-
-  // Clear all cached audio URLs (useful for memory management)
-  clearCache() {
-    for (const [key, url] of this.audioCache) {
-      if (url && url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
-    }
-    this.audioCache.clear();
-    this.synthesisCache.clear();
-  }
-
-  // Get cache statistics
-  getCacheStats() {
-    return {
-      audioCache: this.audioCache.size,
-      synthesisCache: this.synthesisCache.size,
-      isPlaying: this.isPlaying()
-    };
-  }
-
-  // Preload audio for better performance
-  async preloadAudio(text, language = 'english') {
-    try {
-      await this.synthesizeSpeech(text, language);
-      return true;
-    } catch (error) {
-      console.error('Error preloading audio:', error);
-      return false;
-    }
-  }
-
-  // Batch preload multiple audio files
-  async preloadMultipleAudio(items) {
-    const promises = items.map(({ text, language = 'english' }) => 
-      this.preloadAudio(text, language)
-    );
     
-    try {
-      const results = await Promise.allSettled(promises);
-      const successful = results.filter(result => result.status === 'fulfilled' && result.value).length;
-      return {
-        total: items.length,
-        successful,
-        failed: items.length - successful
-      };
-    } catch (error) {
-      console.error('Error batch preloading audio:', error);
-      return { total: items.length, successful: 0, failed: items.length };
+    // Stop browser speech synthesis
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      speechSynthesis.cancel();
     }
+  }
+
+  // Check if service is ready
+  isReady() {
+    return this.isInitialized;
+  }
+
+  // Clear cache
+  clearCache() {
+    this.cache.clear();
   }
 }
 
@@ -246,15 +271,3 @@ const audioService = new AudioService();
 
 export default audioService;
 export { audioService };
-
-// Named exports for specific functions
-export const {
-  synthesizeSpeech,
-  playAudio,
-  stopAudio,
-  isPlaying,
-  clearCache,
-  getCacheStats,
-  preloadAudio,
-  preloadMultipleAudio
-} = audioService;

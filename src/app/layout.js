@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ThemeProvider>
             <Navigation />
-            <main className="dark:bg-gray-900 min-h-screen pt-16">
+            <main className="min-h-screen pt-16">
               {children}
             </main>
           </ThemeProvider>

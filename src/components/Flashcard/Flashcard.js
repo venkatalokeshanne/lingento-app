@@ -13,11 +13,15 @@ export default function Flashcard({
   backText, 
   imageUrl, 
   category = '', 
-  difficulty = 'medium',
   mastered = false,
   onMasterToggle,
   onQualityRating,
-  language = 'french',
+  language = 'french',  // Additional vocabulary data for examples
+  example,
+  translatedExample,
+  originalWord,
+  translation,
+  pronunciation, // IPA pronunciation notation
   // Spaced repetition props
   easinessFactor,
   repetitionNumber,
@@ -25,29 +29,18 @@ export default function Flashcard({
   nextReviewDate,
   isNew = false,
   showQualityRating = false
-}) {  const [isFlipped, setIsFlipped] = useState(false);
+}) {const [isFlipped, setIsFlipped] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showRating, setShowRating] = useState(false);
-  
-  // Get quality rating options for spaced repetition
-  const qualityOptions = spacedRepetitionService.getQualityRatingOptions();
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'hard': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-    }
-  };
-  const handleAudioPlay = async (e) => {
+    // Get quality rating options for spaced repetition
+  const qualityOptions = spacedRepetitionService.getQualityRatingOptions();const handleAudioPlay = async (e) => {
     e.stopPropagation();
     
     if (isPlaying) {
       // Stop current audio
       try {
-        await audioService.stopAudio();
+        audioService.stop();
         setIsPlaying(false);
       } catch (error) {
         console.error('Error stopping audio:', error);
@@ -56,7 +49,9 @@ export default function Flashcard({
       return;
     }    try {
       setIsLoading(true);
-      await audioService.playAudio(frontText, language, {
+      // Play the original word if we have an example, otherwise play frontText
+      const textToPlay = example ? (originalWord || frontText) : frontText;
+      await audioService.playAudio(textToPlay, language, {
         onStart: () => {
           setIsPlaying(true);
           setIsLoading(false);
@@ -68,37 +63,13 @@ export default function Flashcard({
           console.error('Error playing audio:', error);
           setIsPlaying(false);
           setIsLoading(false);
-          
-          // Fallback to browser speech synthesis
-          if ('speechSynthesis' in window) {
-            try {
-              const utterance = new SpeechSynthesisUtterance(frontText);
-              utterance.lang = language === 'french' ? 'fr-FR' : 
-                               language === 'spanish' ? 'es-ES' :
-                               language === 'german' ? 'de-DE' :
-                               language === 'italian' ? 'it-IT' :
-                               language === 'portuguese' ? 'pt-BR' :
-                               language === 'russian' ? 'ru-RU' :
-                               language === 'chinese' ? 'zh-CN' :
-                               language === 'japanese' ? 'ja-JP' :
-                               language === 'korean' ? 'ko-KR' : 'en-US';
-              
-              utterance.onstart = () => setIsPlaying(true);
-              utterance.onend = () => setIsPlaying(false);
-              utterance.onerror = () => setIsPlaying(false);
-              
-              speechSynthesis.speak(utterance);
-            } catch (fallbackError) {
-              console.error('Fallback speech synthesis failed:', fallbackError);
-            }
-          }
         }
       });
     } catch (error) {
       console.error('Error with audio service:', error);
       setIsLoading(false);
       setIsPlaying(false);
-    }  };
+    }};
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
     // Show quality rating buttons when flipping to the back (answer side)
@@ -136,7 +107,7 @@ export default function Flashcard({
       transition={{ duration: 0.3 }}
       className="w-full max-w-sm mx-auto"
     >
-      <div className="flashcard-container" style={{ perspective: '1000px', height: '500px' }}>
+      <div className="flashcard-container" style={{ perspective: '1000px' }}>
         <div
           {...swipeHandlers}
           className={`flashcard ${isFlipped ? 'flipped' : ''}`}
@@ -166,20 +137,30 @@ export default function Flashcard({
                         </span>
                       )}
                     </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full w-fit ${getDifficultyColor(difficulty)}`}>
-                    {difficulty}
-                  </span>
-                </div>
-              </div>
-
-              {/* Main content */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <h3 className="text-lg sm:text-2xl font-bold text-center text-gray-900 dark:text-white leading-tight">
-                  {frontText}
-                </h3>
+                  )}                </div>
+              </div>{/* Main content */}
+              <div className="flex-1 flex flex-col items-center justify-center">                {example ? (
+                  <div className="text-center space-y-3">
+                    <h3 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                      {frontText}
+                    </h3>
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Example:</p>
+                      <p className="text-base text-gray-700 dark:text-gray-300 italic">
+                        "{example}"
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                      {frontText}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Translate this word
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
@@ -235,13 +216,27 @@ export default function Flashcard({
                     {mastered ? '✓ Mastered' : 'Mark as mastered'}
                   </button>
                 )}
-              </div>
-
-              {/* Main content */}
+              </div>              {/* Main content */}
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-lg sm:text-2xl text-center text-gray-900 dark:text-white font-medium leading-tight">
-                  {backText}
-                </p>
+                {example && translatedExample ? (
+                  <div className="text-center space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                        {translation || backText}
+                      </h3>
+                    </div>
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Example translation:</p>
+                      <p className="text-lg text-gray-900 dark:text-white font-medium italic">
+                        "{translatedExample}"
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-lg sm:text-2xl text-center text-gray-900 dark:text-white font-medium leading-tight">
+                    {backText}
+                  </p>
+                )}
               </div>
 
               {/* Quality Rating Buttons for Spaced Repetition */}

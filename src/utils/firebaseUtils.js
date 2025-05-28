@@ -108,35 +108,76 @@ export const fetchWords = async (currentUser, setWords, setLoading) => {
  * Convert vocabulary words to flashcard format
  */
 export const convertVocabularyToFlashcards = (vocabularyWords) => {
-  return vocabularyWords.map(word => ({
-    id: word.id,
-    frontText: word.word,
-    backText: word.translation,
-    audioSrc: null,
-    imageUrl: null,
-    category: word.language || 'General',
-    difficulty: word.difficulty || 'medium',
-    mastered: word.mastered || false,
-    pronunciation: word.pronunciation,
-    definition: word.definition,
-    example: word.example,
-    originalCategory: word.category,
-    createdAt: word.createdAt,
-    updatedAt: word.updatedAt,    // Spaced repetition fields
-    easinessFactor: word.easinessFactor || 2.5,
-    repetitionNumber: word.repetitionNumber || 0,
-    interval: word.interval || 1,
-    nextReviewDate: word.nextReviewDate || null, // Keep null for new cards
-    lastReviewDate: word.lastReviewDate || null,
-    totalReviews: word.totalReviews || 0,
-    correctStreak: word.correctStreak || 0,
-    incorrectCount: word.incorrectCount || 0,
-    averageQuality: word.averageQuality || 0,
-    qualityHistory: word.qualityHistory || [],    isNew: word.isNew !== undefined ? word.isNew : true,
-    isLearning: word.isLearning || false,
-    isReview: word.isReview || false,
-    isMatured: Boolean(word.isMatured)
-  }));
+  return vocabularyWords.map(word => {    // Function to create a translated example sentence
+    const createTranslatedExample = async (example, originalWord, translation, sourceLanguage = 'french') => {
+      if (!example) return null;
+      
+      try {
+        // Import the translation service
+        const { translateService } = await import('@/services/translateService');
+        
+        // Use the translation service to translate the complete example sentence
+        const result = await translateService.translateText(
+          example, 
+          sourceLanguage, 
+          'english'
+        );
+        
+        if (result && result.translatedText) {
+          return result.translatedText;
+        }
+      } catch (error) {
+        console.error('Error translating example sentence:', error);
+      }
+      
+      // Fallback: simple word replacement if translation service fails
+      let translatedExample = example.replace(
+        new RegExp(`\\b${originalWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), 
+        translation
+      );
+      
+      // If the word wasn't found in the example, create a basic translated version
+      if (translatedExample === example) {
+        translatedExample = `[Translation needed] ${example}`;
+      }
+      
+      return translatedExample;
+    };return {
+      id: word.id,
+      // Always show the word on the front
+      frontText: word.word,
+      // Always show the translation on the back (we'll handle examples separately)
+      backText: word.translation,
+      audioSrc: null,
+      imageUrl: null,      category: word.language || 'General',
+      mastered: word.mastered || false,
+      pronunciation: word.pronunciation,
+      definition: word.definition,
+      example: word.example,
+      translatedExample: createTranslatedExample(word.example, word.word, word.translation),
+      originalWord: word.word,
+      translation: word.translation,
+      originalCategory: word.category,createdAt: word.createdAt,
+            updatedAt: word.updatedAt,
+
+      // Spaced repetition fields
+      easinessFactor: word.easinessFactor || 2.5,
+      repetitionNumber: word.repetitionNumber || 0,
+      interval: word.interval || 1,
+      nextReviewDate: word.nextReviewDate || null, // Keep null for new cards
+      lastReviewDate: word.lastReviewDate || null,
+      totalReviews: word.totalReviews || 0,
+      correctStreak: word.correctStreak || 0,
+      incorrectCount: word.incorrectCount || 0,
+      averageQuality: word.averageQuality || 0,
+      qualityHistory: word.qualityHistory || [],
+
+      isNew: word.isNew !== undefined ? word.isNew : true,
+      isLearning: word.isLearning || false,
+      isReview: word.isReview || false,
+      isMatured: Boolean(word.isMatured)
+    };
+  });
 };
 
 /**
@@ -153,7 +194,8 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
     const vocabularyRef = collection(db, `users/${currentUser.uid}/vocabulary`);
     const q = query(vocabularyRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-      const vocabularyWords = snapshot.docs.map(doc => ({
+    
+    const vocabularyWords = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.() || new Date(),
@@ -162,7 +204,76 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
     console.log('Raw vocabulary data from Firestore:', vocabularyWords);
     console.log('Words with isMatured=true in raw data:', vocabularyWords.filter(word => word.isMatured));
     
-    const flashcards = convertVocabularyToFlashcards(vocabularyWords);
+    // Convert vocabulary to flashcards with complete example translation
+    const flashcards = await Promise.all(vocabularyWords.map(async (word) => {
+      let translatedExample = null;
+      
+      // Translate complete example sentence if it exists
+      if (word.example) {
+        try {
+          const { translateService } = await import('@/services/translateService');
+          const result = await translateService.translateText(
+            word.example, 
+            word.language || 'french', 
+            'english'
+          );
+          
+          if (result && result.translatedText) {
+            translatedExample = result.translatedText;
+          }
+        } catch (error) {
+          console.error('Error translating example sentence:', error);
+          // Fallback: simple word replacement
+          translatedExample = word.example.replace(
+            new RegExp(`\\b${word.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), 
+            word.translation
+          );
+          
+          if (translatedExample === word.example) {
+            translatedExample = `[Translation needed] ${word.example}`;
+          }
+        }
+      }
+
+      return {
+        id: word.id,
+        // Always show the word on the front
+        frontText: word.word,
+        // Always show the translation on the back
+        backText: word.translation,
+        audioSrc: null,
+        imageUrl: null,        category: word.language || 'General',
+        mastered: word.mastered || false,
+        pronunciation: word.pronunciation,
+        definition: word.definition,
+        example: word.example,
+        translatedExample: translatedExample,
+        originalWord: word.word,
+        translation: word.translation,
+        originalCategory: word.category,
+
+        createdAt: word.createdAt,
+        updatedAt: word.updatedAt,
+
+        // Spaced repetition fields
+        easinessFactor: word.easinessFactor || 2.5,
+        repetitionNumber: word.repetitionNumber || 0,
+        interval: word.interval || 1,
+        nextReviewDate: word.nextReviewDate || null,
+        lastReviewDate: word.lastReviewDate || null,
+        totalReviews: word.totalReviews || 0,
+        correctStreak: word.correctStreak || 0,
+        incorrectCount: word.incorrectCount || 0,
+        averageQuality: word.averageQuality || 0,
+        qualityHistory: word.qualityHistory || [],
+
+        isNew: word.isNew !== undefined ? word.isNew : true,
+        isLearning: word.isLearning || false,
+        isReview: word.isReview || false,
+        isMatured: Boolean(word.isMatured)
+      };
+    }));
+    
     setFlashcards(flashcards);
     return flashcards;
   } catch (error) {

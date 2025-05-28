@@ -25,9 +25,13 @@ This document explains how to securely configure the Lingento application with e
 - `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`: Google Analytics measurement ID
 
 ### AWS Configuration
-- `NEXT_PUBLIC_AWS_REGION`: AWS region (e.g., eu-west-3)
+- `NEXT_PUBLIC_AWS_REGION`: AWS region (e.g., us-east-1, eu-west-1)
 - `NEXT_PUBLIC_AWS_ACCESS_KEY_ID`: Your AWS access key ID
 - `NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY`: Your AWS secret access key
+
+**Note**: For AWS Bedrock, ensure your region supports the required models:
+- **Claude 3 Haiku**: Available in us-east-1, us-west-2, and eu-west-1
+- **Required AWS permissions**: bedrock:InvokeModel for Anthropic Claude models
 
 ## Security Best Practices
 
