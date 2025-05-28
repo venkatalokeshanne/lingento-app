@@ -1,0 +1,238 @@
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+
+/**
+ * Fetch documents from a user's subcollection
+ */
+export const fetchUserData = async (currentUser, subcollection, setData, setLoading, setError = null) => {
+  if (!currentUser) return [];
+  
+  setLoading(true);
+  if (setError) setError(null);
+  
+  try {
+    const db = getFirestore();
+    const dataRef = collection(db, `users/${currentUser.uid}/${subcollection}`);
+    const q = query(dataRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+    }));
+    
+    setData(data);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching ${subcollection}:`, error);
+    if (setError) setError(error.message);
+    return [];
+  } finally {
+    setLoading(false);
+  }
+};
+
+/**
+ * Add a new document to a user's subcollection
+ */
+export const addUserData = async (currentUser, subcollection, data) => {
+  if (!currentUser) throw new Error('User not authenticated');
+  
+  const db = getFirestore();
+  const dataRef = collection(db, `users/${currentUser.uid}/${subcollection}`);
+  
+  // Initialize spaced repetition data for vocabulary words
+  const initialData = {
+    ...data,
+    mastered: false, // Initialize mastered as false for new words
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+  
+  // Add spaced repetition fields for vocabulary words
+  if (subcollection === 'vocabulary') {
+    const now = new Date();
+    initialData.easinessFactor = 2.5;
+    initialData.repetitionNumber = 0;
+    initialData.interval = 1;
+    initialData.nextReviewDate = now;
+    initialData.lastReviewDate = null;
+    initialData.totalReviews = 0;
+    initialData.correctStreak = 0;
+    initialData.incorrectCount = 0;
+    initialData.averageQuality = 0;
+    initialData.qualityHistory = [];
+    initialData.isNew = true;
+    initialData.isLearning = false;
+    initialData.isReview = false;
+    initialData.isMatured = false;
+  }
+  
+  const docRef = await addDoc(dataRef, initialData);
+  return docRef.id;
+};
+
+/**
+ * Update a document in a user's subcollection
+ */
+export const updateUserData = async (currentUser, subcollection, docId, data) => {
+  if (!currentUser) throw new Error('User not authenticated');
+  
+  const db = getFirestore();
+  const docRef = doc(db, `users/${currentUser.uid}/${subcollection}`, docId);
+  await updateDoc(docRef, {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+/**
+ * Delete a document from a user's subcollection
+ */
+export const deleteUserData = async (currentUser, subcollection, docId) => {
+  if (!currentUser) throw new Error('User not authenticated');
+  
+  const db = getFirestore();
+  const docRef = doc(db, `users/${currentUser.uid}/${subcollection}`, docId);
+  await deleteDoc(docRef);
+};
+
+/**
+ * Fetch vocabulary words for a user
+ */
+export const fetchWords = async (currentUser, setWords, setLoading) => {
+  return fetchUserData(currentUser, 'vocabulary', setWords, setLoading);
+};
+
+/**
+ * Convert vocabulary words to flashcard format
+ */
+export const convertVocabularyToFlashcards = (vocabularyWords) => {
+  return vocabularyWords.map(word => ({
+    id: word.id,
+    frontText: word.word,
+    backText: word.translation,
+    audioSrc: null,
+    imageUrl: null,
+    category: word.language || 'General',
+    difficulty: word.difficulty || 'medium',
+    mastered: word.mastered || false,
+    pronunciation: word.pronunciation,
+    definition: word.definition,
+    example: word.example,
+    originalCategory: word.category,
+    createdAt: word.createdAt,
+    updatedAt: word.updatedAt,    // Spaced repetition fields
+    easinessFactor: word.easinessFactor || 2.5,
+    repetitionNumber: word.repetitionNumber || 0,
+    interval: word.interval || 1,
+    nextReviewDate: word.nextReviewDate || null, // Keep null for new cards
+    lastReviewDate: word.lastReviewDate || null,
+    totalReviews: word.totalReviews || 0,
+    correctStreak: word.correctStreak || 0,
+    incorrectCount: word.incorrectCount || 0,
+    averageQuality: word.averageQuality || 0,
+    qualityHistory: word.qualityHistory || [],    isNew: word.isNew !== undefined ? word.isNew : true,
+    isLearning: word.isLearning || false,
+    isReview: word.isReview || false,
+    isMatured: Boolean(word.isMatured)
+  }));
+};
+
+/**
+ * Fetch vocabulary words and convert them to flashcards
+ */
+export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, setLoading, setError = null) => {
+  if (!currentUser) return [];
+  
+  setLoading(true);
+  if (setError) setError(null);
+  
+  try {
+    const db = getFirestore();
+    const vocabularyRef = collection(db, `users/${currentUser.uid}/vocabulary`);
+    const q = query(vocabularyRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+      const vocabularyWords = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+    }));
+    
+    console.log('Raw vocabulary data from Firestore:', vocabularyWords);
+    console.log('Words with isMatured=true in raw data:', vocabularyWords.filter(word => word.isMatured));
+    
+    const flashcards = convertVocabularyToFlashcards(vocabularyWords);
+    setFlashcards(flashcards);
+    return flashcards;
+  } catch (error) {
+    console.error('Error fetching vocabulary for flashcards:', error);
+    if (setError) setError(error.message);
+    return [];
+  } finally {
+    setLoading(false);
+  }
+};
+
+/**
+ * Update the mastered status of a vocabulary word
+ */
+export const updateVocabularyMastered = async (currentUser, wordId, mastered) => {
+  if (!currentUser) throw new Error('User not authenticated');
+  
+  const db = getFirestore();
+  const wordRef = doc(db, `users/${currentUser.uid}/vocabulary`, wordId);
+  await updateDoc(wordRef, {
+    mastered: mastered,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+/**
+ * Update the spaced repetition data for a vocabulary word
+ */
+export const updateVocabularySpacedRepetition = async (currentUser, wordId, spacedRepetitionData) => {
+  if (!currentUser) throw new Error('User not authenticated');
+  
+  const db = getFirestore();
+  const wordRef = doc(db, `users/${currentUser.uid}/vocabulary`, wordId);
+  
+  // Extract only the spaced repetition fields we want to save
+  const {
+    easinessFactor,
+    repetitionNumber,
+    interval,
+    nextReviewDate,
+    lastReviewDate,
+    totalReviews,
+    correctStreak,
+    incorrectCount,
+    averageQuality,
+    qualityHistory,
+    isNew,
+    isLearning,
+    isReview,
+    isMatured,
+    mastered
+  } = spacedRepetitionData;
+  
+  await updateDoc(wordRef, {
+    // Spaced repetition fields
+    easinessFactor,
+    repetitionNumber,
+    interval,
+    nextReviewDate,
+    lastReviewDate,
+    totalReviews,
+    correctStreak,
+    incorrectCount,
+    averageQuality,
+    qualityHistory,
+    isNew,
+    isLearning,
+    isReview,
+    isMatured,
+    mastered,
+    updatedAt: serverTimestamp(),
+  });
+};
