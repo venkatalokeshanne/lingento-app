@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build  --no-lint",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf .next out",
+    "build:clean": "npm run clean && npm run build"
   },
   "dependencies": {
     "aws-sdk": "^2.1692.0",
