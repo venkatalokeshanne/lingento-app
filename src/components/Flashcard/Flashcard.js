@@ -125,8 +125,20 @@ const handleAudioPlay = async (e) => {
         setIsPlaying(false);
       }
       return;
-    }    try {
+    }
+
+    try {
       setIsLoading(true);
+      
+      // Check if user interaction is required (mobile)
+      if (audioService.requiresUserInteraction()) {
+        toast.error('Please tap anywhere on the screen first to enable audio on mobile devices', {
+          duration: 3000,
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Play the original word if we have an example, otherwise play frontText
       const textToPlay = example ? (originalWord || frontText) : frontText;
       await audioService.playAudio(textToPlay, language, {
@@ -139,12 +151,36 @@ const handleAudioPlay = async (e) => {
         },
         onError: (error) => {
           console.error('Error playing audio:', error);
+          
+          // Show user-friendly error message for mobile
+          if (error.message && error.message.includes('User interaction required')) {
+            toast.error('Audio requires interaction on mobile. Please tap the screen first!', {
+              duration: 4000,
+            });
+          } else {
+            toast.error('Audio playback failed. Please try again.', {
+              duration: 3000,
+            });
+          }
+          
           setIsPlaying(false);
           setIsLoading(false);
         }
       });
     } catch (error) {
       console.error('Error with audio service:', error);
+      
+      // Show user-friendly error message
+      if (error.message && error.message.includes('User interaction required')) {
+        toast.error('Audio requires user interaction on mobile devices. Please tap anywhere first!', {
+          duration: 4000,
+        });
+      } else {
+        toast.error('Audio service unavailable. Please try again later.', {
+          duration: 3000,
+        });
+      }
+      
       setIsLoading(false);
       setIsPlaying(false);
     }};

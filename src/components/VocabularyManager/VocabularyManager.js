@@ -49,8 +49,7 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
       technology: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
     };
     return icons[category] || icons.vocabulary;
-  };
-  const handleAudioPlay = async (e) => {
+  };  const handleAudioPlay = async (e) => {
     e.stopPropagation();
     
     if (isPlaying) {
@@ -60,6 +59,14 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
     }
     
     try {
+      // Check if user interaction is required (mobile)
+      if (audioService.requiresUserInteraction()) {
+        toast.error('Please tap anywhere on the screen first to enable audio on mobile devices', {
+          duration: 3000,
+        });
+        return;
+      }
+
       await audioService.playAudio(word.word, word.language, {
         onStart: () => {
           setIsPlaying(true);
@@ -69,13 +76,37 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
         },
         onError: (error) => {
           console.error('Error playing audio:', error);
+          
+          // Show user-friendly error message for mobile
+          if (error.message && error.message.includes('User interaction required')) {
+            toast.error('Audio requires interaction on mobile. Please tap the screen first!', {
+              duration: 4000,
+            });
+          } else {
+            toast.error('Audio playback failed. Please try again.', {
+              duration: 3000,
+            });
+          }
+          
           setIsPlaying(false);
         }
       });
     } catch (error) {
       console.error('Error with audio service:', error);
+      
+      // Show user-friendly error message
+      if (error.message && error.message.includes('User interaction required')) {
+        toast.error('Audio requires user interaction on mobile devices. Please tap anywhere first!', {
+          duration: 4000,
+        });
+      } else {
+        toast.error('Audio service unavailable. Please try again later.', {
+          duration: 3000,
+        });
+      }
+      
       setIsPlaying(false);
-    }  };  const handleWordClick = () => {
+    }};  const handleWordClick = () => {
     // Check if the word is a verb and has conjugations
     if (word.conjugations && Object.keys(word.conjugations).length > 0) {
       onShowConjugations(word);
@@ -212,7 +243,6 @@ function ConjugationModal({ isOpen, onClose, word }) {
       onClose();
     }
   };
-
   const handleConjugationAudio = async (conjugatedForm, pronoun, tense) => {
     const audioKey = `${tense}-${pronoun}`;
     
@@ -223,6 +253,14 @@ function ConjugationModal({ isOpen, onClose, word }) {
     }
     
     try {
+      // Check if user interaction is required (mobile)
+      if (audioService.requiresUserInteraction()) {
+        toast.error('Please tap anywhere on the screen first to enable audio on mobile devices', {
+          duration: 3000,
+        });
+        return;
+      }
+
       await audioService.playAudio(conjugatedForm, word.language, {
         onStart: () => {
           setPlayingAudio(audioKey);
@@ -232,11 +270,35 @@ function ConjugationModal({ isOpen, onClose, word }) {
         },
         onError: (error) => {
           console.error('Error playing conjugation audio:', error);
+          
+          // Show user-friendly error message for mobile
+          if (error.message && error.message.includes('User interaction required')) {
+            toast.error('Audio requires interaction on mobile. Please tap the screen first!', {
+              duration: 4000,
+            });
+          } else {
+            toast.error('Audio playback failed. Please try again.', {
+              duration: 3000,
+            });
+          }
+          
           setPlayingAudio(null);
         }
       });
     } catch (error) {
       console.error('Error with conjugation audio service:', error);
+      
+      // Show user-friendly error message
+      if (error.message && error.message.includes('User interaction required')) {
+        toast.error('Audio requires user interaction on mobile devices. Please tap anywhere first!', {
+          duration: 4000,
+        });
+      } else {
+        toast.error('Audio service unavailable. Please try again later.', {
+          duration: 3000,
+        });
+      }
+      
       setPlayingAudio(null);
     }
   };

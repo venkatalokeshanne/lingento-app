@@ -7,9 +7,11 @@ class AudioService {
     this.isInitialized = false;
     this.currentAudio = null;
     this.pollyClient = null;
+    this.audioContext = null;
+    this.isUserInteractionRequired = true;
     this.initializePolly();
+    this.setupUserInteractionHandler();
   }
-
   async initializePolly() {
     try {
       // Only initialize Polly on the client side with proper environment variables
@@ -42,6 +44,60 @@ class AudioService {
     }
   }
 
+  // Setup user interaction handler for mobile audio
+  setupUserInteractionHandler() {
+    if (typeof window === 'undefined') return;
+
+    const enableAudio = async () => {
+      try {
+        // Initialize AudioContext on user interaction for mobile
+        if (!this.audioContext) {
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // Resume AudioContext if suspended (required on mobile)
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
+
+        this.isUserInteractionRequired = false;
+        console.log('Audio enabled after user interaction');
+        
+        // Remove event listeners after first interaction
+        document.removeEventListener('click', enableAudio);
+        document.removeEventListener('touchstart', enableAudio);
+        document.removeEventListener('keydown', enableAudio);
+      } catch (error) {
+        console.warn('Failed to enable audio on user interaction:', error);
+      }
+    };
+
+    // Add event listeners for user interaction
+    document.addEventListener('click', enableAudio, { once: true });
+    document.addEventListener('touchstart', enableAudio, { once: true });
+    document.addEventListener('keydown', enableAudio, { once: true });
+  }
+
+  // Check if audio context is available and ready
+  async ensureAudioContext() {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      return this.audioContext.state === 'running';
+    } catch (error) {
+      console.warn('AudioContext not available:', error);
+      return false;
+    }
+  }
+
   // Get appropriate voice ID for language
   getVoiceId(language) {
     const voiceMap = {
@@ -60,7 +116,6 @@ class AudioService {
     };
     return voiceMap[language?.toLowerCase()] || 'Joanna';
   }
-
   // Play audio using AWS Polly with browser fallback
   async playAudio(text, language = 'english', options = {}) {
     return new Promise(async (resolve, reject) => {
@@ -81,6 +136,16 @@ class AudioService {
 
         // Stop any currently playing audio
         this.stop();
+
+        // Check if user interaction is required for mobile
+        if (this.isUserInteractionRequired) {
+          console.warn('Audio requires user interaction on mobile devices');
+          if (options.onError) {
+            options.onError(new Error('Audio requires user interaction. Please tap anywhere on the screen first.'));
+          }
+          reject(new Error('User interaction required for audio'));
+          return;
+        }
 
         // Try AWS Polly first
         if (this.pollyClient) {
@@ -134,20 +199,24 @@ class AudioService {
       throw error;
     }
   }
-
   // Play audio data from Polly
   async playAudioData(audioData, options = {}) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Ensure AudioContext is ready for mobile
+        const isContextReady = await this.ensureAudioContext();
+        if (!isContextReady) {
+          throw new Error('AudioContext not available or suspended');
+        }
+
         const arrayBuffer = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
         
-        audioContext.decodeAudioData(arrayBuffer, (buffer) => {
-          const source = audioContext.createBufferSource();
+        this.audioContext.decodeAudioData(arrayBuffer, (buffer) => {
+          const source = this.audioContext.createBufferSource();
           source.buffer = buffer;
-          source.connect(audioContext.destination);
+          source.connect(this.audioContext.destination);
           
-          this.currentAudio = { source, context: audioContext };
+          this.currentAudio = { source, context: this.audioContext };
           
           source.onended = () => {
             this.currentAudio = null;
@@ -165,7 +234,6 @@ class AudioService {
       }
     });
   }
-
   // Fallback to browser speech synthesis
   async playWithBrowserSpeech(text, language, options = {}) {
     return new Promise((resolve, reject) => {
@@ -177,76 +245,79 @@ class AudioService {
         // Cancel any ongoing speech
         speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(text);
+        // On mobile, wait a bit for previous speech to clear
+        setTimeout(() => {
+          const utterance = new SpeechSynthesisUtterance(text);
+          
+          // Set language-specific voice
+          const voices = speechSynthesis.getVoices();
+          let languageCode = language?.toLowerCase();
+          
+          // Map language names to language codes
+          const languageCodeMap = {
+            'french': 'fr',
+            'spanish': 'es',
+            'german': 'de',
+            'italian': 'it',
+            'portuguese': 'pt',
+            'english': 'en',
+            'chinese': 'zh',
+            'japanese': 'ja',
+            'korean': 'ko',
+            'arabic': 'ar',
+            'hindi': 'hi',
+            'russian': 'ru'
+          };
+          
+          if (languageCodeMap[languageCode]) {
+            languageCode = languageCodeMap[languageCode];
+          }
+          
+          const languageVoice = voices.find(voice => 
+            voice.lang.toLowerCase().includes(languageCode || 'en')
+          );
+          
+          if (languageVoice) {
+            utterance.voice = languageVoice;
+          }
+          
+          utterance.rate = 0.8;
+          utterance.pitch = 1;
+          
+          utterance.onstart = () => {
+            if (options.onStart) options.onStart();
+          };
+          
+          utterance.onend = () => {
+            if (options.onEnd) options.onEnd();
+            resolve();
+          };
+          
+          utterance.onerror = (error) => {
+            if (options.onError) options.onError(error);
+            reject(error);
+          };
+          
+          speechSynthesis.speak(utterance);
+        }, 100); // Small delay for mobile compatibility
         
-        // Set language-specific voice
-        const voices = speechSynthesis.getVoices();
-        let languageCode = language?.toLowerCase();
-        
-        // Map language names to language codes
-        const languageCodeMap = {
-          'french': 'fr',
-          'spanish': 'es',
-          'german': 'de',
-          'italian': 'it',
-          'portuguese': 'pt',
-          'english': 'en',
-          'chinese': 'zh',
-          'japanese': 'ja',
-          'korean': 'ko',
-          'arabic': 'ar',
-          'hindi': 'hi',
-          'russian': 'ru'
-        };
-        
-        if (languageCodeMap[languageCode]) {
-          languageCode = languageCodeMap[languageCode];
-        }
-        
-        const languageVoice = voices.find(voice => 
-          voice.lang.toLowerCase().includes(languageCode || 'en')
-        );
-        
-        if (languageVoice) {
-          utterance.voice = languageVoice;
-        }
-        
-        utterance.rate = 0.8;
-        utterance.pitch = 1;
-        
-        utterance.onstart = () => {
-          if (options.onStart) options.onStart();
-        };
-        
-        utterance.onend = () => {
-          if (options.onEnd) options.onEnd();
-          resolve();
-        };
-        
-        utterance.onerror = (error) => {
-          if (options.onError) options.onError(error);
-          reject(error);
-        };
-        
-        speechSynthesis.speak(utterance);
       } catch (error) {
         if (options.onError) options.onError(error);
         reject(error);
       }
     });
   }
-
   // Stop currently playing audio
   stop() {
     // Stop AWS Polly audio
     if (this.currentAudio) {
       try {
         this.currentAudio.source.stop();
-        this.currentAudio.context.close();
+        // Don't close the shared AudioContext, just disconnect
+        this.currentAudio = null;
       } catch (error) {
         console.warn('Error stopping Polly audio:', error);
       }
-      this.currentAudio = null;
     }
     
     // Stop browser speech synthesis
@@ -260,9 +331,23 @@ class AudioService {
     return this.isInitialized;
   }
 
+  // Check if user interaction is still required
+  requiresUserInteraction() {
+    return this.isUserInteractionRequired;
+  }
+
   // Clear cache
   clearCache() {
     this.cache.clear();
+  }
+
+  // Clean up resources
+  cleanup() {
+    this.stop();
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
   }
 }
 
