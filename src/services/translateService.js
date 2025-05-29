@@ -241,19 +241,22 @@ class TranslateService {  constructor() {
   getLanguageCode(language) {
     return this.languageCodes[language.toLowerCase()] || this.languageCodes.english;
   }  // Validate text for translation (optimize for free tier usage)
-  isValidTextForTranslation(text) {
+  isValidTextForTranslation(text, allowShort = false) {
     if (!text || typeof text !== 'string') return false;
     
     const trimmedText = text.trim();
     
-    // Skip empty or very short text
-    if (trimmedText.length < 2) return false;
+    // Skip empty text
+    if (trimmedText.length === 0) return false;
+    
+    // Skip very short text unless explicitly allowed
+    if (!allowShort && trimmedText.length < 2) return false;
     
     // Skip if it's just numbers, spaces, or special characters
     if (/^[\d\s\W]*$/.test(trimmedText)) return false;
     
-    // Skip if it's just a single character
-    if (trimmedText.length === 1) return false;
+    // Skip if it's just a single character (unless explicitly allowed)
+    if (!allowShort && trimmedText.length === 1) return false;
     
     // Skip if it contains only spaces and punctuation
     if (!/[a-zA-ZÀ-ÿ\u0100-\u017F\u0400-\u04FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(trimmedText)) return false;
@@ -270,10 +273,10 @@ class TranslateService {  constructor() {
     
     if (!this.isInitialized) {
       throw new Error('DeepL translator not initialized');
-    }
-
-    // Validate text for translation to avoid wasting API calls
-    if (!this.isValidTextForTranslation(text)) {
+    }    // Validate text for translation to avoid wasting API calls
+    // For vocabulary items, we want to allow shorter texts
+    const isVocabularyWord = text && text.trim().split(/\s+/).length === 1;
+    if (!this.isValidTextForTranslation(text, isVocabularyWord)) {
       throw new Error('Text is not suitable for translation');
     }
 
@@ -518,8 +521,8 @@ class TranslateService {  constructor() {
     }));
   }// Simple translate from specified language to English with optimization
   async simpleTranslate(inputText, sourceLanguage) {
-    // Validate input text
-    if (!this.isValidTextForTranslation(inputText)) {
+    // Validate input text - allow short words for vocabulary
+    if (!this.isValidTextForTranslation(inputText, true)) {
       throw new Error('Input text is not suitable for translation');
     }
 

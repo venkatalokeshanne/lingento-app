@@ -229,19 +229,26 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
     // Convert vocabulary to flashcards with complete example translation
     const flashcards = await Promise.all(vocabularyWords.map(async (word) => {
       let translatedExample = null;
-      
-      // Translate complete example sentence if it exists
+        // Translate complete example sentence if it exists
       if (word.example) {
         try {
           const { translateService } = await import('@/services/translateService');
-          const result = await translateService.translateText(
-            word.example, 
-            word.language || 'french', 
-            'english'
-          );
           
-          if (result && result.translatedText) {
-            translatedExample = result.translatedText;
+          // Check if the text is valid for translation first
+          if (!translateService.isValidTextForTranslation(word.example)) {
+            console.log(`Example text not suitable for translation: "${word.example}"`);
+            // Use fallback for invalid text
+            translatedExample = `[Translation needed] ${word.example}`;
+          } else {
+            const result = await translateService.translateText(
+              word.example, 
+              word.language || 'french', 
+              'english'
+            );
+            
+            if (result && result.translatedText) {
+              translatedExample = result.translatedText;
+            }
           }
         } catch (error) {
           console.error('Error translating example sentence:', error);

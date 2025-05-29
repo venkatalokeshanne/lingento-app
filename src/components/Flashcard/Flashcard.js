@@ -86,7 +86,6 @@ export default function Flashcard({
       setIsGeneratingExamples(false);
     }
   };
-
   // Use a generated example
   const useExample = async (exampleText) => {
     try {
@@ -97,12 +96,19 @@ export default function Flashcard({
         const { translateService } = await import(
           "@/services/translateService"
         );
-        const result = await translateService.translateText(
-          exampleText,
-          language,
-          "english"
-        );
-        translatedText = result?.translatedText || "";
+        
+        // Check if text is valid for translation before trying to translate
+        if (translateService.isValidTextForTranslation(exampleText)) {
+          const result = await translateService.translateText(
+            exampleText,
+            language,
+            "english"
+          );
+          translatedText = result?.translatedText || "";
+        } else {
+          console.log(`Example text not suitable for translation: "${exampleText}"`);
+          translatedText = `[Translation needed] ${exampleText}`;
+        }
       } catch (translateError) {
         console.warn("Could not translate example:", translateError);
       }

@@ -559,26 +559,48 @@ function WordModal({ word, language, onAddToVocabulary, onClose }) {
   // Generate word data with translation service
  // Generate word data with translation service and AI enhancement
 const generateWordData = async () => {
-  setIsLoading(true);
-  try {
-    // Clean the word (remove any punctuation)
+  setIsLoading(true);  try {    // Clean the word (remove any punctuation)
     const cleanWord = word.replace(/[.,!?;:"()]/g, "").trim();
     
-    // Use translation service to get the translation
-    const result = await translateService.simpleTranslate(cleanWord, language);
+    // Store translation result for later use
+    let translationResult = null;
     
-    // Update word data with translation
-    setWordData((prev) => ({
-      ...prev,
-      word: cleanWord,
-      translation: result.translation,
-    }));
+    // Use translation service to get the translation
+    try {
+      // Check first if text is valid for translation
+      if (!translateService.isValidTextForTranslation(cleanWord, true)) {
+        console.log(`Word not suitable for translation: "${cleanWord}"`);
+        // Still keep the word but mark that translation failed
+        setWordData((prev) => ({
+          ...prev,
+          word: cleanWord,
+          translation: "[Translation needed]",
+        }));
+      } else {
+        translationResult = await translateService.simpleTranslate(cleanWord, language);
+        
+        // Update word data with translation
+        setWordData((prev) => ({
+          ...prev,
+          word: cleanWord,
+          translation: translationResult.translation,
+        }));
+      }
+    } catch (translationError) {
+      console.error("Translation error in WordModal:", translationError);
+      // Still keep the word but mark that translation failed
+      setWordData((prev) => ({
+        ...prev,
+        word: cleanWord,
+        translation: "[Translation needed]",
+      }));
+    }
     
     // Now use AI to enhance the word data with pronunciation, definition and example
     try {
       const pronunciation = await bedrockService.generatePronunciation(
         cleanWord,
-        'French'
+        language // Use the proper language passed from props
       );
 
     //   const aiResponse = await bedrockService.generateText(prompt);
@@ -593,8 +615,8 @@ const generateWordData = async () => {
     //   const aiData = JSON.parse(cleanJson);
       const examples = await bedrockService.generateExamples(
         cleanWord,
-        result.translation,
-        "French",
+        translationResult ? translationResult.translation : cleanWord,
+        language,
         "",
         'intermediate'
       );
@@ -609,16 +631,15 @@ const generateWordData = async () => {
     } catch (aiError) {
       console.error("AI enhancement error:", aiError);
       // Continue with just the translation if AI enhancement fails
-    }
-  } catch (error) {
-    console.error("Translation error:", error);
-    toast.error("Translation failed. Please try again.");
+    }  } catch (error) {
+    console.error("Word data generation error:", error);
+    toast.error("Could not generate complete word data. Some features may be limited.");
     
-    // If translation fails, just keep the original word
+    // If the whole process fails, just keep the original word
     setWordData((prev) => ({
       ...prev,
       word: word,
-      translation: "",
+      translation: "[Translation needed]",
     }));
   } finally {
     setIsLoading(false);
