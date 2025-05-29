@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { fetchWords, addUserData, updateUserData, deleteUserData } from '@/utils/firebaseUtils';
 import { audioService } from '@/services/audioService';
@@ -1149,7 +1150,8 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
 }
 
 export default function VocabularyManager() {
-  const { currentUser } = useAuth();  const [words, setWords] = useState([]);
+  const { currentUser } = useAuth();
+  const { language: userLanguage, loading: prefsLoading } = useUserPreferences();const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
@@ -1170,20 +1172,29 @@ export default function VocabularyManager() {
     definition: '',
     example: '',
     category: 'vocabulary',
-    language: 'french',
+    language: userLanguage || 'french',
   });
     // State for AI generation functionality
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [isAutoGenerating, setIsAutoGenerating] = useState(false);
   
   // Extract unique filter values
-  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);
-  // Fetch words on component mount
+  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);  // Fetch words on component mount
   useEffect(() => {
     if (currentUser) {
       fetchWords(currentUser, setWords, setLoading);
     }
-  }, [currentUser]);  // Auto-generate pronunciation and example for new words
+  }, [currentUser]);
+
+  // Update form language when user preferences change
+  useEffect(() => {
+    if (userLanguage && !editingWord) {
+      setFormData(prev => ({
+        ...prev,
+        language: userLanguage
+      }));
+    }
+  }, [userLanguage, editingWord]);// Auto-generate pronunciation and example for new words
   const autoGenerateContent = async (wordData) => {
     const updatedData = { ...wordData };
     
@@ -1311,8 +1322,7 @@ export default function VocabularyManager() {
         // Add new word
         await addUserData(currentUser, 'vocabulary', saveData);
         toast.success('Word added successfully!');
-      }
-        // Reset form
+      }        // Reset form
       setFormData({
         word: '',
         translation: '',
@@ -1320,7 +1330,7 @@ export default function VocabularyManager() {
         definition: '',
         example: '',
         category: 'vocabulary',
-        language: 'french',
+        language: userLanguage || 'french',
       });
       
       setShowModal(false);
@@ -1356,7 +1366,6 @@ export default function VocabularyManager() {
     });
     setShowModal(true);
   };
-
   // Handle add new word
   const handleAddWord = () => {
     setEditingWord(null);    setFormData({
@@ -1366,7 +1375,7 @@ export default function VocabularyManager() {
       definition: '',
       example: '',
       category: 'vocabulary',
-      language: 'french',    });
+      language: userLanguage || 'french',    });
     setShowModal(true);
   };
 

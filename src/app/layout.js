@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import Navigation from "@/components/Navigation";
 
 const geistSans = Geist({
@@ -27,10 +28,12 @@ export default function RootLayout({ children }) {
       >
         <AuthProvider>
           <ThemeProvider>
-            <Navigation />
-            <main className="min-h-screen pt-16">
-              {children}
-            </main>
+            <UserPreferencesProvider>
+              <Navigation />
+              <main className="min-h-screen pt-16">
+                {children}
+              </main>
+            </UserPreferencesProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

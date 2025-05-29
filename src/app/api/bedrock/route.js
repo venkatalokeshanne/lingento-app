@@ -21,32 +21,39 @@ export async function POST(request) {
         !process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       console.error('Missing AWS credentials');
-      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });
-    }    const { action, word, translation, language, definition, partOfSpeech } = await request.json();
-    console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech });
+      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId } = await request.json();
+    console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });
 
-    if (!word || !language) {
+    // For generate action, we need a prompt instead of word/language
+    if (action === 'generate' && !prompt) {
+      return Response.json({ error: 'Missing required parameter: prompt' }, { status: 400 });
+    }
+
+    if (action !== 'generate' && (!word || !language)) {
       return Response.json({ error: 'Missing required parameters (word and language)' }, { status: 400 });
     }
 
-    let prompt;
-    let maxTokens = 500;
-
-    switch (action) {      case 'examples':
-        prompt = buildExamplePrompt(word, translation, language, definition);
+    let aiPrompt;
+    let maxTokens = 500;    switch (action) {
+      case 'generate':
+        aiPrompt = prompt;
+        maxTokens = 1000; // Allow more tokens for reading/writing content
+        break;
+      case 'examples':
+        aiPrompt = buildExamplePrompt(word, translation, language, definition);
         break;
       case 'definition':
         // Check if it's a verb and if conjugation is requested
         if (partOfSpeech?.toLowerCase() === 'verb' || definition?.toLowerCase().includes('verb')) {
-          prompt = buildVerbConjugationPrompt(word, language, translation);
+          aiPrompt = buildVerbConjugationPrompt(word, language, translation);
           maxTokens = 800;
         } else {
-          prompt = buildDefinitionPrompt(word, language, translation);
+          aiPrompt = buildDefinitionPrompt(word, language, translation);
           maxTokens = 400;
         }
         break;
       case 'pronunciation':
-        prompt = buildPronunciationPrompt(word, language);
+        aiPrompt = buildPronunciationPrompt(word, language);
         maxTokens = 150;
         break;
       default:
@@ -71,11 +78,10 @@ export async function POST(request) {
           body: JSON.stringify({
             anthropic_version: 'bedrock-2023-05-31',
             max_tokens: maxTokens,
-            temperature: action === 'examples' ? 0.7 : 0.3,
-            messages: [
+            temperature: action === 'examples' ? 0.7 : 0.3,            messages: [
               {
                 role: 'user',
-                content: prompt
+                content: aiPrompt
               }
             ]
           }),

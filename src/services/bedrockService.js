@@ -52,9 +52,59 @@ class BedrockService {
       
       // Return fallback examples if there's any error
       console.log('Generating fallback examples due to error');
-      return this.generateFallbackExamples(word, translation, language);
+      return this.generateFallbackExamples(word, translation, language);    }
+  }  // Generate text based on a prompt
+  async generateText(prompt) {
+    // For text generation, we NEVER cache to ensure unique content every time
+    // Add multiple randomness factors to guarantee uniqueness
+    const timestamp = new Date().getTime();
+    const randomSalt = Math.random().toString(36).substring(2, 15);
+    const sessionId = Math.random() * 1000000;
+    
+    // Enhance prompt with uniqueness guarantees
+    const enhancedPrompt = `${prompt}
+
+ABSOLUTE UNIQUENESS REQUIREMENT: Generate content that is completely different from any previous generation. Session ID: ${sessionId}, Timestamp: ${timestamp}, Salt: ${randomSalt}
+
+This must be a BRAND NEW response that has never been generated before.`;
+    
+    try {
+      const response = await fetch('/api/bedrock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        body: JSON.stringify({
+          action: 'generate',
+          prompt: enhancedPrompt,
+          temperature: 0.9, // High temperature for more creativity
+          timestamp: timestamp,
+          sessionId: sessionId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Bedrock API error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate text');
+      }
+
+      const data = await response.json();
+      const result = data.result;
+      
+      // DO NOT cache text generation results to ensure uniqueness
+      console.log('Generated unique text for session:', sessionId);
+      
+      return result;
+    } catch (error) {
+      console.error('Error generating text:', error);
+      throw error;
     }
   }
+
   // Generate enhanced definition for a word (with conjugation support for verbs)
   async generateDefinition(word, language, translation = '', partOfSpeech = '', context = '') {
     const cacheKey = `definition_${word}_${language}_${partOfSpeech}`;

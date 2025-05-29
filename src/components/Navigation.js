@@ -18,7 +18,6 @@ export default function Navigation() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef(null);
-
   const navigationItems = [
     { 
       name: 'Dashboard', 
@@ -37,6 +36,12 @@ export default function Navigation() {
       href: '/flashcards', 
       icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z',
       description: 'Practice and learn'
+    },
+    { 
+      name: 'Reading & Writing', 
+      href: '/reading-writing', 
+      icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z',
+      description: 'AI-powered reading and writing practice'
     },
   ];
 

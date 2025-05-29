@@ -5,12 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Flashcard from '@/components/Flashcard/Flashcard';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { fetchVocabularyAsFlashcards, updateVocabularyMastered, updateVocabularySpacedRepetition, addUserData, updateUserData } from '@/utils/firebaseUtils';
 import { spacedRepetitionService } from '@/services/spacedRepetitionService';
 import '@/components/Flashcard/flashcard.css';
 
 export default function FlashcardsPage() {
   const { currentUser, logout } = useAuth();
+  const { userPreferences } = useUserPreferences();
   const router = useRouter();
     // State management
   const [allFlashcards, setAllFlashcards] = useState([]);
@@ -443,10 +445,14 @@ export default function FlashcardsPage() {
                 frontText={filteredFlashcards[activeIndex].frontText}
                 backText={filteredFlashcards[activeIndex].backText}
                 audioSrc={filteredFlashcards[activeIndex].audioSrc}
-                imageUrl={filteredFlashcards[activeIndex].imageUrl}                category={filteredFlashcards[activeIndex].category}
+                imageUrl={filteredFlashcards[activeIndex].imageUrl}
+                category={filteredFlashcards[activeIndex].category}
                 mastered={filteredFlashcards[activeIndex].mastered}
                 onMasterToggle={handleMarkLearned}
-                onQualityRating={handleQualityRating}                // Additional vocabulary data for examples
+                onQualityRating={handleQualityRating}
+                // User language preference
+                language={userPreferences?.learningLanguage || 'french'}
+                // Additional vocabulary data for examples
                 example={filteredFlashcards[activeIndex].example}
                 translatedExample={filteredFlashcards[activeIndex].translatedExample}
                 originalWord={filteredFlashcards[activeIndex].originalWord}
