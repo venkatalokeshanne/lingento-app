@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { fetchWords, addUserData, updateUserData, deleteUserData } from '@/utils/firebaseUtils';
 import { audioService } from '@/services/audioService';
@@ -11,32 +10,10 @@ import { bedrockService } from '@/services/bedrockService';
 import TranslationUsageMonitor from '@/components/TranslationUsageMonitor';
 import toast, { Toaster } from 'react-hot-toast';
 
-// Clean pronunciation by extracting only the phonetic part in parentheses
-const cleanPronunciation = (pronunciation) => {
-  if (!pronunciation) return '';
-  
-  // Remove IPA notation (anything between forward slashes) and keep only phonetic pronunciation in parentheses
-  // Example: "/sa-'ly/ (sah-LÜEE)" becomes "sah-LÜEE"
-  const match = pronunciation.match(/\(([^)]+)\)/);
-  if (match) {
-    return match[1]; // Return just the content inside parentheses
-  }
-  
-  // If no parentheses found, but has forward slashes, remove everything before the first space after closing slash
-  if (pronunciation.includes('/')) {
-    const afterSlash = pronunciation.replace(/^[^/]*\/[^/]*\/\s*/, '');
-    if (afterSlash && afterSlash !== pronunciation) {
-      return afterSlash.replace(/^\(|\)$/g, ''); // Remove wrapping parentheses if any
-    }
-  }
-  
-  // Fallback: return as-is if no pattern matches
-  return pronunciation;
-};
-
 // Enhanced WordCard Component with modern design
 function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioError, setAudioError] = useState(false);
 
   const getCategoryIcon = (category) => {
     const icons = {
@@ -50,7 +27,9 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
       technology: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
     };
     return icons[category] || icons.vocabulary;
-  };  const handleAudioPlay = async (e) => {
+  };
+  
+  const handleAudioPlay = async (e) => {
     e.stopPropagation();
     
     if (isPlaying) {
@@ -59,15 +38,19 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
       return;
     }
     
+    setAudioError(false);
+    
+    // Check if user interaction is needed (mainly for mobile)
+    if (audioService.requiresUserInteraction()) {
+      toast.error("Tap anywhere on screen to enable audio on mobile", {
+        duration: 3000,
+        icon: '🔊',
+      });
+      setAudioError(true);
+      return;
+    }
+    
     try {
-      // Check if user interaction is required (mobile)
-      if (audioService.requiresUserInteraction()) {
-        toast.error('Please tap anywhere on the screen first to enable audio on mobile devices', {
-          duration: 3000,
-        });
-        return;
-      }
-
       await audioService.playAudio(word.word, word.language, {
         onStart: () => {
           setIsPlaying(true);
@@ -77,53 +60,51 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
         },
         onError: (error) => {
           console.error('Error playing audio:', error);
+          setIsPlaying(false);
+          setAudioError(true);
           
-          // Show user-friendly error message for mobile
-          if (error.message && error.message.includes('User interaction required')) {
-            toast.error('Audio requires interaction on mobile. Please tap the screen first!', {
-              duration: 4000,
+          // Show user-friendly error for mobile audio issues
+          if (error.code === "USER_INTERACTION_REQUIRED") {
+            toast.error("Tap anywhere on screen to enable audio on mobile", {
+              duration: 3000,
+              icon: '🔊',
             });
           } else {
-            toast.error('Audio playback failed. Please try again.', {
+            toast.error("Couldn't play audio. Try again later.", {
               duration: 3000,
             });
           }
-          
-          setIsPlaying(false);
         }
       });
     } catch (error) {
       console.error('Error with audio service:', error);
-      
-      // Show user-friendly error message
-      if (error.message && error.message.includes('User interaction required')) {
-        toast.error('Audio requires user interaction on mobile devices. Please tap anywhere first!', {
-          duration: 4000,
-        });
-      } else {
-        toast.error('Audio service unavailable. Please try again later.', {
-          duration: 3000,
-        });
-      }
-      
       setIsPlaying(false);
-    }};  const handleWordClick = () => {
+      setAudioError(true);
+      
+      toast.error("Audio playback failed. Please try again.", {
+        duration: 3000,
+      });
+    }
+  };
+  
+  const handleWordClick = () => {
     // Check if the word is a verb and has conjugations
     if (word.conjugations && Object.keys(word.conjugations).length > 0) {
       onShowConjugations(word);
     }
   };
-  return (
+    return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="group bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 overflow-hidden flex flex-col h-full"
-    >      {/* Card Header */}
-      <div className="p-2 flex-1 flex flex-col">        {/* Header with word, audio, and action buttons in same line */}
+      className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 overflow-hidden flex flex-col h-full transform hover:-translate-y-1"    >
+      {/* Card Header */}
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Header with word, audio, and action buttons */}
         <div className="flex items-start justify-between gap-2 mb-3">
           {/* Left side: Word, Pronunciation and Audio */}
-          <div className="flex-1 border-l-4 border-blue-500 pl-3">
+          <div className="flex-1 border-l-3 border-blue-500 pl-3">
             <div className="flex items-center gap-2 mb-1">
               <h3 
                 className={`font-bold text-xl text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${
@@ -135,33 +116,33 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
                 {word.word}
               </h3>
               <button
-              onClick={handleAudioPlay}
-              className={`p-1 rounded-full transition-all ${
-                isPlaying 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 scale-110' 
-                  : 'text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-              }`}
-              title="Play pronunciation"
-            >
-              {isPlaying ? (
-                <motion.svg 
-                  animate={{ scale: [1, 1.2, 1] }} 
-                  transition={{ repeat: Infinity, duration: 0.8 }}
-                  className="w-4 h-4" 
-                  fill="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </motion.svg>
-              ) : (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>                </svg>
-              )}
-            </button>
+                onClick={handleAudioPlay}
+                className={`p-1.5 rounded-full transition-all ${
+                  isPlaying 
+                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 scale-110' 
+                    : 'text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                }`}
+                title="Play pronunciation"
+              >
+                {isPlaying ? (
+                  <motion.svg 
+                    animate={{ scale: [1, 1.2, 1] }} 
+                    transition={{ repeat: Infinity, duration: 0.8 }}                    className="w-4 h-4" 
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                  </motion.svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                  </svg>
+                )}
+              </button>
             </div>
-            {/* Pronunciation display - prominently below the word */}
+            {/* Pronunciation display */}
             {word.pronunciation && (
-              <div className="text-sm text-blue-600 dark:text-blue-400 font-medium italic bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-800 mb-2">
+              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium italic bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-800 mb-2">
                 /{word.pronunciation}/
               </div>
             )}
@@ -171,7 +152,7 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => onEdit(word)}
-              className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
               title="Edit"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,27 +161,26 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
             </button>
             <button
               onClick={() => onDelete(word.id)}
-              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
               title="Delete"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+              </svg>
             </button>
           </div>
-        </div>
-
-        {/* Translation Section */}
+        </div>        {/* Translation Section */}
         <div className="mb-3">
-          <p className="text-gray-700 dark:text-gray-200 text-base font-medium bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border-l-4 border-emerald-500">
+          <p className="text-gray-700 dark:text-gray-200 text-base leading-relaxed font-medium bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border-l-3 border-emerald-500">
             {word.translation}
           </p>
         </div>
         
         {/* Main content area */}
-        <div className="flex-1 flex flex-col">          {/* Example */}
+        <div className="flex-1 flex flex-col">
+          {/* Example */}
           {word.example && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 italic mb-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 italic mb-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               "{word.example}"
             </p>
           )}
@@ -208,20 +188,20 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
       </div>
 
       {/* Card Footer - Tags positioned at bottom */}
-      <div className="px-3 pb-3 mt-auto">
+      <div className="px-4 pb-4 mt-auto">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getCategoryIcon(word.category)} />
             </svg>
             {word.category}
           </span>
-          <span className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
+          <span className="inline-flex items-center px-2.5 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
             {word.language}
           </span>
           {/* Show verb indicator if has conjugations */}
           {word.conjugations && Object.keys(word.conjugations).length > 0 && (
-            <span className="inline-flex items-center px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+            <span className="inline-flex items-center px-2.5 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors font-medium"
                   onClick={handleWordClick}
                   title="Click to view conjugations">
               Verb ✏️
@@ -244,6 +224,7 @@ function ConjugationModal({ isOpen, onClose, word }) {
       onClose();
     }
   };
+
   const handleConjugationAudio = async (conjugatedForm, pronoun, tense) => {
     const audioKey = `${tense}-${pronoun}`;
     
@@ -254,14 +235,6 @@ function ConjugationModal({ isOpen, onClose, word }) {
     }
     
     try {
-      // Check if user interaction is required (mobile)
-      if (audioService.requiresUserInteraction()) {
-        toast.error('Please tap anywhere on the screen first to enable audio on mobile devices', {
-          duration: 3000,
-        });
-        return;
-      }
-
       await audioService.playAudio(conjugatedForm, word.language, {
         onStart: () => {
           setPlayingAudio(audioKey);
@@ -271,35 +244,11 @@ function ConjugationModal({ isOpen, onClose, word }) {
         },
         onError: (error) => {
           console.error('Error playing conjugation audio:', error);
-          
-          // Show user-friendly error message for mobile
-          if (error.message && error.message.includes('User interaction required')) {
-            toast.error('Audio requires interaction on mobile. Please tap the screen first!', {
-              duration: 4000,
-            });
-          } else {
-            toast.error('Audio playback failed. Please try again.', {
-              duration: 3000,
-            });
-          }
-          
           setPlayingAudio(null);
         }
       });
     } catch (error) {
       console.error('Error with conjugation audio service:', error);
-      
-      // Show user-friendly error message
-      if (error.message && error.message.includes('User interaction required')) {
-        toast.error('Audio requires user interaction on mobile devices. Please tap anywhere first!', {
-          duration: 4000,
-        });
-      } else {
-        toast.error('Audio service unavailable. Please try again later.', {
-          duration: 3000,
-        });
-      }
-      
       setPlayingAudio(null);
     }
   };
@@ -460,39 +409,30 @@ function ConjugationModal({ isOpen, onClose, word }) {
 }
 
 // Enhanced Add/Edit Word Modal
-function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormData, isAutoGenerating }) {
+function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormData }) {
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
-  const [showExamples, setShowExamples] = useState(false);  const [isTranslating, setIsTranslating] = useState(false);
-  const [translationTimeout, setTranslationTimeout] = useState(null);
-  const [pronunciationTimeout, setPronunciationTimeout] = useState(null);
-  const [examplesTimeout, setExamplesTimeout] = useState(null);  const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationTimeout, setTranslationTimeout] = useState(null);  const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
   const [generatedDefinition, setGeneratedDefinition] = useState('');
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
   
-  // Track current word to prevent race conditions
-  const currentWordRef = useRef('');
-  
-  if (!isOpen) return null;  // Auto-translate functionality
+  if (!isOpen) return null;
+  // Auto-translate functionality
   const autoTranslate = async (word, sourceLanguage) => {
     if (!word || word.length < 2 || !sourceLanguage) return;
-    
-    // Check if we're still working on the same word
-    if (currentWordRef.current !== word) return;
     
     setIsTranslating(true);
     try {
       const result = await translateService.translateText(word, sourceLanguage, 'english');
       if (result && result.translatedText) {
-        // Final check before updating
-        if (currentWordRef.current === word) {
-          setFormData(prev => ({ 
-            ...prev, 
-            translation: result.translatedText 
-          }));
-          toast.success('Translation completed!');
-        }
+        setFormData(prev => ({ 
+          ...prev, 
+          translation: result.translatedText 
+        }));
+        toast.success('Translation completed!');
       }
     } catch (error) {
       console.error('Auto-translation failed:', error);
@@ -500,165 +440,35 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
     } finally {
       setIsTranslating(false);
     }
-  };  // Auto-pronunciation functionality
-  const autoPronunciation = async (word, sourceLanguage) => {
-    if (!word || word.length < 2 || !sourceLanguage || !bedrockService.isReady()) return;
-    
-    // Check if we're still working on the same word
-    if (currentWordRef.current !== word) return;
-    
-    setIsGeneratingPronunciation(true);
-    try {
-      const pronunciation = await bedrockService.generatePronunciation(word, sourceLanguage);
-      if (pronunciation) {
-        // Final check before updating
-        if (currentWordRef.current === word) {
-          setFormData(prev => ({ 
-            ...prev, 
-            pronunciation: pronunciation 
-          }));
-          toast.success('Pronunciation generated!');
-        }
-      }
-    } catch (error) {
-      console.warn('Auto-pronunciation failed:', error);
-    } finally {
-      setIsGeneratingPronunciation(false);
-    }
-  };// Auto-examples functionality
-  const autoExamples = async (word, sourceLanguage) => {
-    if (!word || word.length < 2 || !sourceLanguage || !bedrockService.isReady()) return;
-    
-    // Don't generate if editing an existing word
-    if (editingWord) return;
-    
-    // Update the current word being processed
-    currentWordRef.current = word;
-    
-    setIsGeneratingExamples(true);
-    try {
-      // Wait a bit to ensure translation has completed
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Check if we're still working on the same word and get the latest form data
-      if (currentWordRef.current !== word) return;
-      
-      // Get fresh form data at generation time
-      const currentFormData = formData;
-      
-      // Only generate if we don't already have an example and have a translation
-      if (currentFormData.example && currentFormData.example.trim()) return;
-      
-      const examples = await bedrockService.generateExamples(
-        word,
-        currentFormData.translation || '',
-        sourceLanguage,
-        currentFormData.definition || '',
-        'intermediate'
-      );
-      
-      if (examples && examples.length > 0) {
-        // Final check that we're still working on the same word before updating
-        if (currentWordRef.current === word) {
-          let wasUpdated = false;
-          
-          setFormData(prev => {
-            // Only update if the word hasn't changed and we don't have an example yet
-            if (prev.word === word && currentWordRef.current === word && (!prev.example || !prev.example.trim())) {
-              wasUpdated = true;
-              return {
-                ...prev, 
-                example: examples[0]
-              };
-            }
-            return prev;
-          });
-          
-          // Show success toast only if we actually updated
-          if (wasUpdated) {
-            toast.success('Example generated!');
-          }
-          
-          // Store all generated examples for potential use
-          setGeneratedExamples(examples);
-        }
-      }
-    } catch (error) {
-      console.warn('Auto-examples generation failed:', error);
-    } finally {
-      setIsGeneratingExamples(false);
-    }
-  };const handleInputChange = (e) => {
+  };
+
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
-    // Auto-translate, auto-generate pronunciation, and auto-generate examples when word field changes
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Auto-translate when word field changes
     if (name === 'word' && value.trim() && !editingWord) {
-      // Update the current word being processed
-      currentWordRef.current = value.trim();
-      
-      // Clear existing timeouts
+      // Clear existing timeout
       if (translationTimeout) {
         clearTimeout(translationTimeout);
       }
-      if (pronunciationTimeout) {
-        clearTimeout(pronunciationTimeout);
-      }
-      if (examplesTimeout) {
-        clearTimeout(examplesTimeout);
-      }
-      
-      // Clear existing auto-generated content when switching to a new word
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-        translation: '', // Clear translation for auto-generation
-        pronunciation: '', // Clear pronunciation for auto-generation
-        example: '', // Clear example for auto-generation
-        definition: '' // Clear definition for auto-generation
-      }));
-        // Set new timeout for debouncing translation
-      const newTranslationTimeout = setTimeout(() => {
-        if (currentWordRef.current === value.trim()) {
-          autoTranslate(value.trim(), formData.language || 'french');
-        }
+        // Set new timeout for debouncing
+      const newTimeout = setTimeout(() => {
+        autoTranslate(value.trim(), formData.language || 'french');
       }, 1000); // 1 second delay
       
-      // Set new timeout for debouncing pronunciation (slightly longer to let translation complete first)
-      const newPronunciationTimeout = setTimeout(() => {
-        if (currentWordRef.current === value.trim()) {
-          autoPronunciation(value.trim(), formData.language || 'french');
-        }
-      }, 1500); // 1.5 second delay
-      
-      // Set new timeout for debouncing examples (longer delay to let translation complete first)
-      const newExamplesTimeout = setTimeout(() => {
-        if (currentWordRef.current === value.trim()) {
-          autoExamples(value.trim(), formData.language || 'french');
-        }
-      }, 2500); // 2.5 second delay (increased from 2s to give more time for translation)
-      
-      setTranslationTimeout(newTranslationTimeout);
-      setPronunciationTimeout(newPronunciationTimeout);
-      setExamplesTimeout(newExamplesTimeout);
-    } else {
-      // For other fields, just update normally
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setTranslationTimeout(newTimeout);
     }
   };
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (translationTimeout) {
         clearTimeout(translationTimeout);
       }
-      if (pronunciationTimeout) {
-        clearTimeout(pronunciationTimeout);
-      }
-      if (examplesTimeout) {
-        clearTimeout(examplesTimeout);
-      }
     };
-  }, [translationTimeout, pronunciationTimeout, examplesTimeout]);
+  }, [translationTimeout]);
   // Generate AI examples
   const handleGenerateExamples = async () => {
     if (!formData.word || !formData.translation || !bedrockService.isReady()) {
@@ -851,11 +661,6 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Pronunciation
-                {isGeneratingPronunciation && (
-                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                    (Auto-generating...)
-                  </span>
-                )}
               </label>
               <button
                 type="button"
@@ -875,26 +680,19 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 9v6l4-3-4-3z" />
                     </svg>
-                    Manual IPA
+                    Auto IPA
                   </>
                 )}
               </button>
             </div>
-            <div className="relative">
-              <input
-                type="text"
-                name="pronunciation"
-                value={formData.pronunciation}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-                placeholder="Phonetic pronunciation (auto-generates when typing word)"
-              />
-              {isGeneratingPronunciation && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                </div>
-              )}
-            </div>
+            <input
+              type="text"
+              name="pronunciation"
+              value={formData.pronunciation}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+              placeholder="IPA notation (e.g., /bɔ̃.ʒuʁ/) - or click Auto IPA"
+            />
           </div>{/* Definition */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
@@ -1055,24 +853,10 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
                 <option value="russian">Russian</option>
                 <option value="chinese">Chinese</option>
                 <option value="japanese">Japanese</option>
-                <option value="korean">Korean</option>              </select>
+                <option value="korean">Korean</option>
+              </select>
             </div>
           </div>
-
-          {/* Auto-generation Info */}
-          {!editingWord && bedrockService.isReady() && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 mt-0.5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="text-xs text-blue-800 dark:text-blue-300">
-                  <p className="font-medium mb-1">✨ Auto-generation enabled</p>
-                  <p>Pronunciation and example sentences will be generated automatically when you add a new word.</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -1082,25 +866,12 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium text-sm"
             >
               Cancel
-            </button>            <button
+            </button>
+            <button
               type="submit"
-              disabled={isAutoGenerating}
-              className={`px-6 py-2 ${
-                isAutoGenerating 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-              } text-white rounded-lg transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm flex items-center gap-2`}
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm"
             >
-              {isAutoGenerating && (
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              )}
-              {isAutoGenerating 
-                ? 'Generating...' 
-                : (editingWord ? 'Update Word' : 'Add Word')
-              }
+              {editingWord ? 'Update Word' : 'Add Word'}
             </button>
           </div></form>
 
@@ -1150,8 +921,7 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
 }
 
 export default function VocabularyManager() {
-  const { currentUser } = useAuth();
-  const { language: userLanguage, loading: prefsLoading } = useUserPreferences();const [words, setWords] = useState([]);
+  const { currentUser } = useAuth();  const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
@@ -1172,93 +942,25 @@ export default function VocabularyManager() {
     definition: '',
     example: '',
     category: 'vocabulary',
-    language: userLanguage || 'french',
+    language: 'french',
   });
-    // State for AI generation functionality
+  
+  // State for AI generation functionality
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
-  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
   
   // Extract unique filter values
-  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);  // Fetch words on component mount
+  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);
+  // Fetch words on component mount
   useEffect(() => {
     if (currentUser) {
       fetchWords(currentUser, setWords, setLoading);
     }
-  }, [currentUser]);
-
-  // Update form language when user preferences change
-  useEffect(() => {
-    if (userLanguage && !editingWord) {
-      setFormData(prev => ({
-        ...prev,
-        language: userLanguage
-      }));
-    }
-  }, [userLanguage, editingWord]);// Auto-generate pronunciation and example for new words
-  const autoGenerateContent = async (wordData) => {
-    const updatedData = { ...wordData };
-    
-    setIsAutoGenerating(true);
-    
-    try {
-      // Only generate if we don't already have pronunciation and it's a new word (not editing)
-      if (!updatedData.pronunciation && !editingWord && bedrockService.isReady()) {
-        console.log('Auto-generating pronunciation for:', updatedData.word);
-        try {
-          const pronunciation = await bedrockService.generatePronunciation(
-            updatedData.word,
-            updatedData.language
-          );
-          if (pronunciation) {
-            updatedData.pronunciation = pronunciation;
-            console.log('Generated pronunciation:', pronunciation);
-            toast.success('Pronunciation generated automatically!');
-          }
-        } catch (error) {
-          console.warn('Failed to auto-generate pronunciation:', error);
-        }
-      }
-
-      // Only generate if we don't already have an example and it's a new word (not editing)
-      if (!updatedData.example && !editingWord && bedrockService.isReady()) {
-        console.log('Auto-generating example for:', updatedData.word);
-        try {
-          const examples = await bedrockService.generateExamples(
-            updatedData.word,
-            updatedData.language,
-            updatedData.translation
-          );
-          
-          if (examples && examples.length > 0) {
-            // Use the first example (1 out of 3 as requested)
-            updatedData.example = examples[0];
-            console.log('Generated example:', examples[0]);
-            toast.success('Example sentence generated automatically!');
-          }
-        } catch (error) {
-          console.warn('Failed to auto-generate example:', error);
-        }
-      }
-    } catch (error) {
-      console.warn('Error in auto-generation:', error);
-    } finally {
-      setIsAutoGenerating(false);
-    }
-    
-    return updatedData;
-  };
-  // Helper function to capitalize first letter of a string
-  const capitalizeFirstLetter = (str) => {
-    if (!str || typeof str !== 'string') return str;
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
-
-  // Handle form submission
+  }, [currentUser]);  // Handle form submission
   const handleSubmit = async (e, submissionData = null) => {
     e.preventDefault();
     
     // Extract data from either the form event or the passed submission data
-    let dataToSave = submissionData ? submissionData.formData : formData;
+    const dataToSave = submissionData ? submissionData.formData : formData;
     
     if (!dataToSave.word || !dataToSave.translation) {
       alert('Word and translation are required');
@@ -1266,27 +968,8 @@ export default function VocabularyManager() {
     }
     
     try {
-      // Auto-generate pronunciation and example if needed
-      dataToSave = await autoGenerateContent(dataToSave);
-      
       // Prepare the data to save, including any generated content
       const saveData = { ...dataToSave };
-        // Capitalize first letter of word and translation
-      saveData.word = capitalizeFirstLetter(saveData.word.trim());
-      saveData.translation = capitalizeFirstLetter(saveData.translation.trim());
-      
-      // Check for duplicate words (only when adding new word, not editing)
-      if (!editingWord) {
-        const duplicateWord = words.find(existingWord => 
-          existingWord.word.toLowerCase() === saveData.word.toLowerCase() &&
-          existingWord.language === saveData.language
-        );
-        
-        if (duplicateWord) {
-          toast.error(`The word "${saveData.word}" already exists in your ${saveData.language} vocabulary!`);
-          return;
-        }
-      }
       
       // If we have submission data from WordModal, include generated content
       if (submissionData) {
@@ -1322,7 +1005,8 @@ export default function VocabularyManager() {
         // Add new word
         await addUserData(currentUser, 'vocabulary', saveData);
         toast.success('Word added successfully!');
-      }        // Reset form
+      }
+        // Reset form
       setFormData({
         word: '',
         translation: '',
@@ -1330,7 +1014,7 @@ export default function VocabularyManager() {
         definition: '',
         example: '',
         category: 'vocabulary',
-        language: userLanguage || 'french',
+        language: 'french',
       });
       
       setShowModal(false);
@@ -1353,12 +1037,13 @@ export default function VocabularyManager() {
       alert('Error deleting word. Please try again.');
     }
   };
+
   // Handle word edit
   const handleEditWord = (word) => {
     setEditingWord(word);    setFormData({
       word: word.word || '',
       translation: word.translation || '',
-      pronunciation: cleanPronunciation(word.pronunciation || ''),
+      pronunciation: word.pronunciation || '',
       definition: word.definition || '',
       example: word.example || '',
       category: word.category || 'vocabulary',
@@ -1366,6 +1051,7 @@ export default function VocabularyManager() {
     });
     setShowModal(true);
   };
+
   // Handle add new word
   const handleAddWord = () => {
     setEditingWord(null);    setFormData({
@@ -1375,7 +1061,7 @@ export default function VocabularyManager() {
       definition: '',
       example: '',
       category: 'vocabulary',
-      language: userLanguage || 'french',    });
+      language: 'french',    });
     setShowModal(true);
   };
 
@@ -1472,123 +1158,115 @@ export default function VocabularyManager() {
         </div>
       </div>
     );
-  }  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-      {/* Spacer for fixed navbar */}
-      <div className="h-16"></div>
-      
-      {/* Compact Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-500 bg-clip-text text-transparent">
+  }  return (    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
+      {/* Ultra-minimal spacer for fixed navbar */}
+      <div className="h-8"></div>
+        {/* Compact Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 pb-3">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+          <div className="text-center lg:text-left">
+            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-500 bg-clip-text text-transparent mb-1">
               Vocabulary Manager
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {filteredAndSortedWords.length} of {words.length} words
+              {filteredAndSortedWords.length} of {words.length} words in your collection
             </p>
           </div>
           
-          {/* Compact Stats */}
-          <div className="flex gap-3">
-            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
+          {/* Compact Stats Cards */}
+          <div className="flex flex-row justify-center lg:justify-end gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow border border-gray-200 dark:border-gray-700 hover:scale-105 transition-transform">
               <div className="text-center">
                 <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{stats.total}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-400">Total Words</div>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow border border-gray-200 dark:border-gray-700 hover:scale-105 transition-transform">
               <div className="text-center">
                 <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{stats.mastered || 0}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Mastered</div>
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-400">Mastered</div>
               </div>
             </div>
-          </div>        </div>        {/* Compact Inline Search and Controls */}
-        <div className="mb-4">
-          {/* Compact Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-2 mb-3">
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </div>        </div>        {/* Balanced Compact Search and Controls */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          {/* Search Bar */}
+          <div className="relative mb-4">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-400"
+              placeholder="Search your vocabulary..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <svg className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm placeholder-gray-500"
-                placeholder="Search words, translations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              </button>
+            )}
+          </div>          {/* Filters and Controls Row */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-3">
+            {/* Left side: Filters */}
+            <div className="flex items-center gap-3">
+              {/* Category Filter */}
+              <select
+                className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-all min-w-[120px]"
+                value={filters.category}
+                onChange={(e) => setFilters({...filters, category: e.target.value})}
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat === 'all' ? 'All Categories' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </option>
+                ))}
+              </select>
+
+              {/* Sort Filter */}
+              <select
+                className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-all min-w-[110px]"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="dateAdded">Newest First</option>
+                <option value="alphabetical">A-Z</option>
+              </select>
             </div>
-              {/* View Mode Toggle */}
-            <div className="hidden sm:flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+
+            {/* Right side: View Mode Toggle */}
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('cards')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                   viewMode === 'cards' 
                     ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                 }`}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
                 Cards
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                   viewMode === 'table' 
                     ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                 }`}
               >
-                Table
-              </button>
-            </div>
-          </div>          {/* Compact Filters Row */}
-          <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4">
-            {/* Category Filter */}
-            <select
-              className="px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:text-white min-w-0 flex-1 sm:flex-initial sm:w-32"
-              value={filters.category}
-              onChange={(e) => setFilters({...filters, category: e.target.value})}
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>
-                  {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            {/* Sort By */}
-            <select
-              className="px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:text-white min-w-0 flex-1 sm:flex-initial sm:w-24"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="dateAdded">Date</option>
-              <option value="alphabetical">A-Z</option>
-            </select>
-
-            {/* Mobile View Mode Toggle - replaces Add Word button on mobile */}
-            <div className="sm:hidden flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 flex-shrink-0">
-              <button
-                onClick={() => setViewMode('cards')}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  viewMode === 'cards' 
-                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                Cards
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  viewMode === 'table' 
-                    ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
                 Table
               </button>
             </div>
@@ -1631,11 +1309,11 @@ export default function VocabularyManager() {
               </div>
             </div>
           ) : (
-            <>
-              {/* Cards View */}
+            <>              {/* Enhanced Cards View */}
               {viewMode === 'cards' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  <AnimatePresence>                    {filteredAndSortedWords.map(word => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+                  <AnimatePresence>
+                    {filteredAndSortedWords.map(word => (
                       <WordCard 
                         key={word.id} 
                         word={word} 
@@ -1646,21 +1324,21 @@ export default function VocabularyManager() {
                     ))}
                   </AnimatePresence>
                 </div>
-              )}              {/* Compact Table View */}
+              )}{/* Modern Table View */}
               {viewMode === 'table' && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  {/* Compact Table Header */}
-                  <div className="bg-gray-50 dark:bg-gray-700 px-2 sm:px-4 py-2 border-b border-gray-200 dark:border-gray-600">
-                    <div className="grid grid-cols-8 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-xs font-medium text-gray-600 dark:text-gray-400">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  {/* Enhanced Table Header */}
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-600">
+                    <div className="grid grid-cols-8 sm:grid-cols-12 gap-3 sm:gap-4 items-center text-sm font-semibold text-gray-700 dark:text-gray-300">
                       <div className="col-span-3 sm:col-span-3">Word</div>
-                      <div className="col-span-3 sm:col-span-3">Translation</div>
+                      <div className="col-span-3 sm:col-span-4">Translation</div>
                       <div className="col-span-2 hidden sm:block">Language</div>
                       <div className="col-span-2 sm:col-span-3 text-right">Actions</div>
                     </div>
                   </div>
                   
-                  {/* Compact Table Body */}
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {/* Enhanced Table Body */}
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     <AnimatePresence>
                       {filteredAndSortedWords.map(word => (
                         <motion.div
@@ -1668,70 +1346,73 @@ export default function VocabularyManager() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
-                          className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"                        >
-                          <div className="grid grid-cols-8 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-sm">                            <div className="col-span-3 sm:col-span-3">
-                              <div className="flex items-center gap-1.5">
-                                <div 
-                                  className={`font-medium text-gray-900 dark:text-white text-xs sm:text-sm truncate ${
-                                    word.conjugations && Object.keys(word.conjugations).length > 0 
-                                      ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline' 
-                                      : ''
-                                  }`}
-                                  onClick={() => {
-                                    if (word.conjugations && Object.keys(word.conjugations).length > 0) {
-                                      handleShowConjugations(word);
-                                    }
-                                  }}
-                                  title={word.conjugations && Object.keys(word.conjugations).length > 0 ? 'Click to view conjugations' : ''}
-                                >
-                                  {word.word}
-                                </div>
-                                {/* Show verb indicator if has conjugations - smaller on mobile */}
-                                {word.conjugations && Object.keys(word.conjugations).length > 0 && (
-                                  <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[9px] rounded-full cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
-                                        onClick={() => handleShowConjugations(word)}
-                                        title="Click to view conjugations">
-                                    Verb ✏️
-                                  </span>                              )}
+                          className="group px-4 sm:px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-200"
+                        >
+                          <div className="grid grid-cols-8 sm:grid-cols-12 gap-3 sm:gap-4 items-start text-sm">                            {/* Word Column */}
+                            <div className="col-span-3 sm:col-span-3">
+                              <div 
+                                className={`font-semibold text-gray-900 dark:text-white text-sm sm:text-base leading-tight ${
+                                  word.conjugations && Object.keys(word.conjugations).length > 0 
+                                    ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors' 
+                                    : ''
+                                }`}
+                                onClick={() => {
+                                  if (word.conjugations && Object.keys(word.conjugations).length > 0) {
+                                    handleShowConjugations(word);
+                                  }
+                                }}
+                                title={word.conjugations && Object.keys(word.conjugations).length > 0 ? 'Click to view conjugations' : ''}
+                              >
+                                {word.word}
                               </div>
-                              {word.pronunciation && (
-                                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium italic bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 mt-1 inline-block">
-                                  /{word.pronunciation}/
-                                </div>
-                              )}
                             </div>
-                            <div className="col-span-3 sm:col-span-3 text-gray-700 dark:text-gray-300 text-xs sm:text-sm truncate">{word.translation}</div>
+
+                            {/* Translation Column - Fixed overflow */}
+                            <div className="col-span-3 sm:col-span-4">
+                              <div 
+                                className="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed line-clamp-2 break-words hover:line-clamp-none transition-all duration-200 cursor-pointer"
+                                title="Click to expand"
+                              >
+                                {word.translation}
+                              </div>
+                            </div>
+
+                            {/* Language Column - Hidden on mobile */}
                             <div className="col-span-2 hidden sm:block">
-                              <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] rounded-full">
+                              <span className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
                                 {word.language}
                               </span>
                             </div>
-                            <div className="col-span-2 sm:col-span-3 flex items-center justify-end gap-1">
-                              {/* Compact action buttons - smaller on mobile */}
+
+                            {/* Actions Column */}
+                            <div className="col-span-2 sm:col-span-3 flex items-center justify-end gap-2">
+                              {/* Audio Button */}
                               <button
                                 onClick={() => speakWord(word)}
-                                className="p-1 sm:p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors rounded hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                                className="p-2 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 group-hover:scale-110"
                                 title="Pronounce word"
                               >
-                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 12a3 3 0 106 0v-1a3 3 0 00-6 0v1z" />
                                 </svg>
                               </button>
+                              {/* Edit Button */}
                               <button
                                 onClick={() => handleEditWord(word)}
-                                className="p-1 sm:p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 group-hover:scale-110"
                                 title="Edit word"
                               >
-                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </button>
+                              {/* Delete Button */}
                               <button
                                 onClick={() => handleDeleteWord(word.id)}
-                                className="p-1 sm:p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 group-hover:scale-110"
                                 title="Delete word"
                               >
-                                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                               </button>
@@ -1764,7 +1445,8 @@ export default function VocabularyManager() {
       </motion.div>
 
       {/* Add/Edit Word Modal */}
-      <AnimatePresence>        {showModal && (
+      <AnimatePresence>
+        {showModal && (
           <WordModal
             isOpen={showModal}
             onClose={() => {
@@ -1774,10 +1456,8 @@ export default function VocabularyManager() {
             onSubmit={handleSubmit}
             editingWord={editingWord}
             formData={formData}
-            setFormData={setFormData}
-            isAutoGenerating={isAutoGenerating}
-          />
-        )}</AnimatePresence>
+            setFormData={setFormData}          />
+        )}      </AnimatePresence>
 
       {/* Conjugation Modal */}
       <AnimatePresence>

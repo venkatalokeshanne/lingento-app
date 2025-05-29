@@ -41,6 +41,7 @@ export async function POST(request) {
         break;
       case 'examples':
         aiPrompt = buildExamplePrompt(word, translation, language, definition);
+        maxTokens = 600; // More tokens for examples
         break;
       case 'definition':
         // Check if it's a verb and if conjugation is requested
