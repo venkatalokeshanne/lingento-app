@@ -189,7 +189,7 @@ export default function Navigation() {
           <div className="flex items-center space-x-3">
             {/* User menu or Login/Register buttons */}
             {currentUser ? (
-              <div className="relative" ref={userMenuRef}>
+              <div className="relative hidden md:block" ref={userMenuRef} >
                 <motion.button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200"
@@ -438,7 +438,7 @@ export default function Navigation() {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      <span>Start Learning French</span>
+                      <span>Start Learning</span>
                     </div>
                     <p className="text-sm text-blue-100 mt-1 font-normal">Free • 5 min/day • No ads</p>
                   </Link>

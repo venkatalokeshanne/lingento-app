@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { toast } from 'react-hot-toast';
@@ -223,24 +224,89 @@ Guidelines for your analysis:
 - If the text has no significant errors, return an empty corrections array
 - Be encouraging and educational in your explanations
 
-Return only valid JSON format.`;
-
-      const response = await bedrockService.generateText(aiPrompt);
+Return only valid JSON format.`;      const response = await bedrockService.generateText(aiPrompt);
       
       try {
-        const aiAnalysis = JSON.parse(response);
+        // Clean the response to handle control characters and formatting issues
+        let cleanResponse = response
+          .replace(/```json/gi, "")
+          .replace(/```/g, "")
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Remove control characters
+          .replace(/\r\n/g, "\\n") // Replace actual line breaks with escaped ones
+          .replace(/\n/g, "\\n")
+          .replace(/\r/g, "\\r")
+          .replace(/\t/g, "\\t")
+          .trim();
         
-        // Create feedback object with AI corrections
+        // Find JSON content between braces
+        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanResponse = jsonMatch[0];
+        }
+        
+        console.log("Cleaned AI response for parsing:", cleanResponse.substring(0, 200) + "...");
+        
+        const aiAnalysis = JSON.parse(cleanResponse);
+        
+        // Validate the structure
+        if (!aiAnalysis || typeof aiAnalysis !== 'object') {
+          throw new Error('Invalid response structure');
+        }
+        
+        // Ensure corrections is an array
+        const corrections = Array.isArray(aiAnalysis.corrections) ? aiAnalysis.corrections : [];
+        
+        // Clean each correction object
+        const cleanedCorrections = corrections.map(correction => ({
+          original: (correction.original || '').toString().trim(),
+          corrected: (correction.corrected || '').toString().trim(),
+          explanation: (correction.explanation || '').toString().trim()
+        })).filter(correction => correction.original && correction.corrected);
+        
+        // Create feedback object with cleaned AI corrections
         const feedback = {
-          corrections: aiAnalysis.corrections || []
+          corrections: cleanedCorrections
         };
         
         setWritingState(prev => ({ ...prev, feedback, isAnalyzing: false }));
         toast.success('Writing analysis complete with detailed AI explanations!');
+        
       } catch (parseError) {
         console.error('Failed to parse AI response:', parseError);
-        toast.error('Failed to analyze text. Please try again.');
-        setWritingState(prev => ({ ...prev, isAnalyzing: false }));
+        console.error('Raw AI response:', response);
+        
+        // Fallback: try to extract corrections manually
+        try {
+          const fallbackCorrections = [];
+          const originalMatches = response.match(/"original":\s*"([^"]+)"/g) || [];
+          const correctedMatches = response.match(/"corrected":\s*"([^"]+)"/g) || [];
+          const explanationMatches = response.match(/"explanation":\s*"([^"]+)"/g) || [];
+          
+          const minLength = Math.min(originalMatches.length, correctedMatches.length);
+          
+          for (let i = 0; i < minLength; i++) {
+            const original = originalMatches[i].match(/"original":\s*"([^"]+)"/)?.[1] || '';
+            const corrected = correctedMatches[i].match(/"corrected":\s*"([^"]+)"/)?.[1] || '';
+            const explanation = explanationMatches[i]?.match(/"explanation":\s*"([^"]+)"/)?.[1] || 'Grammar correction needed.';
+            
+            if (original && corrected) {
+              fallbackCorrections.push({ original, corrected, explanation });
+            }
+          }
+          
+          if (fallbackCorrections.length > 0) {
+            const feedback = { corrections: fallbackCorrections };
+            setWritingState(prev => ({ ...prev, feedback, isAnalyzing: false }));
+            toast.success('Writing analysis complete!');
+          } else {
+            throw new Error('No corrections found');
+          }
+          
+        } catch (fallbackError) {
+          console.error('Fallback parsing also failed:', fallbackError);
+          toast.error('Failed to analyze text. Please try again.');
+          setWritingState(prev => ({ ...prev, isAnalyzing: false }));
+        }
       }
     } catch (error) {
       console.error('Error analyzing writing:', error);
@@ -381,56 +447,352 @@ Return only valid JSON format.`;
             </div>
           </div>
         </div>
-      )}      {/* Mobile-First Corrections Section */}
-      {writingState.feedback && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-700">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 p-4 border-l-4 border-red-500">
-            <h2 className="text-lg sm:text-xl font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
-              <span className="text-base sm:text-lg">🔧</span>
-              Corrections & Feedback
-            </h2>
-          </div>
-          
-          <div className="p-4">
-            {/* Corrections */}
-            {writingState.feedback.corrections && writingState.feedback.corrections.length > 0 ? (
-              <div className="space-y-4">
-                {writingState.feedback.corrections.map((correction, index) => (
-                  <div key={index} className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4 border border-red-200 dark:border-red-700">
-                    <div className="space-y-3 sm:space-y-4">
-                      <div>
-                        <div className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">Original:</div>
-                        <div className="text-sm sm:text-base text-gray-800 dark:text-gray-200 bg-red-100 dark:bg-red-900/30 px-3 py-2 rounded-md border border-red-300 dark:border-red-600">
-                          {correction.original}
-                        </div>
+      )}      {/* Ultra-Modern Corrections Section */}
+      <AnimatePresence>
+        {writingState.feedback && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative overflow-hidden"
+          >
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 opacity-50"></div>
+            <div className="absolute top-0 left-0 w-40 h-40 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-red-600/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+            
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl border border-white/20 dark:border-gray-700/50">
+              {/* Modern Header with Icon and Progress */}
+              <div className="relative bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 p-6">
+                {/* Animated particles background */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-2 left-4 w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <div className="absolute top-6 right-8 w-1 h-1 bg-white rounded-full animate-pulse delay-500"></div>
+                  <div className="absolute bottom-4 left-12 w-1.5 h-1.5 bg-white rounded-full animate-pulse delay-1000"></div>
+                </div>
+                
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+                        <span className="text-2xl">✨</span>
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">Corrected:</div>
-                        <div className="text-sm sm:text-base text-gray-800 dark:text-gray-200 bg-green-100 dark:bg-green-900/30 px-3 py-2 rounded-md border border-green-300 dark:border-green-600">
-                          {correction.corrected}
-                        </div>
-                      </div>
+                      {writingState.feedback.corrections && writingState.feedback.corrections.length > 0 && (
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white"
+                        >
+                          <span className="text-xs font-bold text-white">{writingState.feedback.corrections.length}</span>
+                        </motion.div>
+                      )}
                     </div>
-                    {correction.explanation && (
-                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-700">
-                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-1">Explanation:</div>
-                        <div className="text-sm sm:text-base text-gray-700 dark:text-gray-300">{correction.explanation}</div>
-                      </div>
-                    )}
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                        AI Writing Analysis
+                      </h2>
+                      <p className="text-white/80 text-sm sm:text-base">
+                        {writingState.feedback.corrections && writingState.feedback.corrections.length > 0 
+                          ? `${writingState.feedback.corrections.length} improvement${writingState.feedback.corrections.length > 1 ? 's' : ''} suggested`
+                          : 'Perfect writing detected!'
+                        }
+                      </p>
+                    </div>
                   </div>
-                ))}
+                  
+                  {/* Success indicator */}
+                  {writingState.feedback.corrections && writingState.feedback.corrections.length === 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="flex items-center gap-2 bg-green-500/20 backdrop-blur-sm rounded-full px-4 py-2 border border-green-400/30"
+                    >
+                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-white text-sm font-medium">Excellent</span>
+                    </motion.div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-6 sm:py-8">
-                <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">✅</div>
-                <h3 className="text-lg sm:text-xl font-semibold text-green-600 dark:text-green-400 mb-2">Great work!</h3>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">No corrections needed. Your writing looks good!</p>
+              
+              <div className="p-6">
+                {/* Corrections with Enhanced Design */}
+                {writingState.feedback.corrections && writingState.feedback.corrections.length > 0 ? (
+                  <div className="space-y-6">
+                    {writingState.feedback.corrections.map((correction, index) => (
+                      <motion.div 
+                        key={index} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 + index * 0.1 }}
+                        className="group relative"
+                      >
+                        {/* Card background with gradient border */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-orange-500 to-pink-500 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+                        <div className="absolute inset-0.5 bg-white dark:bg-gray-800 rounded-2xl"></div>
+                        
+                        <div className="relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 group-hover:shadow-xl transition-all duration-300">                        {/* Correction number badge */}
+                        <motion.div 
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: 0.3 + index * 0.1, type: "spring", stiffness: 200 }}
+                          className="absolute -top-3 -left-3 w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg number-bounce hover-glow"
+                        >
+                          <span className="text-white text-sm font-bold">{index + 1}</span>
+                        </motion.div>
+                          
+                          {/* Before/After comparison with modern design */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Original text */}                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <motion.div 
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ delay: 0.4 + index * 0.1 }}
+                                  className="w-6 h-6 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center"
+                                >
+                                  <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </motion.div>
+                                <span className="text-sm font-semibold text-red-600 dark:text-red-400">Original</span>
+                              </div>
+                              <motion.div 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.5 + index * 0.1 }}
+                                className="relative group/text"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-xl opacity-0 group-hover/text:opacity-100 transition-opacity duration-200 shimmer-correction"></div>
+                                <div className="relative text-sm sm:text-base text-gray-800 dark:text-gray-200 bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl border-l-4 border-red-400 font-mono hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200">
+                                  {correction.original}
+                                </div>
+                              </motion.div>
+                            </div>
+                            
+                            {/* Corrected text */}                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <motion.div 
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ delay: 0.6 + index * 0.1 }}
+                                  className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center"
+                                >
+                                  <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </motion.div>
+                                <span className="text-sm font-semibold text-green-600 dark:text-green-400">Corrected</span>
+                              </div>
+                              <motion.div 
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.7 + index * 0.1 }}
+                                className="relative group/text"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl opacity-0 group-hover/text:opacity-100 transition-opacity duration-200 shimmer-correction"></div>
+                                <div className="relative text-sm sm:text-base text-gray-800 dark:text-gray-200 bg-green-50 dark:bg-green-900/20 px-4 py-3 rounded-xl border-l-4 border-green-400 font-mono hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors duration-200">
+                                  {correction.corrected}
+                                </div>
+                              </motion.div>
+                            </div>
+                          </div>
+                            {/* Explanation with enhanced styling */}
+                          {correction.explanation && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.8 + index * 0.1 }}
+                              className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700"
+                            >
+                              <div className="flex items-start gap-3">
+                                <motion.div 
+                                  initial={{ rotate: -90, scale: 0 }}
+                                  animate={{ rotate: 0, scale: 1 }}
+                                  transition={{ delay: 0.9 + index * 0.1, type: "spring" }}
+                                  className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 hover-glow"
+                                >
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </motion.div>
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">AI Explanation</h4>
+                                  <div className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
+                                    {correction.explanation}
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Perfect writing celebration */
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                    className="text-center py-12 relative"
+                  >
+                    {/* Animated success background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl opacity-50"></div>
+                    <div className="absolute top-4 left-1/4 w-3 h-3 bg-green-400 rounded-full animate-bounce"></div>
+                    <div className="absolute top-8 right-1/4 w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-300"></div>
+                    <div className="absolute bottom-6 left-1/3 w-2.5 h-2.5 bg-green-500 rounded-full animate-bounce delay-700"></div>
+                      <div className="relative">
+                      {/* Decorative floating elements */}
+                      <motion.div 
+                        animate={{ 
+                          y: [0, -10, 0],
+                          rotate: [0, 5, 0]
+                        }}
+                        transition={{ 
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        className="absolute top-4 left-1/4 w-3 h-3 bg-green-400 rounded-full sparkle-effect"
+                      ></motion.div>
+                      <motion.div 
+                        animate={{ 
+                          y: [0, -15, 0],
+                          rotate: [0, -5, 0]
+                        }}
+                        transition={{ 
+                          duration: 4,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 1
+                        }}
+                        className="absolute top-8 right-1/4 w-2 h-2 bg-emerald-400 rounded-full sparkle-effect"
+                      ></motion.div>
+                      <motion.div 
+                        animate={{ 
+                          y: [0, -8, 0],
+                          rotate: [0, 3, 0]
+                        }}
+                        transition={{ 
+                          duration: 5,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 2
+                        }}
+                        className="absolute bottom-6 left-1/3 w-2.5 h-2.5 bg-green-500 rounded-full sparkle-effect"
+                      ></motion.div>
+                      
+                      {/* Additional sparkle effects */}
+                      <motion.div 
+                        animate={{ 
+                          scale: [0, 1, 0],
+                          opacity: [0, 1, 0]
+                        }}
+                        transition={{ 
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 0.5
+                        }}
+                        className="absolute top-12 left-2/3 text-yellow-400 text-xl"
+                      >
+                        ✨
+                      </motion.div>
+                      <motion.div 
+                        animate={{ 
+                          scale: [0, 1, 0],
+                          opacity: [0, 1, 0]
+                        }}
+                        transition={{ 
+                          duration: 2.5,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 1.5
+                        }}
+                        className="absolute bottom-12 right-1/3 text-green-400 text-lg"
+                      >
+                        🌟
+                      </motion.div>
+                      
+                      {/* Large success icon with animation */}
+                      <div className="relative inline-block mb-6">
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.4, type: "spring", stiffness: 200, damping: 10 }}
+                          className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl success-pulse"
+                        >
+                          <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </motion.div>
+                        {/* Ripple effect */}
+                        <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
+                      </div>
+                      
+                      <motion.h3 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4"
+                      >
+                        Outstanding Work!
+                      </motion.h3>
+                      <motion.p 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.7 }}
+                        className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed"
+                      >
+                        Your writing is impeccable! No corrections needed. Keep up the excellent work! 🎉
+                      </motion.p>
+                      
+                      {/* Success stats */}
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8 }}
+                        className="mt-6 inline-flex items-center gap-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full px-6 py-3 border border-green-200 dark:border-green-800 hover:shadow-lg transition-shadow duration-300"
+                      >
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.9, type: "spring" }}
+                          className="flex items-center gap-2"
+                        >
+                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Grammar ✓</span>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 1.0, type: "spring" }}
+                          className="flex items-center gap-2"
+                        >
+                          <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Style ✓</span>
+                        </motion.div>
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 1.1, type: "spring" }}
+                          className="flex items-center gap-2"
+                        >
+                          <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Flow ✓</span>
+                        </motion.div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

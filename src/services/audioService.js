@@ -153,8 +153,7 @@ class AudioService {
     } catch (error) {
       throw error;
     }
-  }
-  async playAudioData(audioData, options = {}) {
+  }  async playAudioData(audioData, options = {}) {
     return new Promise((resolve, reject) => {
       try {
         const arrayBuffer = audioData.buffer.slice(
@@ -163,8 +162,13 @@ class AudioService {
         );        const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
+        
+        // Set playback rate if specified in options
+        if (options.speed) {
+          audio.playbackRate = options.speed;
+        }
 
-        this.currentAudio = { audio, isPaused: false, isStopped: false };        const handleEnd = () => {
+        this.currentAudio = { audio, isPaused: false, isStopped: false };const handleEnd = () => {
           // Only handle end events if this audio is still current and not stopped
           if (this.currentAudio?.audio === audio && !this.currentAudio?.isStopped) {
             this.currentAudio = null;
@@ -201,8 +205,7 @@ class AudioService {
         reject(err);
       }
     });
-  }
-  async playWithBrowserSpeech(text, language, options = {}) {
+  }  async playWithBrowserSpeech(text, language, options = {}) {
     return new Promise((resolve, reject) => {
       try {
         if (!("speechSynthesis" in window)) {
@@ -236,7 +239,8 @@ class AudioService {
           );
 
           if (match) utterance.voice = match;
-          utterance.rate = 0.8;
+          // Use the speed option if provided, otherwise use a slightly slower default
+          utterance.rate = options.speed || 0.8;
 
           // Store reference to this utterance
           this.currentUtterance = utterance;

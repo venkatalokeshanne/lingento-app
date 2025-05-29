@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { fetchWords, addUserData, updateUserData, deleteUserData } from '@/utils/firebaseUtils';
 import { audioService } from '@/services/audioService';

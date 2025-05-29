@@ -19,6 +19,8 @@ export default function ReadingModule({
   const [isPaused, setIsPaused] = useState(false);
   const [selectedWord, setSelectedWord] = useState(null);
   const [showWordModal, setShowWordModal] = useState(false);
+  // Fixed playback speed (0.8) for language learning - UI controls removed per requirements
+  const playbackSpeed = 0.8;
 
   // Create a ref to track previous text for change detection
   const prevTextRef = useRef("");
@@ -288,11 +290,10 @@ Create an engaging, educational text that provides unique insights about ${rando
       // If not playing and not paused, start playing
       console.log("Starting new audio");
       setIsPlaying(true);
-      setIsPaused(false);
-
-      await audioService.playAudio(text, language, {
+      setIsPaused(false);      await audioService.playAudio(text, language, {
+        speed: playbackSpeed, // Pass the speed to audio service
         onStart: () => {
-          console.log("Audio started");
+          console.log("Audio started at speed:", playbackSpeed);
           setIsPlaying(true);
           setIsPaused(false);
         },
@@ -455,9 +456,7 @@ Create an engaging, educational text that provides unique insights about ${rando
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                   {textTitle}
                 </h3>
-              </div>
-              
-              {/* Compact Audio Controls */}
+              </div>                {/* Compact Audio Controls */}
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={toggleAudio}
@@ -504,6 +503,7 @@ Create an engaging, educational text that provides unique insights about ${rando
                     <span>Stop</span>
                   </button>
                 )}
+                  {/* Speed control UI removed, fixed speed of 0.8 is used */}
               </div>
             </div>
           </div>

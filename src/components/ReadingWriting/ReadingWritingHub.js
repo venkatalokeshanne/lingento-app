@@ -10,7 +10,8 @@ import { toast } from 'react-hot-toast';
 
 export default function ReadingWritingHub() {
   const [activeTab, setActiveTab] = useState('reading');
-  const { userPreferences } = useUserPreferences();
+  const { language, level, loading, error } = useUserPreferences();
+  
   // Writing module state management
   const [writingState, setWritingState] = useState({
     prompt: '',
@@ -21,6 +22,7 @@ export default function ReadingWritingHub() {
     hasInitialPrompt: false,
     generatedTopics: [] // Track generated topics to avoid repetition
   });
+  
   // Reading module state management
   const [readingState, setReadingState] = useState({
     text: '',
@@ -31,30 +33,66 @@ export default function ReadingWritingHub() {
   });
 
   // Get level and language from user preferences with fallbacks
-  const level = userPreferences?.proficiencyLevel || 'beginner';
-  const language = userPreferences?.learningLanguage || 'french';
+  const userLevel = level || 'beginner';
+  const userLanguage = language || 'french';
+  console.log("User preferences:", { level: userLevel, language: userLanguage, loading, error });
+
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Generate initial prompt when component mounts or language/level changes
   useEffect(() => {
-    if (!writingState.hasInitialPrompt || 
-        (writingState.prompt && !writingState.prompt.includes(language))) {
+    if (!loading && userLanguage && userLevel && 
+        (!writingState.hasInitialPrompt || 
+        (writingState.prompt && !writingState.prompt.includes(userLanguage)))) {
       generateInitialPrompt();
     }
-  }, [language, level, writingState.hasInitialPrompt]);
+  }, [userLanguage, userLevel, writingState.hasInitialPrompt, loading]);
 
   // Generate initial reading text when component mounts or language/level changes
   useEffect(() => {
-    if (!readingState.hasInitialText) {
+    if (!loading && userLanguage && userLevel && !readingState.hasInitialText) {
       generateInitialReadingText();
     }
-  }, [language, level, readingState.hasInitialText]);  const generateInitialPrompt = async () => {
+  }, [userLanguage, userLevel, readingState.hasInitialText, loading]);
+
+  // Show loading state while preferences are loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading preferences...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there's an error loading preferences
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Error loading preferences: {error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }const generateInitialPrompt = async () => {
     try {
-      console.log("Generating AI prompt for:", { level, language });
+      console.log("Generating AI prompt for:", { level: userLevel, language: userLanguage });
       
       if (!bedrockService.isReady()) {
         console.log("Bedrock service not ready");
         toast.error("AI service is not available");
         return;
-      }      // Create sophisticated variety using multiple strategies
+      }
+
+      // Create sophisticated variety using multiple strategies
       const avoidTopics = writingState.generatedTopics.length > 0 
         ? `\n\nCRITICAL: NEVER repeat these previously used topics: ${writingState.generatedTopics.join(', ')}. You MUST choose a completely different subject area.`
         : '';
@@ -82,9 +120,9 @@ export default function ReadingWritingHub() {
       };
 
       // Randomly select a category and topic to ensure maximum variety
-      const categories = Object.keys(topicCategories[level] || topicCategories.beginner);
+      const categories = Object.keys(topicCategories[userLevel] || topicCategories.beginner);
       const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      const categoryTopics = topicCategories[level]?.[randomCategory] || topicCategories.beginner.personal;
+      const categoryTopics = topicCategories[userLevel]?.[randomCategory] || topicCategories.beginner.personal;
       const randomTopic = categoryTopics[Math.floor(Math.random() * categoryTopics.length)];
 
       // Create unique prompts with specific angles
@@ -94,31 +132,33 @@ export default function ReadingWritingHub() {
         advanced: ['Critically examine', 'Evaluate the implications of', 'Argue for or against', 'Propose solutions for', 'Analyze the complexity of']
       };
 
-      const angles = promptAngles[level] || promptAngles.beginner;
-      const randomAngle = angles[Math.floor(Math.random() * angles.length)];      // Create a highly specific, unique prompt
-      const promptRequest = `Create a unique, specific writing prompt for ${level} level ${language} learners.
+      const angles = promptAngles[userLevel] || promptAngles.beginner;
+      const randomAngle = angles[Math.floor(Math.random() * angles.length)];
 
-CRITICAL LANGUAGE REQUIREMENT: The ENTIRE prompt must be written in ${language}. Do NOT use English.
+      // Create a highly specific, unique prompt
+      const promptRequest = `Create a unique, specific writing prompt for ${userLevel} level ${userLanguage} learners.
+
+CRITICAL LANGUAGE REQUIREMENT: The ENTIRE prompt must be written in ${userLanguage}. Do NOT use English.
 
 MANDATORY REQUIREMENTS:
 1. Focus on this EXACT topic: "${randomTopic}" from the "${randomCategory}" category
 2. Use this specific approach: "${randomAngle}"
 3. Make it highly specific and personal - avoid generic prompts
 4. Include 2-3 specific questions or aspects to address
-5. Word count guidance: ${level === 'beginner' ? '100-150' : level === 'intermediate' ? '150-250' : '250-350'} words
-6. Write the ENTIRE prompt in ${language} - no English words allowed
+5. Word count guidance: ${userLevel === 'beginner' ? '100-150' : userLevel === 'intermediate' ? '150-250' : '250-350'} words
+6. Write the ENTIRE prompt in ${userLanguage} - no English words allowed
 
 ${avoidTopics}
 
-PROMPT STRUCTURE (all in ${language}):
-- Start with the ${language} equivalent of: "${randomAngle} ${randomTopic}"
-- Add specific details, examples, or scenarios in ${language}
-- Include guiding questions in ${language}
-- Make it personally relevant and engaging in ${language}
+PROMPT STRUCTURE (all in ${userLanguage}):
+- Start with the ${userLanguage} equivalent of: "${randomAngle} ${randomTopic}"
+- Add specific details, examples, or scenarios in ${userLanguage}
+- Include guiding questions in ${userLanguage}
+- Make it personally relevant and engaging in ${userLanguage}
 
-Return ONLY the complete prompt text in ${language}, no explanations or additional formatting.
+Return ONLY the complete prompt text in ${userLanguage}, no explanations or additional formatting.
 
-The prompt must be creative, specific, written entirely in ${language}, and inspire thoughtful ${language} writing at the ${level} level.`;
+The prompt must be creative, specific, written entirely in ${userLanguage}, and inspire thoughtful ${userLanguage} writing at the ${userLevel} level.`;
       
       const aiPrompt = await bedrockService.generateText(promptRequest);
         // Extract a more specific topic identifier from the prompt for tracking
@@ -148,8 +188,7 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
       }));
       
       toast.success("Writing prompt generated!");
-      
-    } catch (error) {
+        } catch (error) {
       console.error("Error generating AI prompt:", error);
         // Simple fallback prompt without local libraries - in target language
       const fallbackPrompts = {
@@ -160,7 +199,7 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
         portuguese: `Escreva sobre sua rotina diária em português.`
       };
       
-      const fallbackPrompt = fallbackPrompts[language] || `Write about your daily routine in ${language}.`;
+      const fallbackPrompt = fallbackPrompts[userLanguage] || `Write about your daily routine in ${userLanguage}.`;
       
       setWritingState(prev => ({
         ...prev,
@@ -174,7 +213,7 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
     }
   };// Generate initial reading text using AI only
   const generateInitialReadingText = async () => {
-    console.log("Generating initial reading text with AI for:", { level, language });
+    console.log("Generating initial reading text with AI for:", { level: userLevel, language: userLanguage });
     
     if (!bedrockService) {
       console.error("Bedrock service not available for initial text generation");
@@ -188,7 +227,9 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
       return;
     }
 
-    setReadingState((prev) => ({ ...prev, isGenerating: true }));    try {
+    setReadingState((prev) => ({ ...prev, isGenerating: true }));
+
+    try {
       // Create sophisticated variety in topics by avoiding previously generated ones
       const avoidTopics = readingState.generatedTopics.length > 0 
         ? `\n\nCRITICAL: NEVER repeat these previously used topics: ${readingState.generatedTopics.join(', ')}. You MUST choose a completely different subject area.`
@@ -217,9 +258,9 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
       };
 
       // Randomly select a category and topic to ensure maximum variety
-      const categories = Object.keys(readingTopicCategories[level] || readingTopicCategories.beginner);
+      const categories = Object.keys(readingTopicCategories[userLevel] || readingTopicCategories.beginner);
       const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      const categoryTopics = readingTopicCategories[level]?.[randomCategory] || readingTopicCategories.beginner.cultural;
+      const categoryTopics = readingTopicCategories[userLevel]?.[randomCategory] || readingTopicCategories.beginner.cultural;
       const randomTopic = categoryTopics[Math.floor(Math.random() * categoryTopics.length)];
 
       // Different text styles for variety
@@ -229,16 +270,16 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
         advanced: ['academic analysis', 'critical examination', 'theoretical discussion', 'research paper excerpt', 'philosophical treatise']
       };
 
-      const styles = textStyles[level] || textStyles.beginner;
+      const styles = textStyles[userLevel] || textStyles.beginner;
       const randomStyle = styles[Math.floor(Math.random() * styles.length)];
 
-      const prompt = `You are a ${language} language teacher. Create a ${level} level reading text as a ${randomStyle} about "${randomTopic}" from the "${randomCategory}" category.
+      const prompt = `You are a ${userLanguage} language teacher. Create a ${userLevel} level reading text as a ${randomStyle} about "${randomTopic}" from the "${randomCategory}" category.
 
 MANDATORY REQUIREMENTS:
 1. Text length: 150-250 words
 2. Focus specifically on: "${randomTopic}"
 3. Write as: ${randomStyle}
-4. Vocabulary appropriate for ${level} level
+4. Vocabulary appropriate for ${userLevel} level
 5. Include interesting facts or perspectives
 
 ${avoidTopics}
@@ -406,15 +447,15 @@ Create an engaging, educational text that provides unique insights about ${rando
             <ReadingModule 
               readingState={readingState}
               setReadingState={setReadingState}
-              level={level}
-              language={language}
+              level={userLevel}
+              language={userLanguage}
             />
           ) : (
             <WritingModule 
               writingState={writingState}
               setWritingState={setWritingState}
-              level={level}
-              language={language}
+              level={userLevel}
+              language={userLanguage}
             />
           )}
         </div>

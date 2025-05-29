@@ -12,7 +12,7 @@ import '@/components/Flashcard/flashcard.css';
 
 export default function FlashcardsPage() {
   const { currentUser, logout } = useAuth();
-  const { userPreferences } = useUserPreferences();
+  const { language, level, loading: preferencesLoading, error: preferencesError } = useUserPreferences();
   const router = useRouter();
     // State management
   const [allFlashcards, setAllFlashcards] = useState([]);
@@ -449,9 +449,8 @@ export default function FlashcardsPage() {
                 category={filteredFlashcards[activeIndex].category}
                 mastered={filteredFlashcards[activeIndex].mastered}
                 onMasterToggle={handleMarkLearned}
-                onQualityRating={handleQualityRating}
-                // User language preference
-                language={userPreferences?.learningLanguage || 'french'}
+                onQualityRating={handleQualityRating}                // User language preference
+                language={language || 'french'}
                 // Additional vocabulary data for examples
                 example={filteredFlashcards[activeIndex].example}
                 translatedExample={filteredFlashcards[activeIndex].translatedExample}

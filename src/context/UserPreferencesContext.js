@@ -33,8 +33,7 @@ export function UserPreferencesProvider({ children }) {
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Load user preferences from Firestore
+  // Load user preferences from Firestore (using separate collection)
   const loadPreferences = async (user) => {
     if (!user) {
       setPreferences(defaultPreferences);
@@ -44,7 +43,8 @@ export function UserPreferencesProvider({ children }) {
 
     try {
       const db = getFirestore();
-      const preferencesRef = doc(db, `users/${user.uid}/settings/preferences`);
+      // Use a top-level collection for easier permission management
+      const preferencesRef = doc(db, 'user_preferences', user.uid);
       
       // Set up real-time listener
       const unsubscribe = onSnapshot(preferencesRef, (doc) => {
@@ -78,17 +78,19 @@ export function UserPreferencesProvider({ children }) {
       setLoading(false);
     }
   };
-
   // Create default preferences for new users
   const createDefaultPreferences = async (user) => {
     if (!user) return;
 
     try {
       const db = getFirestore();
-      const preferencesRef = doc(db, `users/${user.uid}/settings/preferences`);
+      // Use the top-level collection
+      const preferencesRef = doc(db, 'user_preferences', user.uid);
       
       const newPreferences = {
         ...defaultPreferences,
+        userId: user.uid, // Add user ID for reference
+        userEmail: user.email, // Add email for reference
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -100,7 +102,6 @@ export function UserPreferencesProvider({ children }) {
       setError(error.message);
     }
   };
-
   // Update user preferences
   const updatePreferences = async (updates) => {
     if (!currentUser) {
@@ -109,10 +110,12 @@ export function UserPreferencesProvider({ children }) {
 
     try {
       const db = getFirestore();
-      const preferencesRef = doc(db, `users/${currentUser.uid}/settings/preferences`);
+      // Use the top-level collection
+      const preferencesRef = doc(db, 'user_preferences', currentUser.uid);
       
       const updatedPreferences = {
         ...updates,
+        userId: currentUser.uid, // Ensure user ID is always present
         updatedAt: new Date(),
       };
 
@@ -126,7 +129,6 @@ export function UserPreferencesProvider({ children }) {
       throw error;
     }
   };
-
   // Reset preferences to defaults
   const resetPreferences = async () => {
     if (!currentUser) {
@@ -135,10 +137,13 @@ export function UserPreferencesProvider({ children }) {
 
     try {
       const db = getFirestore();
-      const preferencesRef = doc(db, `users/${currentUser.uid}/settings/preferences`);
+      // Use the top-level collection
+      const preferencesRef = doc(db, 'user_preferences', currentUser.uid);
       
       const resetPrefs = {
         ...defaultPreferences,
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
         createdAt: preferences.createdAt, // Keep original creation date
         updatedAt: new Date(),
       };
