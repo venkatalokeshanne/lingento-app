@@ -118,7 +118,6 @@ class BedrockService {
       return this.generateFallbackDefinition(word, language, translation, partOfSpeech);
     }
   }
-
   // Generate pronunciation guide
   async generatePronunciation(word, language) {
     const cacheKey = `pronunciation_${word}_${language}`;
@@ -145,7 +144,10 @@ class BedrockService {
       }
 
       const data = await response.json();
-      const pronunciation = data.result;
+      let pronunciation = data.result;
+      
+      // Clean up pronunciation: extract only the phonetic part in parentheses
+      pronunciation = this.cleanPronunciation(pronunciation);
       
       // Cache the result
       this.cache.set(cacheKey, pronunciation);
@@ -155,6 +157,29 @@ class BedrockService {
       console.error('Error generating pronunciation:', error);
       throw error;
     }
+  }
+
+  // Clean pronunciation by extracting only the phonetic part in parentheses
+  cleanPronunciation(pronunciation) {
+    if (!pronunciation) return '';
+    
+    // Remove IPA notation (anything between forward slashes) and keep only phonetic pronunciation in parentheses
+    // Example: "/sa-'ly/ (sah-LÜEE)" becomes "sah-LÜEE"
+    const match = pronunciation.match(/\(([^)]+)\)/);
+    if (match) {
+      return match[1]; // Return just the content inside parentheses
+    }
+    
+    // If no parentheses found, but has forward slashes, remove everything before the first space after closing slash
+    if (pronunciation.includes('/')) {
+      const afterSlash = pronunciation.replace(/^[^/]*\/[^/]*\/\s*/, '');
+      if (afterSlash && afterSlash !== pronunciation) {
+        return afterSlash.replace(/^\(|\)$/g, ''); // Remove wrapping parentheses if any
+      }
+    }
+    
+    // Fallback: return as-is if no pattern matches
+    return pronunciation;
   }
   // Transform conjugation table from array format to object format expected by UI
   transformConjugationTable(conjugationTable) {

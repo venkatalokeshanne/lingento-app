@@ -1,5 +1,28 @@
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
+// Clean pronunciation by extracting only the phonetic part in parentheses
+const cleanPronunciation = (pronunciation) => {
+  if (!pronunciation) return '';
+  
+  // Remove IPA notation (anything between forward slashes) and keep only phonetic pronunciation in parentheses
+  // Example: "/sa-'ly/ (sah-LÜEE)" becomes "sah-LÜEE"
+  const match = pronunciation.match(/\(([^)]+)\)/);
+  if (match) {
+    return match[1]; // Return just the content inside parentheses
+  }
+  
+  // If no parentheses found, but has forward slashes, remove everything before the first space after closing slash
+  if (pronunciation.includes('/')) {
+    const afterSlash = pronunciation.replace(/^[^/]*\/[^/]*\/\s*/, '');
+    if (afterSlash && afterSlash !== pronunciation) {
+      return afterSlash.replace(/^\(|\)$/g, ''); // Remove wrapping parentheses if any
+    }
+  }
+  
+  // Fallback: return as-is if no pattern matches
+  return pronunciation;
+};
+
 /**
  * Fetch documents from a user's subcollection
  */
@@ -148,10 +171,9 @@ export const convertVocabularyToFlashcards = (vocabularyWords) => {
       frontText: word.word,
       // Always show the translation on the back (we'll handle examples separately)
       backText: word.translation,
-      audioSrc: null,
-      imageUrl: null,      category: word.language || 'General',
+      audioSrc: null,      imageUrl: null,      category: word.language || 'General',
       mastered: word.mastered || false,
-      pronunciation: word.pronunciation,
+      pronunciation: cleanPronunciation(word.pronunciation),
       definition: word.definition,
       example: word.example,
       translatedExample: createTranslatedExample(word.example, word.word, word.translation),
@@ -241,10 +263,9 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
         frontText: word.word,
         // Always show the translation on the back
         backText: word.translation,
-        audioSrc: null,
-        imageUrl: null,        category: word.language || 'General',
+        audioSrc: null,        imageUrl: null,        category: word.language || 'General',
         mastered: word.mastered || false,
-        pronunciation: word.pronunciation,
+        pronunciation: cleanPronunciation(word.pronunciation),
         definition: word.definition,
         example: word.example,
         translatedExample: translatedExample,

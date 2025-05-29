@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { fetchWords, addUserData, updateUserData, deleteUserData } from '@/utils/firebaseUtils';
@@ -9,6 +9,29 @@ import { translateService } from '@/services/translateService';
 import { bedrockService } from '@/services/bedrockService';
 import TranslationUsageMonitor from '@/components/TranslationUsageMonitor';
 import toast, { Toaster } from 'react-hot-toast';
+
+// Clean pronunciation by extracting only the phonetic part in parentheses
+const cleanPronunciation = (pronunciation) => {
+  if (!pronunciation) return '';
+  
+  // Remove IPA notation (anything between forward slashes) and keep only phonetic pronunciation in parentheses
+  // Example: "/sa-'ly/ (sah-LÜEE)" becomes "sah-LÜEE"
+  const match = pronunciation.match(/\(([^)]+)\)/);
+  if (match) {
+    return match[1]; // Return just the content inside parentheses
+  }
+  
+  // If no parentheses found, but has forward slashes, remove everything before the first space after closing slash
+  if (pronunciation.includes('/')) {
+    const afterSlash = pronunciation.replace(/^[^/]*\/[^/]*\/\s*/, '');
+    if (afterSlash && afterSlash !== pronunciation) {
+      return afterSlash.replace(/^\(|\)$/g, ''); // Remove wrapping parentheses if any
+    }
+  }
+  
+  // Fallback: return as-is if no pattern matches
+  return pronunciation;
+};
 
 // Enhanced WordCard Component with modern design
 function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
@@ -374,30 +397,39 @@ function ConjugationModal({ isOpen, onClose, word }) {
 }
 
 // Enhanced Add/Edit Word Modal
-function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormData }) {
+function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormData, isAutoGenerating }) {
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
-  const [showExamples, setShowExamples] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translationTimeout, setTranslationTimeout] = useState(null);  const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationTimeout, setTranslationTimeout] = useState(null);
+  const [pronunciationTimeout, setPronunciationTimeout] = useState(null);
+  const [examplesTimeout, setExamplesTimeout] = useState(null);  const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
   const [generatedDefinition, setGeneratedDefinition] = useState('');
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
   
-  if (!isOpen) return null;
-  // Auto-translate functionality
+  // Track current word to prevent race conditions
+  const currentWordRef = useRef('');
+  
+  if (!isOpen) return null;  // Auto-translate functionality
   const autoTranslate = async (word, sourceLanguage) => {
     if (!word || word.length < 2 || !sourceLanguage) return;
+    
+    // Check if we're still working on the same word
+    if (currentWordRef.current !== word) return;
     
     setIsTranslating(true);
     try {
       const result = await translateService.translateText(word, sourceLanguage, 'english');
       if (result && result.translatedText) {
-        setFormData(prev => ({ 
-          ...prev, 
-          translation: result.translatedText 
-        }));
-        toast.success('Translation completed!');
+        // Final check before updating
+        if (currentWordRef.current === word) {
+          setFormData(prev => ({ 
+            ...prev, 
+            translation: result.translatedText 
+          }));
+          toast.success('Translation completed!');
+        }
       }
     } catch (error) {
       console.error('Auto-translation failed:', error);
@@ -405,35 +437,165 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
     } finally {
       setIsTranslating(false);
     }
-  };
-
-  const handleInputChange = (e) => {
+  };  // Auto-pronunciation functionality
+  const autoPronunciation = async (word, sourceLanguage) => {
+    if (!word || word.length < 2 || !sourceLanguage || !bedrockService.isReady()) return;
+    
+    // Check if we're still working on the same word
+    if (currentWordRef.current !== word) return;
+    
+    setIsGeneratingPronunciation(true);
+    try {
+      const pronunciation = await bedrockService.generatePronunciation(word, sourceLanguage);
+      if (pronunciation) {
+        // Final check before updating
+        if (currentWordRef.current === word) {
+          setFormData(prev => ({ 
+            ...prev, 
+            pronunciation: pronunciation 
+          }));
+          toast.success('Pronunciation generated!');
+        }
+      }
+    } catch (error) {
+      console.warn('Auto-pronunciation failed:', error);
+    } finally {
+      setIsGeneratingPronunciation(false);
+    }
+  };// Auto-examples functionality
+  const autoExamples = async (word, sourceLanguage) => {
+    if (!word || word.length < 2 || !sourceLanguage || !bedrockService.isReady()) return;
+    
+    // Don't generate if editing an existing word
+    if (editingWord) return;
+    
+    // Update the current word being processed
+    currentWordRef.current = word;
+    
+    setIsGeneratingExamples(true);
+    try {
+      // Wait a bit to ensure translation has completed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check if we're still working on the same word and get the latest form data
+      if (currentWordRef.current !== word) return;
+      
+      // Get fresh form data at generation time
+      const currentFormData = formData;
+      
+      // Only generate if we don't already have an example and have a translation
+      if (currentFormData.example && currentFormData.example.trim()) return;
+      
+      const examples = await bedrockService.generateExamples(
+        word,
+        currentFormData.translation || '',
+        sourceLanguage,
+        currentFormData.definition || '',
+        'intermediate'
+      );
+      
+      if (examples && examples.length > 0) {
+        // Final check that we're still working on the same word before updating
+        if (currentWordRef.current === word) {
+          let wasUpdated = false;
+          
+          setFormData(prev => {
+            // Only update if the word hasn't changed and we don't have an example yet
+            if (prev.word === word && currentWordRef.current === word && (!prev.example || !prev.example.trim())) {
+              wasUpdated = true;
+              return {
+                ...prev, 
+                example: examples[0]
+              };
+            }
+            return prev;
+          });
+          
+          // Show success toast only if we actually updated
+          if (wasUpdated) {
+            toast.success('Example generated!');
+          }
+          
+          // Store all generated examples for potential use
+          setGeneratedExamples(examples);
+        }
+      }
+    } catch (error) {
+      console.warn('Auto-examples generation failed:', error);
+    } finally {
+      setIsGeneratingExamples(false);
+    }
+  };const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    // Auto-translate when word field changes
+    
+    // Auto-translate, auto-generate pronunciation, and auto-generate examples when word field changes
     if (name === 'word' && value.trim() && !editingWord) {
-      // Clear existing timeout
+      // Update the current word being processed
+      currentWordRef.current = value.trim();
+      
+      // Clear existing timeouts
       if (translationTimeout) {
         clearTimeout(translationTimeout);
       }
-        // Set new timeout for debouncing
-      const newTimeout = setTimeout(() => {
-        autoTranslate(value.trim(), formData.language || 'french');
+      if (pronunciationTimeout) {
+        clearTimeout(pronunciationTimeout);
+      }
+      if (examplesTimeout) {
+        clearTimeout(examplesTimeout);
+      }
+      
+      // Clear existing auto-generated content when switching to a new word
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        translation: '', // Clear translation for auto-generation
+        pronunciation: '', // Clear pronunciation for auto-generation
+        example: '', // Clear example for auto-generation
+        definition: '' // Clear definition for auto-generation
+      }));
+        // Set new timeout for debouncing translation
+      const newTranslationTimeout = setTimeout(() => {
+        if (currentWordRef.current === value.trim()) {
+          autoTranslate(value.trim(), formData.language || 'french');
+        }
       }, 1000); // 1 second delay
       
-      setTranslationTimeout(newTimeout);
+      // Set new timeout for debouncing pronunciation (slightly longer to let translation complete first)
+      const newPronunciationTimeout = setTimeout(() => {
+        if (currentWordRef.current === value.trim()) {
+          autoPronunciation(value.trim(), formData.language || 'french');
+        }
+      }, 1500); // 1.5 second delay
+      
+      // Set new timeout for debouncing examples (longer delay to let translation complete first)
+      const newExamplesTimeout = setTimeout(() => {
+        if (currentWordRef.current === value.trim()) {
+          autoExamples(value.trim(), formData.language || 'french');
+        }
+      }, 2500); // 2.5 second delay (increased from 2s to give more time for translation)
+      
+      setTranslationTimeout(newTranslationTimeout);
+      setPronunciationTimeout(newPronunciationTimeout);
+      setExamplesTimeout(newExamplesTimeout);
+    } else {
+      // For other fields, just update normally
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
-
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (translationTimeout) {
         clearTimeout(translationTimeout);
       }
+      if (pronunciationTimeout) {
+        clearTimeout(pronunciationTimeout);
+      }
+      if (examplesTimeout) {
+        clearTimeout(examplesTimeout);
+      }
     };
-  }, [translationTimeout]);
+  }, [translationTimeout, pronunciationTimeout, examplesTimeout]);
   // Generate AI examples
   const handleGenerateExamples = async () => {
     if (!formData.word || !formData.translation || !bedrockService.isReady()) {
@@ -626,6 +788,11 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Pronunciation
+                {isGeneratingPronunciation && (
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                    (Auto-generating...)
+                  </span>
+                )}
               </label>
               <button
                 type="button"
@@ -645,19 +812,26 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 9v6l4-3-4-3z" />
                     </svg>
-                    Auto IPA
+                    Manual IPA
                   </>
                 )}
               </button>
             </div>
-            <input
-              type="text"
-              name="pronunciation"
-              value={formData.pronunciation}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-              placeholder="IPA notation (e.g., /bɔ̃.ʒuʁ/) - or click Auto IPA"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                name="pronunciation"
+                value={formData.pronunciation}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                placeholder="Phonetic pronunciation (auto-generates when typing word)"
+              />
+              {isGeneratingPronunciation && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+            </div>
           </div>{/* Definition */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
@@ -818,10 +992,24 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
                 <option value="russian">Russian</option>
                 <option value="chinese">Chinese</option>
                 <option value="japanese">Japanese</option>
-                <option value="korean">Korean</option>
-              </select>
+                <option value="korean">Korean</option>              </select>
             </div>
           </div>
+
+          {/* Auto-generation Info */}
+          {!editingWord && bedrockService.isReady() && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 mt-0.5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="text-xs text-blue-800 dark:text-blue-300">
+                  <p className="font-medium mb-1">✨ Auto-generation enabled</p>
+                  <p>Pronunciation and example sentences will be generated automatically when you add a new word.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -831,12 +1019,25 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium text-sm"
             >
               Cancel
-            </button>
-            <button
+            </button>            <button
               type="submit"
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm"
+              disabled={isAutoGenerating}
+              className={`px-6 py-2 ${
+                isAutoGenerating 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              } text-white rounded-lg transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm flex items-center gap-2`}
             >
-              {editingWord ? 'Update Word' : 'Add Word'}
+              {isAutoGenerating && (
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              )}
+              {isAutoGenerating 
+                ? 'Generating...' 
+                : (editingWord ? 'Update Word' : 'Add Word')
+              }
             </button>
           </div></form>
 
@@ -909,9 +1110,9 @@ export default function VocabularyManager() {
     category: 'vocabulary',
     language: 'french',
   });
-  
-  // State for AI generation functionality
+    // State for AI generation functionality
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
+  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
   
   // Extract unique filter values
   const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);
@@ -920,12 +1121,66 @@ export default function VocabularyManager() {
     if (currentUser) {
       fetchWords(currentUser, setWords, setLoading);
     }
-  }, [currentUser]);  // Handle form submission
+  }, [currentUser]);  // Auto-generate pronunciation and example for new words
+  const autoGenerateContent = async (wordData) => {
+    const updatedData = { ...wordData };
+    
+    setIsAutoGenerating(true);
+    
+    try {
+      // Only generate if we don't already have pronunciation and it's a new word (not editing)
+      if (!updatedData.pronunciation && !editingWord && bedrockService.isReady()) {
+        console.log('Auto-generating pronunciation for:', updatedData.word);
+        try {
+          const pronunciation = await bedrockService.generatePronunciation(
+            updatedData.word,
+            updatedData.language
+          );
+          if (pronunciation) {
+            updatedData.pronunciation = pronunciation;
+            console.log('Generated pronunciation:', pronunciation);
+            toast.success('Pronunciation generated automatically!');
+          }
+        } catch (error) {
+          console.warn('Failed to auto-generate pronunciation:', error);
+        }
+      }
+
+      // Only generate if we don't already have an example and it's a new word (not editing)
+      if (!updatedData.example && !editingWord && bedrockService.isReady()) {
+        console.log('Auto-generating example for:', updatedData.word);
+        try {
+          const examples = await bedrockService.generateExamples(
+            updatedData.word,
+            updatedData.language,
+            updatedData.translation
+          );
+          
+          if (examples && examples.length > 0) {
+            // Use the first example (1 out of 3 as requested)
+            updatedData.example = examples[0];
+            console.log('Generated example:', examples[0]);
+            toast.success('Example sentence generated automatically!');
+          }
+        } catch (error) {
+          console.warn('Failed to auto-generate example:', error);
+        }
+      }
+    } catch (error) {
+      console.warn('Error in auto-generation:', error);
+    } finally {
+      setIsAutoGenerating(false);
+    }
+    
+    return updatedData;
+  };
+
+  // Handle form submission
   const handleSubmit = async (e, submissionData = null) => {
     e.preventDefault();
     
     // Extract data from either the form event or the passed submission data
-    const dataToSave = submissionData ? submissionData.formData : formData;
+    let dataToSave = submissionData ? submissionData.formData : formData;
     
     if (!dataToSave.word || !dataToSave.translation) {
       alert('Word and translation are required');
@@ -933,6 +1188,9 @@ export default function VocabularyManager() {
     }
     
     try {
+      // Auto-generate pronunciation and example if needed
+      dataToSave = await autoGenerateContent(dataToSave);
+      
       // Prepare the data to save, including any generated content
       const saveData = { ...dataToSave };
       
@@ -1002,13 +1260,12 @@ export default function VocabularyManager() {
       alert('Error deleting word. Please try again.');
     }
   };
-
   // Handle word edit
   const handleEditWord = (word) => {
     setEditingWord(word);    setFormData({
       word: word.word || '',
       translation: word.translation || '',
-      pronunciation: word.pronunciation || '',
+      pronunciation: cleanPronunciation(word.pronunciation || ''),
       definition: word.definition || '',
       example: word.example || '',
       category: word.category || 'vocabulary',
@@ -1415,8 +1672,7 @@ export default function VocabularyManager() {
       </motion.div>
 
       {/* Add/Edit Word Modal */}
-      <AnimatePresence>
-        {showModal && (
+      <AnimatePresence>        {showModal && (
           <WordModal
             isOpen={showModal}
             onClose={() => {
@@ -1426,8 +1682,10 @@ export default function VocabularyManager() {
             onSubmit={handleSubmit}
             editingWord={editingWord}
             formData={formData}
-            setFormData={setFormData}          />
-        )}      </AnimatePresence>
+            setFormData={setFormData}
+            isAutoGenerating={isAutoGenerating}
+          />
+        )}</AnimatePresence>
 
       {/* Conjugation Modal */}
       <AnimatePresence>

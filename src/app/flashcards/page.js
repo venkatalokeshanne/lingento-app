@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Flashcard from '@/components/Flashcard/Flashcard';
 import { useAuth } from '@/context/AuthContext';
-import { fetchVocabularyAsFlashcards, updateVocabularyMastered, updateVocabularySpacedRepetition, addUserData } from '@/utils/firebaseUtils';
+import { fetchVocabularyAsFlashcards, updateVocabularyMastered, updateVocabularySpacedRepetition, addUserData, updateUserData } from '@/utils/firebaseUtils';
 import { spacedRepetitionService } from '@/services/spacedRepetitionService';
 import '@/components/Flashcard/flashcard.css';
 
@@ -98,8 +98,7 @@ export default function FlashcardsPage() {
     } catch (error) {
       console.error('Error updating vocabulary word:', error);
     }
-  };
-  // Handle spaced repetition quality rating
+  };  // Handle spaced repetition quality rating
   const handleQualityRating = async (cardId, quality) => {
     try {
       const cardIndex = allFlashcards.findIndex(card => card.id === cardId);
@@ -124,7 +123,30 @@ export default function FlashcardsPage() {
     } catch (error) {
       console.error('Error updating spaced repetition data:', error);
     }
-  };  const handleNext = () => {
+  };
+
+  // Handle example update from Flashcard component
+  const handleExampleUpdate = async (cardId, example, translatedExample) => {
+    try {
+      // Update the vocabulary word with the new example and translated example
+      await updateUserData(currentUser, 'vocabulary', cardId, {
+        example: example,
+        translatedExample: translatedExample
+      });
+      
+      // Update local state immediately to reflect the change
+      setAllFlashcards(prev => prev.map(card => 
+        card.id === cardId ? { 
+          ...card, 
+          example: example, 
+          translatedExample: translatedExample 
+        } : card
+      ));
+      
+    } catch (error) {
+      console.error('Error updating vocabulary example:', error);
+    }
+  };const handleNext = () => {
     if (filteredFlashcards.length > 0) {
       setActiveIndex((prev) => (prev + 1) % filteredFlashcards.length);
     }
@@ -429,6 +451,7 @@ export default function FlashcardsPage() {
                 translatedExample={filteredFlashcards[activeIndex].translatedExample}
                 originalWord={filteredFlashcards[activeIndex].originalWord}
                 translation={filteredFlashcards[activeIndex].translation}
+                pronunciation={filteredFlashcards[activeIndex].pronunciation}
                 // Spaced repetition props
                 easinessFactor={filteredFlashcards[activeIndex].easinessFactor}
                 repetitionNumber={filteredFlashcards[activeIndex].repetitionNumber}
@@ -436,7 +459,9 @@ export default function FlashcardsPage() {
                 nextReviewDate={filteredFlashcards[activeIndex].nextReviewDate}
                 isNew={filteredFlashcards[activeIndex].isNew}
                 showQualityRating={studyMode === 'review' || studyMode === 'all'}
-              />            </motion.div>
+                // Example update handler
+                onExampleUpdate={handleExampleUpdate}
+              /></motion.div>
               {/* Modern Navigation buttons with Learned button in the middle - positioned at bottom */}
             <div className="fixed bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex justify-center items-center gap-3 sm:gap-4 z-20 p-2">
               {/* Previous button */}              <motion.button

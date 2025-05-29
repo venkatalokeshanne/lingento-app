@@ -6,6 +6,8 @@ import { useSwipeable } from 'react-swipeable';
 import { motion } from 'framer-motion';
 import { audioService } from '@/services/audioService';
 import { spacedRepetitionService } from '@/services/spacedRepetitionService';
+import { bedrockService } from '@/services/bedrockService';
+import toast from 'react-hot-toast';
 
 export default function Flashcard({ 
   id,
@@ -16,6 +18,7 @@ export default function Flashcard({
   mastered = false,
   onMasterToggle,
   onQualityRating,
+  onExampleUpdate, // New prop to update examples
   language = 'french',  // Additional vocabulary data for examples
   example,
   translatedExample,
@@ -33,8 +36,83 @@ export default function Flashcard({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showRating, setShowRating] = useState(false);
-    // Get quality rating options for spaced repetition
-  const qualityOptions = spacedRepetitionService.getQualityRatingOptions();const handleAudioPlay = async (e) => {
+  
+  // Auto-generation states
+  const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
+  const [generatedExamples, setGeneratedExamples] = useState([]);
+  const [showExamplesModal, setShowExamplesModal] = useState(false);
+  const [localExample, setLocalExample] = useState(example);
+  const [localTranslatedExample, setLocalTranslatedExample] = useState(translatedExample);
+    
+  // Get quality rating options for spaced repetition
+  const qualityOptions = spacedRepetitionService.getQualityRatingOptions();  // Update local state when props change
+  useEffect(() => {
+    setLocalExample(example);
+    setLocalTranslatedExample(translatedExample);
+  }, [example, translatedExample]);
+
+  // Auto-generate examples for the flashcard
+  const handleGenerateExamples = async () => {
+    if (!frontText || !backText || !bedrockService.isReady()) {
+      toast.error('Unable to generate examples. Please ensure AWS Bedrock is configured.');
+      return;
+    }
+
+    setIsGeneratingExamples(true);
+    try {
+      const examples = await bedrockService.generateExamples(
+        originalWord || frontText,
+        translation || backText,
+        language,
+        '', // No definition available in flashcard context
+        'intermediate'
+      );
+      
+      if (examples && examples.length > 0) {
+        setGeneratedExamples(examples);
+        setShowExamplesModal(true);
+        toast.success('Examples generated successfully!');
+      } else {
+        toast.error('No examples could be generated.');
+      }
+    } catch (error) {
+      console.error('Error generating examples:', error);
+      toast.error('Failed to generate examples. Please try again.');
+    } finally {
+      setIsGeneratingExamples(false);
+    }
+  };
+
+  // Use a generated example
+  const useExample = async (exampleText) => {
+    try {
+      // Auto-translate the example if we have translation service
+      let translatedText = '';
+      try {
+        // Import translation service dynamically to avoid circular dependencies
+        const { translateService } = await import('@/services/translateService');
+        const result = await translateService.translateText(exampleText, language, 'english');
+        translatedText = result?.translatedText || '';
+      } catch (translateError) {
+        console.warn('Could not translate example:', translateError);
+      }
+
+      setLocalExample(exampleText);
+      setLocalTranslatedExample(translatedText);
+      setShowExamplesModal(false);
+        // Notify parent component if callback is provided
+      if (onExampleUpdate) {
+        onExampleUpdate(id, exampleText, translatedText);
+      }
+      
+      toast.success('Example added to flashcard!');
+    } catch (error) {
+      console.error('Error updating example:', error);
+      toast.error('Failed to update example.');
+    }
+  };
+
+const handleAudioPlay = async (e) => {
     e.stopPropagation();
     
     if (isPlaying) {
@@ -138,27 +216,65 @@ export default function Flashcard({
                       )}
                     </div>
                   )}                </div>
-              </div>{/* Main content */}
-              <div className="flex-1 flex flex-col items-center justify-center">                {example ? (
-                  <div className="text-center space-y-3">
+              </div>              {/* Main content */}
+              <div className="flex-1 flex flex-col items-center justify-center">                {localExample ? (                  <div className="text-center space-y-3">
                     <h3 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
                       {frontText}
                     </h3>
+                    {pronunciation && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                        ({pronunciation})
+                      </p>
+                    )}
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Example:</p>
                       <p className="text-base text-gray-700 dark:text-gray-300 italic">
-                        "{example}"
+                        "{localExample}"
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center space-y-2">
+                ) : (                  <div className="text-center space-y-2">
                     <h3 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
                       {frontText}
                     </h3>
+                    {pronunciation && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+                        ({pronunciation})
+                      </p>
+                    )}
                     <p className="text-sm text-gray-500 dark:text-gray-500">
                       Translate this word
                     </p>
+                    
+                    {/* Generate Example Button */}
+                    {bedrockService.isReady() && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGenerateExamples();
+                          }}
+                          disabled={isGeneratingExamples}
+                          className="inline-flex items-center gap-2 px-3 py-2 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-md transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {isGeneratingExamples ? (
+                            <>
+                              <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              Add Example
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -218,7 +334,7 @@ export default function Flashcard({
                 )}
               </div>              {/* Main content */}
               <div className="flex-1 flex items-center justify-center">
-                {example && translatedExample ? (
+                {localExample && localTranslatedExample ? (
                   <div className="text-center space-y-4">
                     <div className="space-y-2">
                       <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
@@ -228,14 +344,46 @@ export default function Flashcard({
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Example translation:</p>
                       <p className="text-lg text-gray-900 dark:text-white font-medium italic">
-                        "{translatedExample}"
+                        "{localTranslatedExample}"
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-lg sm:text-2xl text-center text-gray-900 dark:text-white font-medium leading-tight">
-                    {backText}
-                  </p>
+                  <div className="text-center space-y-4">
+                    <p className="text-lg sm:text-2xl text-center text-gray-900 dark:text-white font-medium leading-tight">
+                      {backText}
+                    </p>
+                    
+                    {/* Generate Example Button for back side */}
+                    {bedrockService.isReady() && !showQualityRating && (
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGenerateExamples();
+                          }}
+                          disabled={isGeneratingExamples}
+                          className="inline-flex items-center gap-2 px-3 py-2 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-md transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {isGeneratingExamples ? (
+                            <>
+                              <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              Add Example
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -273,9 +421,61 @@ export default function Flashcard({
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </div>        </div>
       </div>
+      
+      {/* AI Generated Examples Modal */}
+      {showExamplesModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setShowExamplesModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full p-6 border border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                AI Generated Examples
+              </h3>
+              <button
+                onClick={() => setShowExamplesModal(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-3">
+              {generatedExamples.map((example, index) => (
+                <div
+                  key={index}
+                  className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  onClick={() => useExample(example)}
+                >
+                  <p className="text-sm text-gray-700 dark:text-gray-300">"{example}"</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Click to use this example</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowExamplesModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
