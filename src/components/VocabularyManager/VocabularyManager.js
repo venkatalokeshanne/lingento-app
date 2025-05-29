@@ -1236,6 +1236,11 @@ export default function VocabularyManager() {
     
     return updatedData;
   };
+  // Helper function to capitalize first letter of a string
+  const capitalizeFirstLetter = (str) => {
+    if (!str || typeof str !== 'string') return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
   // Handle form submission
   const handleSubmit = async (e, submissionData = null) => {
@@ -1255,6 +1260,22 @@ export default function VocabularyManager() {
       
       // Prepare the data to save, including any generated content
       const saveData = { ...dataToSave };
+        // Capitalize first letter of word and translation
+      saveData.word = capitalizeFirstLetter(saveData.word.trim());
+      saveData.translation = capitalizeFirstLetter(saveData.translation.trim());
+      
+      // Check for duplicate words (only when adding new word, not editing)
+      if (!editingWord) {
+        const duplicateWord = words.find(existingWord => 
+          existingWord.word.toLowerCase() === saveData.word.toLowerCase() &&
+          existingWord.language === saveData.language
+        );
+        
+        if (duplicateWord) {
+          toast.error(`The word "${saveData.word}" already exists in your ${saveData.language} vocabulary!`);
+          return;
+        }
+      }
       
       // If we have submission data from WordModal, include generated content
       if (submissionData) {
