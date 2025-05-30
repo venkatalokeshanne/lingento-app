@@ -111,84 +111,50 @@ body {
   animation: sparkle 3s ease-in-out infinite;
 }
 
-/* Ultra-Modern Writing Correction Animations */
-@keyframes shimmerCorrection {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+/* Enhanced Profile Settings Slider Styling */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.3s ease;
 }
 
-@keyframes floatCorrection {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316, #dc2626);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+  transition: all 0.3s ease;
+  border: 3px solid white;
 }
 
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.6);
 }
 
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0); }
-  50% { opacity: 1; transform: scale(1); }
+.slider::-webkit-slider-thumb:active {
+  transform: scale(1.1);
 }
 
-@keyframes correcthoverGlow {
-  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0); }
-  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
-  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0); }
+.slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316, #dc2626);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+  transition: all 0.3s ease;
+  border: 3px solid white;
 }
 
-@keyframes textHighlight {
-  0% { background-color: transparent; }
-  50% { background-color: rgba(59, 130, 246, 0.1); }
-  100% { background-color: transparent; }
-}
-
-@keyframes successPulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
-
-@keyframes numberBounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
-}
-
-/* Utility classes for ultra-modern corrections */
-.shimmer-correction {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  background-size: 200% 100%;
-  animation: shimmerCorrection 2s infinite;
-}
-
-.float-correction {
-  animation: floatCorrection 6s ease-in-out infinite;
-}
-
-.gradient-shift {
-  background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
-  background-size: 400% 400%;
-  animation: gradientShift 8s ease infinite;
-}
-
-.hover-glow:hover {
-  animation: correcthoverGlow 1s ease-in-out infinite;
-}
-
-.text-highlight-animation {
-  animation: textHighlight 2s ease-in-out;
-}
-
-.success-pulse {
-  animation: successPulse 2s infinite;
-}
-
-.number-bounce {
-  animation: numberBounce 2s infinite;
-}
-
-.sparkle-effect {
-  animation: sparkle 3s ease-in-out infinite;
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.6);
 }

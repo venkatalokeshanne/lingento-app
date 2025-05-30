@@ -189,16 +189,12 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
       </div>
 
       {/* Card Footer - Tags positioned at bottom */}
-      <div className="px-4 pb-4 mt-auto">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="px-4 pb-4 mt-auto">        <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getCategoryIcon(word.category)} />
             </svg>
             {word.category}
-          </span>
-          <span className="inline-flex items-center px-2.5 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
-            {word.language}
           </span>
           {/* Show verb indicator if has conjugations */}
           {word.conjugations && Object.keys(word.conjugations).length > 0 && (
@@ -281,13 +277,9 @@ function ConjugationModal({ isOpen, onClose, word }) {
         {/* Modal Content */}
         <div className="p-6">
           {/* Word Info */}
-          <div className="mb-6">
-            <div className="flex items-center gap-3 mb-3">
+          <div className="mb-6">            <div className="flex items-center gap-3 mb-3">
               <span className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full font-medium">
                 {word.category}
-              </span>
-              <span className="inline-flex items-center px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm rounded-full font-medium">
-                {word.language}
               </span>
               {word.pronunciation && (
                 <span className="text-gray-500 dark:text-gray-400 italic">
@@ -420,10 +412,9 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
   
-  if (!isOpen) return null;
-  // Auto-translate functionality
+  if (!isOpen) return null;  // Auto-translate functionality
   const autoTranslate = async (word, sourceLanguage) => {
-    if (!word || word.length < 2 || !sourceLanguage) return;
+    if (!word || word.length < 2 || !sourceLanguage) return null;
     
     setIsTranslating(true);
     try {
@@ -434,6 +425,7 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
           translation: result.translatedText 
         }));
         toast.success('Translation completed!');
+        return result.translatedText; // Return the translation
       }
     } catch (error) {
       console.error('Auto-translation failed:', error);
@@ -441,21 +433,120 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
     } finally {
       setIsTranslating(false);
     }
+    return null;
+  };// Auto-generate pronunciation functionality
+  const autoGeneratePronunciation = async (word, language) => {
+    if (!word || word.length < 2 || !language || !bedrockService.isReady()) return;
+    
+    setIsGeneratingPronunciation(true);
+    try {
+      const pronunciation = await bedrockService.generatePronunciation(word, language);
+      if (pronunciation) {
+        setFormData(prev => ({ 
+          ...prev, 
+          pronunciation: pronunciation 
+        }));
+        toast.success('Pronunciation generated!');
+      }
+    } catch (error) {
+      console.error('Auto-pronunciation generation failed:', error);
+      // Don't show error toast for auto-generation failures to avoid spam
+    } finally {
+      setIsGeneratingPronunciation(false);
+    }
+  };  // Auto-generate examples when word changes
+  const autoGenerateExamples = async (word, language, translation) => {
+    if (!word || !translation || !bedrockService.isReady()) return;
+    
+    // Don't auto-generate if we're editing an existing word and it already has an example
+    if (editingWord && formData.example && formData.example.trim()) return;
+
+    setIsGeneratingExamples(true);
+    try {
+      const examples = await bedrockService.generateExamples(
+        word,
+        translation,
+        language,
+        '', // No definition yet for auto-generation
+        'intermediate'
+      );
+      
+      // Auto-fill the first example if any were generated
+      if (examples && examples.length > 0) {
+        const firstExample = examples[0];
+        setFormData(prev => ({ 
+          ...prev, 
+          example: firstExample,
+          translatedExample: '' // Will be auto-translated
+        }));
+        
+        // Store all generated examples for manual selection
+        setGeneratedExamples(examples);
+        
+        // Auto-translate the example
+        autoTranslateExample(firstExample, language);
+      }
+    } catch (error) {
+      console.error('Auto-example generation failed:', error);
+      // Don't show error toast for auto-generation failures to avoid spam
+    } finally {
+      setIsGeneratingExamples(false);
+    }
   };
 
-  const handleInputChange = (e) => {
+  // Auto-translate example sentences
+  const autoTranslateExample = async (exampleText, sourceLanguage) => {
+    if (!exampleText || !translateService.isValidTextForTranslation(exampleText)) return;
+
+    try {
+      const result = await translateService.translateText(
+        exampleText,
+        sourceLanguage,
+        'english'
+      );
+      
+      if (result?.translatedText) {
+        setFormData(prev => ({ 
+          ...prev, 
+          translatedExample: result.translatedText 
+        }));
+      }
+    } catch (error) {
+      console.error('Auto-translate example failed:', error);
+    }
+  };  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Auto-translate when word field changes
+    // Auto-translate, auto-generate pronunciation, and auto-generate examples when word field changes
     if (name === 'word' && value.trim() && !editingWord) {
+      // Clear existing pronunciation and example when word changes
+      setFormData(prev => ({ 
+        ...prev, 
+        pronunciation: '',
+        example: '',
+        translatedExample: ''
+      }));
+      
       // Clear existing timeout
       if (translationTimeout) {
         clearTimeout(translationTimeout);
       }
         // Set new timeout for debouncing
-      const newTimeout = setTimeout(() => {
-        autoTranslate(value.trim(), formData.language || 'french');
+      const newTimeout = setTimeout(async () => {
+        const word = value.trim();
+        const language = formData.language || 'french';
+        
+        // Start pronunciation generation immediately
+        autoGeneratePronunciation(word, language);
+        
+        // Translate first, then use the result for example generation
+        const translation = await autoTranslate(word, language);
+        
+        // If translation was successful, generate examples
+        if (translation) {
+          autoGenerateExamples(word, language, translation);
+        }
       }, 1000); // 1 second delay
       
       setTranslationTimeout(newTimeout);
@@ -662,6 +753,11 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Pronunciation
+                {isGeneratingPronunciation && (
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                    (Auto-generating...)
+                  </span>
+                )}
               </label>
               <button
                 type="button"
@@ -681,19 +777,26 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 9v6l4-3-4-3z" />
                     </svg>
-                    Auto IPA
+                    Generate IPA
                   </>
                 )}
               </button>
             </div>
-            <input
-              type="text"
-              name="pronunciation"
-              value={formData.pronunciation}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-              placeholder="IPA notation (e.g., /bɔ̃.ʒuʁ/) - or click Auto IPA"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                name="pronunciation"
+                value={formData.pronunciation}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                placeholder="Phonetic pronunciation (e.g., sah-loo) - auto-generates when typing word"
+              />
+              {isGeneratingPronunciation && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+            </div>
           </div>{/* Definition */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
@@ -835,27 +938,14 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
                 <option value="food">Food</option>
                 <option value="technology">Technology</option>
               </select>
-            </div>
-            <div className="space-y-1">
+            </div>            <div className="space-y-1">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Language
               </label>
-              <select
-                name="language"
-                value={formData.language}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all text-sm"
-              >
-                <option value="french">French</option>
-                <option value="spanish">Spanish</option>
-                <option value="german">German</option>
-                <option value="italian">Italian</option>
-                <option value="portuguese">Portuguese</option>
-                <option value="russian">Russian</option>
-                <option value="chinese">Chinese</option>
-                <option value="japanese">Japanese</option>
-                <option value="korean">Korean</option>
-              </select>
+              <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm">
+                {formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1) : 'French'}
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(From user preferences)</span>
+              </div>
             </div>
           </div>
 
@@ -922,7 +1012,8 @@ function WordModal({ isOpen, onClose, onSubmit, editingWord, formData, setFormDa
 }
 
 export default function VocabularyManager() {
-  const { currentUser } = useAuth();  const [words, setWords] = useState([]);
+  const { currentUser } = useAuth();
+  const { language } = useUserPreferences();const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
@@ -943,20 +1034,29 @@ export default function VocabularyManager() {
     definition: '',
     example: '',
     category: 'vocabulary',
-    language: 'french',
+    language: language || 'french',
   });
   
   // State for AI generation functionality
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   
   // Extract unique filter values
-  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);
-  // Fetch words on component mount
+  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);  // Fetch words on component mount
   useEffect(() => {
     if (currentUser) {
       fetchWords(currentUser, setWords, setLoading);
     }
-  }, [currentUser]);  // Handle form submission
+  }, [currentUser]);
+
+  // Update formData language when user preferences change
+  useEffect(() => {
+    if (language) {
+      setFormData(prev => ({
+        ...prev,
+        language: language
+      }));
+    }
+  }, [language]);// Handle form submission
   const handleSubmit = async (e, submissionData = null) => {
     e.preventDefault();
     
@@ -1006,8 +1106,7 @@ export default function VocabularyManager() {
         // Add new word
         await addUserData(currentUser, 'vocabulary', saveData);
         toast.success('Word added successfully!');
-      }
-        // Reset form
+      }        // Reset form
       setFormData({
         word: '',
         translation: '',
@@ -1015,7 +1114,7 @@ export default function VocabularyManager() {
         definition: '',
         example: '',
         category: 'vocabulary',
-        language: 'french',
+        language: language || 'french',
       });
       
       setShowModal(false);
@@ -1038,7 +1137,6 @@ export default function VocabularyManager() {
       alert('Error deleting word. Please try again.');
     }
   };
-
   // Handle word edit
   const handleEditWord = (word) => {
     setEditingWord(word);    setFormData({
@@ -1048,11 +1146,10 @@ export default function VocabularyManager() {
       definition: word.definition || '',
       example: word.example || '',
       category: word.category || 'vocabulary',
-      language: word.language || 'french',
+      language: word.language || language || 'french',
     });
     setShowModal(true);
   };
-
   // Handle add new word
   const handleAddWord = () => {
     setEditingWord(null);    setFormData({
@@ -1062,7 +1159,7 @@ export default function VocabularyManager() {
       definition: '',
       example: '',
       category: 'vocabulary',
-      language: 'french',    });
+      language: language || 'french',    });
     setShowModal(true);
   };
 
@@ -1070,8 +1167,7 @@ export default function VocabularyManager() {
   const handleShowConjugations = (word) => {
     setSelectedWordForConjugation(word);
     setShowConjugationModal(true);
-  };
-  // Filter and sort words
+  };  // Filter and sort words
   const filteredAndSortedWords = words
     .filter(word => {
       const matchesSearch = !searchTerm || 
@@ -1079,8 +1175,9 @@ export default function VocabularyManager() {
         word.translation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         word.definition?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = filters.category === 'all' || word.category === filters.category;
+      const matchesLanguage = word.language === language; // Filter by user's language preference
       
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesCategory && matchesLanguage;
     })
     .sort((a, b) => {
       let aValue, bValue;

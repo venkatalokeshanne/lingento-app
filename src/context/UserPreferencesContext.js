@@ -20,6 +20,7 @@ const defaultPreferences = {
   dailyGoal: 20, // words per day
   soundEnabled: true,
   autoPlay: true,
+  audioSpeed: 1.0, // Normal speed (1.0x)
   theme: 'system', // 'light', 'dark', 'system'
   studyReminders: true,
   studyTime: '18:00', // Default study reminder time
@@ -188,7 +189,6 @@ export function UserPreferencesProvider({ children }) {
       }
     };
   }, [currentUser]);
-
   const value = {
     preferences,
     loading,
@@ -203,6 +203,7 @@ export function UserPreferencesProvider({ children }) {
     nativeLanguage: preferences.nativeLanguage,
     dailyGoal: preferences.dailyGoal,
     soundEnabled: preferences.soundEnabled,
+    audioSpeed: preferences.audioSpeed,
     autoPlay: preferences.autoPlay,
     theme: preferences.theme,
     studyReminders: preferences.studyReminders,

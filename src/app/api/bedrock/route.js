@@ -187,17 +187,59 @@ Only return the definition, no other text.`;
 
 // Build prompt for pronunciation generation
 function buildPronunciationPrompt(word, language) {
-  return `Provide a phonetic pronunciation guide for the ${language} word "${word}".
+  let languageSpecificInstructions = '';
+  
+  if (language.toLowerCase() === 'french') {
+    languageSpecificInstructions = `
+French pronunciation rules:
+- 'u' sounds like 'oo' in English
+- 'ou' sounds like 'oo' in English  
+- Silent final consonants in most cases
+- 'r' is rolled/guttural
+- Nasal vowels: 'an/en' = 'ahn', 'in/im' = 'an', 'on/om' = 'ohn', 'un/um' = 'uhn'
+- 'tion' = 'see-ohn'
+- 'lle' = 'l' (silent e)
+
+Examples:
+- "salut" = "sah-loo" (silent 't')
+- "bonjour" = "bohn-zhoor"
+- "merci" = "mer-see"
+- "parlez" = "par-lay" (silent 'z')`;
+  } else if (language.toLowerCase() === 'spanish') {
+    languageSpecificInstructions = `
+Spanish pronunciation rules:
+- 'j' sounds like 'h' in English
+- 'rr' is rolled
+- 'ñ' sounds like 'ny'
+- Stress usually on second-to-last syllable
+- All vowels are pronounced clearly`;
+  } else if (language.toLowerCase() === 'italian') {
+    languageSpecificInstructions = `
+Italian pronunciation rules:
+- 'c' before 'e' or 'i' = 'ch'
+- 'g' before 'e' or 'i' = 'j'
+- 'gli' = 'lyee'
+- Double consonants are pronounced longer`;
+  }
+
+  return `You are an expert linguist. Provide a phonetic pronunciation guide for the ${language} word "${word}".
+
+${languageSpecificInstructions}
 
 Requirements:
-- Use International Phonetic Alphabet (IPA) if possible
-- Include an approximate English pronunciation guide in parentheses
-- Show syllable breaks with hyphens for longer words
-- Mark stress with capital letters or accent marks
+- Provide ONLY the English-style phonetic pronunciation using simple English sounds
+- Use hyphens to separate syllables  
+- Use common English letter combinations to represent sounds
+- DO NOT use IPA symbols or complex notation
+- BE VERY ACCURATE to native pronunciation
+- Consider silent letters and language-specific rules
 
-Format: /IPA/ (approximate English pronunciation)
+Examples of good format:
+- "sah-loo" not "sah-loot" 
+- "bohn-zhoor" not "bon-jour"
+- "mer-see" not "mer-ci"
 
-Only return the pronunciation guide, no other text.`;
+Return ONLY the phonetic pronunciation, nothing else.`;
 }
 
 // Build prompt for verb conjugation generation

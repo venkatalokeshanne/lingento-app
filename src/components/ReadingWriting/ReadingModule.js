@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useUserPreferences } from "@/context/UserPreferencesContext";
 import { toast } from "react-hot-toast";
 import { bedrockService } from "@/services/bedrockService";
 import audioService from "@/services/audioService";
@@ -13,17 +14,22 @@ export default function ReadingModule({
   setReadingState,
   level,
   language,
-}) {
-  const { currentUser } = useAuth();
+}) {  const { currentUser } = useAuth();
+  const { audioSpeed } = useUserPreferences();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [selectedWord, setSelectedWord] = useState(null);
   const [showWordModal, setShowWordModal] = useState(false);
-  // Fixed playback speed (0.8) for language learning - UI controls removed per requirements
-  const playbackSpeed = 0.8;
+  // Use audio speed from user preferences, with fallback to 0.8 for language learning
+  const playbackSpeed = audioSpeed || 0.8;
 
   // Create a ref to track previous text for change detection
   const prevTextRef = useRef("");
+  
+  // Log when audio speed changes from user preferences
+  useEffect(() => {
+    console.log("Reading module using audio speed:", playbackSpeed);
+  }, [playbackSpeed]);
 
   // Extract state values from props
   const { text, textTitle, isGenerating } = readingState; // Sync local audio state with service state only when needed
@@ -285,13 +291,11 @@ Create an engaging, educational text that provides unique insights about ${rando
           setIsPaused(false);
         }
         return;
-      }
-
-      // If not playing and not paused, start playing
-      console.log("Starting new audio");
+      }      // If not playing and not paused, start playing
+      console.log("Starting new audio with speed:", playbackSpeed);
       setIsPlaying(true);
       setIsPaused(false);      await audioService.playAudio(text, language, {
-        speed: playbackSpeed, // Pass the speed to audio service
+        speed: playbackSpeed, // Pass the speed from user preferences
         onStart: () => {
           console.log("Audio started at speed:", playbackSpeed);
           setIsPlaying(true);
@@ -544,6 +548,8 @@ Create an engaging, educational text that provides unique insights about ${rando
 // Word Modal Component
 function WordModal({ word, language, onAddToVocabulary, onClose }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioError, setAudioError] = useState(false);
   const [wordData, setWordData] = useState({
     word: word,
     translation: "",
@@ -640,9 +646,62 @@ const generateWordData = async () => {
       ...prev,
       word: word,
       translation: "[Translation needed]",
-    }));
-  } finally {
+    }));  } finally {
     setIsLoading(false);
+  }
+};
+
+// Handle audio play for the word
+const handleAudioPlay = async () => {
+  if (!wordData.word) return;
+  
+  setAudioError(false);
+  
+  // Check if user interaction is needed (mainly for mobile)
+  if (audioService.requiresUserInteraction()) {
+    toast.error("Tap anywhere on screen to enable audio on mobile", {
+      duration: 3000,
+      icon: '🔊',
+    });
+    setAudioError(true);
+    return;
+  }
+  
+  try {
+    await audioService.playAudio(wordData.word, language, {
+      onStart: () => {
+        setIsPlayingAudio(true);
+      },
+      onEnd: () => {
+        setIsPlayingAudio(false);
+      },
+      onError: (error) => {
+        console.error('Error playing audio:', error);
+        setIsPlayingAudio(false);
+        setAudioError(true);
+        
+        // Show user-friendly error for mobile audio issues
+        if (error.code === "USER_INTERACTION_REQUIRED") {
+          toast.error("Tap anywhere on screen to enable audio on mobile", {
+            duration: 3000,
+            icon: '🔊',
+          });
+        } else if (error.message && !error.message.includes("interrupted")) {
+          toast.error("Audio playback failed. Please try again.", {
+            duration: 2000,
+            icon: '🔊',
+          });
+        }
+      },
+    });
+  } catch (error) {
+    console.error('Audio play error:', error);
+    setIsPlayingAudio(false);
+    setAudioError(true);
+    toast.error("Could not play audio", {
+      duration: 2000,
+      icon: '🔊',
+    });
   }
 };
 
@@ -656,13 +715,37 @@ return (
           </p>
         </div>
       ) : (
-        <div className="p-4 sm:p-6">
-          {/* Mobile-Optimized Header */}
+        <div className="p-4 sm:p-6">          {/* Mobile-Optimized Header */}
           <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 truncate">
-                {wordData.word}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 truncate">
+                  {wordData.word}
+                </h3>
+                <button
+                  onClick={handleAudioPlay}
+                  className={`p-1.5 rounded-full transition-all ${
+                    isPlayingAudio 
+                      ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 scale-110' 
+                      : 'text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                  }`}
+                  title="Play pronunciation"
+                >
+                  {isPlayingAudio ? (
+                    <svg 
+                      className="w-4 h-4 animate-pulse" 
+                      fill="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                 Add to your vocabulary collection
               </p>

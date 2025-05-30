@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { audioService } from "@/services/audioService";
 import { spacedRepetitionService } from "@/services/spacedRepetitionService";
 import { bedrockService } from "@/services/bedrockService";
+import { useUserPreferences } from "@/context/UserPreferencesContext";
 import toast from "react-hot-toast";
 
 export default function Flashcard({
@@ -29,10 +30,10 @@ export default function Flashcard({
   easinessFactor,
   repetitionNumber,
   interval,
-  nextReviewDate,
-  isNew = false,
+  nextReviewDate,  isNew = false,
   showQualityRating = false,
 }) {
+  const { audioSpeed } = useUserPreferences();
   const [isFlipped, setIsFlipped] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -146,10 +147,10 @@ export default function Flashcard({
 
     try {
       setIsLoading(true);
-      // Play the original word if we have an example, otherwise play frontText
-      console.log("@saibaba Playing audio for:", example ? originalWord || frontText : frontText);
+      // Play the original word if we have an example, otherwise play frontText      console.log("@saibaba Playing audio for:", example ? originalWord || frontText : frontText);
       const textToPlay = example ? originalWord || frontText : frontText;
       await audioService.playAudio(textToPlay, language, {
+        speed: audioSpeed, // Use the audio speed from user preferences
         onStart: () => {
           setIsPlaying(true);
           setIsLoading(false);
@@ -189,12 +190,14 @@ export default function Flashcard({
       setShowRating(true);
     }
   };
-
   const handleQualityRating = (quality) => {
+    // Prevent multiple clicks by hiding rating immediately
+    setShowRating(false);
+    
     if (onQualityRating) {
       onQualityRating(id, quality);
     }
-    setShowRating(false);
+    
     setIsFlipped(false); // Reset card for next review
   };
 

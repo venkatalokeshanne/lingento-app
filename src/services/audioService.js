@@ -109,11 +109,12 @@ class AudioService {
           error.code = "USER_INTERACTION_REQUIRED";
           if (options.onError) options.onError(error);
           return reject(error);
-        }
-
-        if (this.pollyClient) {
+        }        if (this.pollyClient) {
           try {
-            const audioData = await this.synthesizeWithPolly(text, language);
+            // Pass speed from options to synthesizeWithPolly
+            const audioData = await this.synthesizeWithPolly(text, language, {
+              speed: options.speed || 1.0
+            });
             await this.playAudioData(audioData, options);
             return resolve();
           } catch (pollyError) {
@@ -133,13 +134,19 @@ class AudioService {
       }
     });
   }
-
-  async synthesizeWithPolly(text, language) {
-    const cacheKey = `${text}-${language}`;
+  async synthesizeWithPolly(text, language, options = {}) {
+    // Include speed in the cache key to store different speeds separately
+    const speed = options.speed || 1.0;
+    const cacheKey = `${text}-${language}-${speed}`;
     if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
+    // For AWS Polly, we use SSML to control speech rate rather than audio playback rate
+    // This provides better quality audio at different speeds
+    const ssmlText = `<speak><prosody rate="${speed === 1.0 ? '100%' : (speed * 100) + '%'}">${text}</prosody></speak>`;
+
     const params = {
-      Text: text,
+      Text: ssmlText,
+      TextType: "ssml",
       OutputFormat: "mp3",
       VoiceId: this.getVoiceId(language),
       Engine: "neural",

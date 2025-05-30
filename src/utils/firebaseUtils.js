@@ -270,7 +270,7 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
         frontText: word.word,
         // Always show the translation on the back
         backText: word.translation,
-        audioSrc: null,        imageUrl: null,        category: word.language || 'General',
+        audioSrc: null,        imageUrl: null,        category: word.category || 'vocabulary',
         mastered: word.mastered || false,
         pronunciation: cleanPronunciation(word.pronunciation),
         definition: word.definition,
@@ -279,7 +279,7 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
         originalWord: word.word,
         translation: word.translation,
         originalCategory: word.category,
-
+        language: word.language || 'french',
         createdAt: word.createdAt,
         updatedAt: word.updatedAt,
 

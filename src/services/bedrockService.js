@@ -167,10 +167,13 @@ This must be a BRAND NEW response that has never been generated before.`;
       console.log('Generating fallback definition due to error');
       return this.generateFallbackDefinition(word, language, translation, partOfSpeech);
     }
-  }
-  // Generate pronunciation guide
+  }  // Generate pronunciation guide
   async generatePronunciation(word, language) {
-    const cacheKey = `pronunciation_${word}_${language}`;
+    // Don't cache pronunciation to allow for regeneration with different words
+    // or use a timestamp-based cache key for shorter cache duration
+    const timestamp = Math.floor(Date.now() / (1000 * 60 * 5)); // 5-minute cache
+    const cacheKey = `pronunciation_${word}_${language}_${timestamp}`;
+    
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey);
     }
@@ -196,10 +199,10 @@ This must be a BRAND NEW response that has never been generated before.`;
       const data = await response.json();
       let pronunciation = data.result;
       
-      // Clean up pronunciation: extract only the phonetic part in parentheses
+      // Clean up pronunciation: remove any extra text and keep only the phonetic part
       pronunciation = this.cleanPronunciation(pronunciation);
       
-      // Cache the result
+      // Cache the result with shorter duration
       this.cache.set(cacheKey, pronunciation);
       
       return pronunciation;
@@ -209,27 +212,36 @@ This must be a BRAND NEW response that has never been generated before.`;
     }
   }
 
-  // Clean pronunciation by extracting only the phonetic part in parentheses
+  // Clean pronunciation by removing any extra formatting and keeping only the phonetic pronunciation
   cleanPronunciation(pronunciation) {
     if (!pronunciation) return '';
     
-    // Remove IPA notation (anything between forward slashes) and keep only phonetic pronunciation in parentheses
-    // Example: "/sa-'ly/ (sah-LÜEE)" becomes "sah-LÜEE"
-    const match = pronunciation.match(/\(([^)]+)\)/);
-    if (match) {
-      return match[1]; // Return just the content inside parentheses
+    // Remove any quotes, slashes, or parentheses that might be added by AI
+    pronunciation = pronunciation.replace(/["/\[\]()]/g, '').trim();
+    
+    // Remove common prefixes that AI might add
+    pronunciation = pronunciation.replace(/^(pronunciation:|phonetic:|sounds like:?)\s*/i, '');
+    
+    // Extract just the phonetic part if there are multiple formats provided
+    // Look for hyphenated phonetic pronunciation
+    const phoneticMatch = pronunciation.match(/([a-z]+-[a-z\-]+)/i);
+    if (phoneticMatch) {
+      return phoneticMatch[1];
     }
     
-    // If no parentheses found, but has forward slashes, remove everything before the first space after closing slash
-    if (pronunciation.includes('/')) {
+        if (pronunciation.includes('/')) {
       const afterSlash = pronunciation.replace(/^[^/]*\/[^/]*\/\s*/, '');
       if (afterSlash && afterSlash !== pronunciation) {
         return afterSlash.replace(/^\(|\)$/g, ''); // Remove wrapping parentheses if any
       }
     }
+    // If no hyphens, just return the cleaned version
+    return pronunciation.trim();
+    
+    // If no parentheses found, but has forward slashes, remove everything before the first space after closing slash
+
     
     // Fallback: return as-is if no pattern matches
-    return pronunciation;
   }
   // Transform conjugation table from array format to object format expected by UI
   transformConjugationTable(conjugationTable) {
