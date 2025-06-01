@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "buildDate": "2025-05-30",
+  "features": [
+    "Progressive Web App support",
+    "Offline functionality", 
+    "Push notifications ready",
+    "Auto-update detection"
+  ]
+}

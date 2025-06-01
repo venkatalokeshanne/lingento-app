@@ -1,0 +1,117 @@
+/* PWA specific animations and styles */
+
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-right {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-enter {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+.animate-leave {
+  animation: slide-out-right 0.3s ease-in forwards;
+}
+
+/* PWA install button styling */
+.pwa-install-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.pwa-install-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.pwa-install-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+/* Offline indicator */
+.offline-indicator {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #f59e0b;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* PWA status indicators */
+.pwa-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.pwa-status.installed {
+  color: #059669;
+}
+
+.pwa-status.installable {
+  color: #7c3aed;
+}
+
+.pwa-status.update-available {
+  color: #dc2626;
+}
+
+/* App icon pulse animation for install prompt */
+.app-icon-pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Responsive adjustments for mobile PWA */
+@media (max-width: 640px) {
+  .animate-enter, .animate-leave {
+    max-width: calc(100vw - 32px);
+  }
+  
+  .offline-indicator {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 80px; /* Account for mobile navigation */
+  }
+}
