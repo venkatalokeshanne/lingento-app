@@ -561,7 +561,7 @@ export default function FlashcardsPage() {
               )}
             </AnimatePresence>{" "}
             {/* We removed the floating progress bar since we integrated it into the button */}{" "}            {/* Circular Progress Filter Button */}
-            <div className="fixed bottom-24 right-6 z-50">
+            <div className="fixed bottom-24 md:right-8.5 z-50 right-6">
               <motion.button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-lg flex items-center justify-center overflow-hidden"

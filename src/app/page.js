@@ -9,12 +9,11 @@ export default function Home() {
   const { currentUser } = useAuth();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
   const featuredWords = [
-    { french: "le bonheur", english: "happiness", pronunciation: "/lə bɔ.nœʁ/" },
-    { french: "la liberté", english: "freedom", pronunciation: "/la li.bɛʁ.te/" },
-    { french: "l'amour", english: "love", pronunciation: "/la.muʁ/" },
-    { french: "la sagesse", english: "wisdom", pronunciation: "/la sa.ʒɛs/" }
+    { word: "happiness", translation: "bonheur", language: "French", pronunciation: "/lə bɔ.nœʁ/" },
+    { word: "freedom", translation: "libertad", language: "Spanish", pronunciation: "/li.βeɾ.ˈtað/" },
+    { word: "love", translation: "amor", language: "Italian", pronunciation: "/aˈmore/" },
+    { word: "wisdom", translation: "sabiduría", language: "Spanish", pronunciation: "/sa.βi.ðu.ˈɾi.a/" }
   ];
 
   useEffect(() => {
@@ -46,17 +45,15 @@ export default function Home() {
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-indigo-700 dark:text-indigo-300 text-sm font-medium">
                 <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
                 AI-Powered Spaced Repetition
-              </div>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight">
-                Master French
+              </div>              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight">
+                Master Any Language
                 <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Naturally
                 </span>
               </h1>
             </div>
-            
-            <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
-              Learn 2,000+ French words with our scientifically-proven spaced repetition system. 
+              <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
+              Learn vocabulary in any language with our scientifically-proven spaced repetition system. 
               <span className="font-semibold text-indigo-600 dark:text-indigo-400"> Just 5 minutes a day.</span>
             </p>
             
@@ -140,19 +137,18 @@ export default function Home() {
               </div>
               
               {/* Word Card */}
-              <div className={`bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 p-6 rounded-2xl mb-6 transition-all duration-500 ${isAnimating ? 'scale-95 opacity-70' : 'scale-100 opacity-100'}`}>
-                <div className="text-center space-y-4">
+              <div className={`bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 p-6 rounded-2xl mb-6 transition-all duration-500 ${isAnimating ? 'scale-95 opacity-70' : 'scale-100 opacity-100'}`}>                <div className="text-center space-y-4">
                   <div className="space-y-2">
                     <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                      {featuredWords[currentWordIndex].french}
+                      {featuredWords[currentWordIndex].word}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                      {featuredWords[currentWordIndex].pronunciation}
+                      {featuredWords[currentWordIndex].language}
                     </p>
                   </div>
                   <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
                   <p className="text-xl text-gray-700 dark:text-gray-300 font-medium">
-                    {featuredWords[currentWordIndex].english}
+                    {featuredWords[currentWordIndex].translation}
                   </p>
                 </div>
               </div>
@@ -237,9 +233,8 @@ export default function Home() {
               <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Lingento?
               </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Our scientifically-backed approach makes learning French vocabulary faster and more effective than traditional methods.
+            </h2>            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Our scientifically-backed approach makes learning vocabulary in any language faster and more effective than traditional methods.
             </p>
           </div>
           
@@ -275,10 +270,9 @@ export default function Home() {
                     <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.774L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.797-3.774a1 1 0 011.617.774zM15 8a3 3 0 110 6V8z" clipRule="evenodd"/>
                     <path d="M17.5 6.205a5 5 0 110 7.59"/>
                   </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Native Pronunciation</h3>
+                </div>                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Native Pronunciation</h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Listen to authentic French pronunciation from native speakers to perfect your accent and comprehension.
+                  Listen to authentic pronunciation from native speakers to perfect your accent and comprehension in any language.
                 </p>
                 <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium">
                   <span>Hear samples</span>
@@ -390,9 +384,8 @@ export default function Home() {
               <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Works
               </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Three simple steps to master French vocabulary using proven cognitive science principles.
+            </h2>            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Three simple steps to master vocabulary in any language using proven cognitive science principles.
             </p>
           </div>
           
@@ -409,10 +402,9 @@ export default function Home() {
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                     </svg>
                   </div>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Start Your Journey</h3>
+                </div>                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Start Your Journey</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-6">
-                  Jump right into learning French vocabulary. Our smart algorithm adapts to your progress and shows you new words at the perfect pace.
+                  Jump right into learning vocabulary in your target language. Our smart algorithm adapts to your progress and shows you new words at the perfect pace.
                 </p>
                 <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                   <span className="text-sm font-medium">Ready in seconds</span>
@@ -511,10 +503,9 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Features designed for optimal learning
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Our method is backed by decades of cognitive science research to maximize your vocabulary retention.
-            </p>
+            </h2>              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                Our method is backed by decades of cognitive science research to maximize your vocabulary retention in any language.
+              </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -538,10 +529,9 @@ export default function Home() {
                   <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
                   <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
                 </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Professional Audio</h3>
+              </div>              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Professional Audio</h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Listen to the correct pronunciation of each word by native speakers to improve your accent.
+                Listen to the correct pronunciation of each word by native speakers to improve your accent in any language.
               </p>
             </div>
             
@@ -571,9 +561,8 @@ export default function Home() {
               <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Learners Say
               </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Join thousands of successful French learners who transformed their vocabulary with Lingento.
+            </h2>            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Join thousands of successful language learners who transformed their vocabulary with Lingento.
             </p>
           </div>
           
@@ -598,9 +587,8 @@ export default function Home() {
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                       </svg>
                     ))}
-                  </div>
-                  <blockquote className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    "After 3 months with Lingento, I can hold conversations in French with confidence. The spaced repetition method is incredibly effective! I went from knowing 50 words to over 800."
+                  </div>                  <blockquote className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                    "After 3 months with Lingento, I can hold conversations with confidence. The spaced repetition method is incredibly effective! I went from knowing 50 words to over 800."
                   </blockquote>
                   <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -638,9 +626,8 @@ export default function Home() {
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                       </svg>
                     ))}
-                  </div>
-                  <blockquote className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    "I only had 10 minutes a day to learn French before a business trip. Lingento made every minute count and I was able to navigate Paris with confidence!"
+                  </div>                  <blockquote className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                    "I only had 10 minutes a day to learn before a business trip. Lingento made every minute count and I was able to navigate with confidence!"
                   </blockquote>
                   <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -753,12 +740,11 @@ export default function Home() {
             </div>
             
             <div className="relative flex flex-col lg:flex-row items-center">
-              <div className="flex-1 p-12 lg:p-16 text-center lg:text-left">
-                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 leading-tight">
+              <div className="flex-1 p-12 lg:p-16 text-center lg:text-left">                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 leading-tight">
                   {currentUser ? (
-                    <>Continue Your<br />French Journey</>
+                    <>Continue Your<br />Learning Journey</>
                   ) : (
-                    <>Start Learning<br />French Today</>
+                    <>Start Learning<br />Today</>
                   )}
                 </h2>
                 <p className="text-xl text-indigo-100 mb-8 leading-relaxed max-w-lg">
@@ -857,9 +843,8 @@ export default function Home() {
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Lingento
                 </h2>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed max-w-md">
-                Master French vocabulary with our scientifically-proven spaced repetition system. 
+              </div>              <p className="text-gray-600 dark:text-gray-300 leading-relaxed max-w-md">
+                Master vocabulary in any language with our scientifically-proven spaced repetition system. 
                 Learn effectively, practice consistently, succeed confidently.
               </p>
               <div className="flex items-center gap-4">
@@ -910,17 +895,16 @@ export default function Home() {
           </div>
           
           {/* Bottom Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              © {new Date().getFullYear()} Lingento. All rights reserved. Made with ❤️ for French learners.
-            </p>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>Available in:</span>
-                <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇺🇸 English</button>
-                <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇫🇷 Français</button>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              © {new Date().getFullYear()} Lingento. All rights reserved. Made with ❤️ for language learners worldwide.
+            </p>              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Choose your language:</span>
+                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇺🇸 English</button>
+                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇫🇷 Français</button>
+                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇪🇸 Español</button>
+                </div>
               </div>
-            </div>
           </div>
         </div>
       </footer>

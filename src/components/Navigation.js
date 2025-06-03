@@ -6,18 +6,31 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useUserPreferences } from '@/context/UserPreferencesContext';
 
 export default function Navigation() {
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { audioSpeed, updatePreferences } = useUserPreferences();
   const router = useRouter();
   const isDarkMode = theme === 'dark';
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const userMenuRef = useRef(null);  const navigationItems = [
+  const [isLoggingOut, setIsLoggingOut] = useState(false);  const [scrolled, setScrolled] = useState(false);
+  const userMenuRef = useRef(null);
+
+  // Audio speed options
+  const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+  // Handle audio speed change
+  const handleSpeedChange = async (newSpeed) => {
+    try {
+      await updatePreferences({ audioSpeed: newSpeed });
+    } catch (error) {
+      console.error('Failed to update audio speed:', error);
+    }
+  };const navigationItems = [
     { 
       name: 'Dashboard', 
       href: '/dashboard', 
@@ -133,7 +146,8 @@ export default function Navigation() {
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">          {/* Logo and brand */}
-          <div className="flex items-center">            <Link 
+          <div className="flex items-center space-x-6 md:space-x-0">
+            <Link 
               href={currentUser ? "/dashboard" : "/"} 
               className="group flex items-center space-x-3"
             >
@@ -155,6 +169,31 @@ export default function Navigation() {
                 Lingento
               </span>
             </Link>
+
+            {/* Mobile Audio Speed Controls - positioned closer to logo with proper spacing */}
+            {currentUser && (
+              <motion.button
+                onClick={() => {
+                  const currentIndex = speedOptions.indexOf(audioSpeed);
+                  const nextIndex = (currentIndex + 1) % speedOptions.length;
+                  handleSpeedChange(speedOptions[nextIndex]);
+                }}
+                className="md:hidden flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 min-w-[60px]"
+                whileTap={{ scale: 0.95 }}
+                title={`Audio Speed: ${audioSpeed}x (tap to cycle)`}
+              >
+                <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                <span className={`text-sm font-semibold transition-colors ${
+                  audioSpeed !== 1 
+                    ? 'text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-600 dark:text-gray-300'
+                }`}>
+                  {audioSpeed}x
+                </span>
+              </motion.button>
+            )}
           </div>{/* Desktop navigation - only show for authenticated users */}
           {currentUser && (
             <div className="hidden md:flex md:items-center md:space-x-1">
@@ -188,9 +227,56 @@ export default function Navigation() {
                     />
                   )}
                 </Link>
-              ))}
+              ))}            </div>
+          )}          {/* Audio Speed Controls - Desktop */}
+          {currentUser && (
+            <div className="hidden md:flex items-center relative group">
+              <motion.button
+                onClick={() => {
+                  const currentIndex = speedOptions.indexOf(audioSpeed);
+                  const nextIndex = (currentIndex + 1) % speedOptions.length;
+                  handleSpeedChange(speedOptions[nextIndex]);
+                }}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 group"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                title={`Audio Speed: ${audioSpeed}x (click to cycle)`}
+              >
+                <svg className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                <span className={`text-sm font-semibold min-w-[28px] transition-colors ${
+                  audioSpeed !== 1 
+                    ? 'text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
+                }`}>
+                  {audioSpeed}x
+                </span>
+                <svg className="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </motion.button>
+              
+              {/* Dropdown menu with all speed options */}
+              <div className="absolute top-full right-0 mt-2 py-2 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                {speedOptions.map((speed) => (
+                  <button
+                    key={speed}
+                    onClick={() => handleSpeedChange(speed)}
+                    className={`w-full px-4 py-2 text-left text-sm font-medium transition-colors ${
+                      audioSpeed === speed
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {speed}x {speed === 1 && '(Normal)'}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}          {/* Right side menu */}
+          )}
+
+          {/* Right side menu */}
           <div className="flex items-center space-x-3">
             {/* User menu or Login/Register buttons */}
             {currentUser ? (
@@ -483,8 +569,7 @@ export default function Navigation() {
                           <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">Online</span>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </div>                  </div>
 
                   <Link
                     href="/profile"

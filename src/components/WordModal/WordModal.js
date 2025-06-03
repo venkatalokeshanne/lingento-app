@@ -33,8 +33,7 @@ function WordModal({
     category: '',
     language: language || 'fr'
   });
-  
-  // Modal state for AI features
+    // Modal state for AI features
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
   const [showExamples, setShowExamples] = useState(false);
@@ -43,6 +42,9 @@ function WordModal({
   const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
+  
+  // Audio state
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   
   // Return null if modal is not open
   if (!isOpen) return null;
@@ -297,6 +299,32 @@ function WordModal({
     autoTranslateExample(example, formData.language);
   };
 
+  // Handle word audio pronunciation
+  const handleWordAudio = async () => {
+    if (!formData.word || isPlayingAudio) return;
+    
+    try {
+      setIsPlayingAudio(true);
+      await audioService.playAudio(formData.word, formData.language, {
+        onStart: () => {
+          setIsPlayingAudio(true);
+        },
+        onEnd: () => {
+          setIsPlayingAudio(false);
+        },
+        onError: (error) => {
+          console.error('Error playing word audio:', error);
+          setIsPlayingAudio(false);
+          toast.error('Failed to play pronunciation');
+        }
+      });
+    } catch (error) {
+      console.error('Error with word audio service:', error);
+      setIsPlayingAudio(false);
+      toast.error('Audio pronunciation unavailable');
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -387,20 +415,48 @@ function WordModal({
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Main Word Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            <div className="space-y-1">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Word *
               </label>
-              <input
-                type="text"
-                name="word"
-                value={formData.word}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-                placeholder="Enter the word"
-                required
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  name="word"
+                  value={formData.word}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                  placeholder="Enter the word"
+                  required
+                />
+                {formData.word && (
+                  <button
+                    type="button"
+                    onClick={handleWordAudio}
+                    disabled={isPlayingAudio}
+                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all ${
+                      isPlayingAudio 
+                        ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 scale-110' 
+                        : 'text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }`}
+                    title="Play pronunciation"
+                  >
+                    {isPlayingAudio ? (
+                      <svg 
+                        className="w-4 h-4 animate-pulse" 
+                        fill="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="space-y-1">

@@ -35,7 +35,8 @@ export default function AddButton({
       case 'top-left':
         return 'top-6 left-6 md:top-8 md:left-8';
       case 'middle-right':
-        return 'bottom-24 right-6 md:bottom-28 md:right-8';      case 'below-filter':
+        return 'bottom-24 right-6 md:bottom-28 md:right-8';      
+    case 'below-filter':
         return 'bottom-[2.5rem] right-6 md:bottom-[2.5rem] md:right-8';
       case 'bottom-right':
       default:
