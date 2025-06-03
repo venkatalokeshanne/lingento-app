@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Flashcard from "@/components/Flashcard/Flashcard";
+import AddButton from "@/components/AddButton";
+import WordModal from "@/components/WordModal/WordModal";
 import { useAuth } from "@/context/AuthContext";
 import { useUserPreferences } from "@/context/UserPreferencesContext";
+import toast, { Toaster } from "react-hot-toast";
 import {
   fetchVocabularyAsFlashcards,
   updateVocabularyMastered,
@@ -24,7 +27,37 @@ export default function FlashcardsPage() {
     loading: preferencesLoading,
     error: preferencesError,
   } = useUserPreferences();
-  const router = useRouter();  // State management
+  const router = useRouter();
+
+  // WordModal state
+  const [showModal, setShowModal] = useState(false);
+  const [editingWord, setEditingWord] = useState(null);
+  const [formData, setFormData] = useState({
+    word: "",
+    translation: "",
+    pronunciation: "",
+    definition: "",
+    example: "",
+    category: "vocabulary",
+    language: language || "french",
+  });
+
+  // Handler for adding new flashcard
+  const handleAddFlashcard = () => {
+    setEditingWord(null);
+    setFormData({
+      word: "",
+      translation: "",
+      pronunciation: "",
+      definition: "",
+      example: "",
+      category: "vocabulary",
+      language: language || "french",
+    });
+    setShowModal(true);
+  };
+
+  // State management
   const [allFlashcards, setAllFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,14 +66,15 @@ export default function FlashcardsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
   const [studyMode, setStudyMode] = useState("review"); // 'review', 'new', 'all'
-  const [studySession, setStudySession] = useState([]);  const [sessionStats, setSessionStats] = useState(null);
+  const [studySession, setStudySession] = useState([]);
+  const [sessionStats, setSessionStats] = useState(null);
   const [isProcessingRating, setIsProcessingRating] = useState(false); // Prevent double rating calls
   const [autoAdvanceTimeoutId, setAutoAdvanceTimeoutId] = useState(null); // Store timeout ID
   // Extract unique categories
   const categories = [
     "All",
     ...new Set(allFlashcards.map((card) => card.category)),
-  ];  // Filter flashcards based on selected category and study mode
+  ]; // Filter flashcards based on selected category and study mode
   const getFilteredFlashcards = () => {
     let filtered =
       selectedCategory === "All"
@@ -60,12 +94,20 @@ export default function FlashcardsPage() {
 
     return filtered; // 'all' mode
   };
-
   const filteredFlashcards = getFilteredFlashcards();
-  // Reset active index when filters change
+  
+  // Reset active index when filters change or when filtered cards change
   useEffect(() => {
     setActiveIndex(0);
   }, [selectedCategory, studyMode]);
+
+  // Additional effect to handle case where filtered cards array changes due to ratings
+  useEffect(() => {
+    if (filteredFlashcards.length > 0 && activeIndex >= filteredFlashcards.length) {
+      console.log("🔧 Adjusting activeIndex due to filtered cards change - was:", activeIndex, "setting to 0");
+      setActiveIndex(0);
+    }
+  }, [filteredFlashcards.length, activeIndex]);
 
   // Update session stats when flashcards change
   useEffect(() => {
@@ -82,13 +124,13 @@ export default function FlashcardsPage() {
       );
       setStudySession(session);
     }
-  }, [allFlashcards, studyMode]);  // Fetch flashcards from vocabulary when user is available
+  }, [allFlashcards, studyMode]); // Fetch flashcards from vocabulary when user is available
   useEffect(() => {
     if (currentUser) {
       fetchFlashcards();
     }
-  }, [currentUser]); 
-  
+  }, [currentUser]);
+
   // Cleanup timeout on component unmount
   useEffect(() => {
     return () => {
@@ -96,7 +138,7 @@ export default function FlashcardsPage() {
         clearTimeout(autoAdvanceTimeoutId);
       }
     };
-  }, [autoAdvanceTimeoutId]);// Fetch vocabulary and convert to flashcards using utility function
+  }, [autoAdvanceTimeoutId]); // Fetch vocabulary and convert to flashcards using utility function
   const fetchFlashcards = async () => {
     try {
       const flashcardsData = await fetchVocabularyAsFlashcards(
@@ -133,21 +175,28 @@ export default function FlashcardsPage() {
     }
   };  // Handle spaced repetition quality rating
   const handleQualityRating = async (cardId, quality) => {
-    console.log('⭐ handleQualityRating called - cardId:', cardId, 'quality:', quality, 'isProcessingRating:', isProcessingRating);
-    
+    console.log(
+      "⭐ handleQualityRating called - cardId:",
+      cardId,
+      "quality:",
+      quality,
+      "isProcessingRating:",
+      isProcessingRating
+    );
+
     // Prevent multiple rapid calls
     if (isProcessingRating) {
-      console.log('❌ Rating already being processed, ignoring...');
+      console.log("❌ Rating already being processed, ignoring...");
       return;
     }
-    
+
     setIsProcessingRating(true);
-    console.log('✅ Starting quality rating process...');
-    
+    console.log("✅ Starting quality rating process...");
+
     try {
       const cardIndex = allFlashcards.findIndex((card) => card.id === cardId);
       if (cardIndex === -1) {
-        console.log('❌ Card not found');
+        console.log("❌ Card not found");
         setIsProcessingRating(false);
         return;
       }
@@ -158,29 +207,55 @@ export default function FlashcardsPage() {
         quality
       );
 
+      // Store current filtered cards count and current index before state update
+      const currentFilteredLength = filteredFlashcards.length;
+      const currentActiveIndex = activeIndex;
+      console.log("📊 Before update - activeIndex:", currentActiveIndex, "filteredLength:", currentFilteredLength);
+
       // Update local state with spaced repetition data
       setAllFlashcards((prev) =>
         prev.map((card) => (card.id === cardId ? updatedCard : card))
-      );      // Save complete spaced repetition data to Firebase
+      ); // Save complete spaced repetition data to Firebase
       await updateVocabularySpacedRepetition(currentUser, cardId, updatedCard);
-      console.log('💾 Firebase updated successfully');
+      console.log("💾 Firebase updated successfully");
 
       // Clear any existing timeout to prevent multiple auto-advances
       if (autoAdvanceTimeoutId) {
-        console.log('🔄 Clearing existing auto-advance timeout');
+        console.log("🔄 Clearing existing auto-advance timeout");
         clearTimeout(autoAdvanceTimeoutId);
       }
 
       // Auto-advance to next card with a longer delay to prevent double triggers
-      console.log('⏰ Setting timeout to advance to next card...');
+      console.log("⏰ Setting timeout to advance to next card...");
       const timeoutId = setTimeout(() => {
-        console.log('⏰ Timeout triggered, calling handleNext...');
-        handleNext();
+        console.log("⏰ Timeout triggered, advancing cards...");
+        
+        // Get fresh filtered cards after the state update has propagated
+        const newFilteredCards = getFilteredFlashcards();
+        console.log("📊 After update - newFilteredLength:", newFilteredCards.length);
+        
+        // Handle advancement more carefully
+        if (newFilteredCards.length > 0) {
+          // If the filtered array length changed, the current card might have been removed
+          if (newFilteredCards.length !== currentFilteredLength) {
+            console.log("🔄 Filtered cards length changed, adjusting index...");
+            // Stay at the same index (which now shows the next card) or wrap to 0
+            const newIndex = currentActiveIndex >= newFilteredCards.length ? 0 : currentActiveIndex;
+            console.log("🔄 Setting adjusted activeIndex:", newIndex);
+            setActiveIndex(newIndex);
+          } else {
+            // Normal advancement to next card
+            const newIndex = (currentActiveIndex + 1) % newFilteredCards.length;
+            console.log("🔄 Normal advancement to activeIndex:", newIndex);
+            setActiveIndex(newIndex);
+          }
+        }
+        
         setIsProcessingRating(false); // Reset after advancing
         setAutoAdvanceTimeoutId(null); // Clear timeout ID
-        console.log('✅ Quality rating process complete');
+        console.log("✅ Quality rating process complete");
       }, 800);
-      
+
       setAutoAdvanceTimeoutId(timeoutId);
     } catch (error) {
       console.error("Error updating spaced repetition data:", error);
@@ -188,7 +263,6 @@ export default function FlashcardsPage() {
       setAutoAdvanceTimeoutId(null); // Clear timeout ID on error
     }
   };
-
   // Handle example update from Flashcard component
   const handleExampleUpdate = async (cardId, example, translatedExample) => {
     try {
@@ -213,11 +287,67 @@ export default function FlashcardsPage() {
     } catch (error) {
       console.error("Error updating vocabulary example:", error);
     }
-  };  const handleNext = () => {
-    console.log('🔄 handleNext called - activeIndex:', activeIndex, 'filteredFlashcards.length:', filteredFlashcards.length);
+  };
+
+  // Handle form submission for WordModal
+  const handleSubmit = async (wordData, editingWordToUpdate = null) => {
+    if (!wordData.word || !wordData.translation) {
+      toast.error("Word and translation are required");
+      return;
+    }
+
+    try {
+      // Prepare the data to save from the WordModal component
+      const saveData = { ...wordData };
+      const currentEditingWord = editingWordToUpdate || editingWord;
+
+      // If we have verb conjugations, add them
+      if (
+        wordData.verbConjugations &&
+        Object.keys(wordData.verbConjugations).length > 0
+      ) {
+        saveData.conjugations = wordData.verbConjugations;
+        // Mark as verb type for easier identification
+        if (!saveData.category || saveData.category === "vocabulary") {
+          saveData.category = "verbs";
+        }
+      }
+
+      if (currentEditingWord) {
+        // Update existing word
+        await updateUserData(
+          currentUser,
+          "vocabulary",
+          currentEditingWord.id,
+          saveData
+        );
+        toast.success("Word updated successfully!");
+      } else {
+        // Add new word
+        await addUserData(currentUser, "vocabulary", saveData);
+        toast.success("Word added successfully!");
+      }
+
+      // Close modal and refresh words
+      setShowModal(false);
+      setEditingWord(null);
+      // Refresh flashcards to include the new word
+      fetchFlashcards();
+    } catch (error) {
+      console.error("Error saving word:", error);
+      toast.error("Error saving word. Please try again.");
+    }
+  };
+  const handleNext = () => {
+    console.log(
+      "🔄 handleNext called - activeIndex:",
+      activeIndex,
+      "filteredFlashcards.length:",
+      filteredFlashcards.length
+    );
     if (filteredFlashcards.length > 0) {
       const newIndex = (activeIndex + 1) % filteredFlashcards.length;
-      console.log('🔄 Setting new activeIndex:', newIndex);
+      console.log("🔄 Setting new activeIndex:", newIndex);
       setActiveIndex(newIndex);
     }
   };
@@ -262,7 +392,6 @@ export default function FlashcardsPage() {
             </button>
           </div> */}{" "}
         </div>
-
         {/* Loading state */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-16">
@@ -272,7 +401,6 @@ export default function FlashcardsPage() {
             </p>
           </div>
         )}
-
         {/* Error state */}
         {error && !loading && (
           <div className="text-center py-16">
@@ -299,7 +427,6 @@ export default function FlashcardsPage() {
             </p>
           </div>
         )}
-
         {/* Content - only show when not loading */}
         {!loading && (
           <>
@@ -314,11 +441,9 @@ export default function FlashcardsPage() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setIsFilterOpen(false)}
-                  />
-
-                  {/* Filter Modal */}
+                  />                  {/* Filter Modal */}
                   <motion.div
-                    className="fixed bottom-24 right-6 z-50 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700"
+                    className="fixed bottom-40 right-6 z-50 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700"
                     initial={{ y: 50, opacity: 0, scale: 0.9 }}
                     animate={{ y: 0, opacity: 1, scale: 1 }}
                     exit={{ y: 50, opacity: 0, scale: 0.9 }}
@@ -340,7 +465,7 @@ export default function FlashcardsPage() {
                         >
                           <path
                             fillRule="evenodd"
-                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L13.732 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                             clipRule="evenodd"
                           />
                         </svg>
@@ -435,9 +560,8 @@ export default function FlashcardsPage() {
                 </>
               )}
             </AnimatePresence>{" "}
-            {/* We removed the floating progress bar since we integrated it into the button */}{" "}
-            {/* Circular Progress Filter Button */}
-            <div className="fixed bottom-6 right-6 z-50">
+            {/* We removed the floating progress bar since we integrated it into the button */}{" "}            {/* Circular Progress Filter Button */}
+            <div className="fixed bottom-24 right-6 z-50">
               <motion.button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-lg flex items-center justify-center overflow-hidden"
@@ -547,10 +671,9 @@ export default function FlashcardsPage() {
               </motion.button>
             </div>{" "}
             {/* Filter indicator pill */}
-            <AnimatePresence>
-              {selectedCategory !== "All" && (
+            <AnimatePresence>              {selectedCategory !== "All" && (
                 <motion.div
-                  className="fixed bottom-[4.5rem] right-6 z-40 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-3 py-1 rounded-full shadow-md border border-indigo-100 dark:border-indigo-800/30"
+                  className="fixed bottom-[10.5rem] right-6 z-40 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 text-xs font-medium px-3 py-1 rounded-full shadow-md border border-indigo-100 dark:border-indigo-800/30"
                   initial={{ y: 20, opacity: 0, scale: 0.8 }}
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   exit={{ y: 10, opacity: 0, scale: 0.8 }}
@@ -826,11 +949,35 @@ export default function FlashcardsPage() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4 mx-auto"></div>
                 <p className="text-gray-600 dark:text-gray-400">
                   Loading flashcards...
-                </p>
+                </p>{" "}
               </div>
             )}
           </>
-        )}
+        )}{" "}        {/* Add Button for creating new flashcards */}        <AddButton
+          onClick={handleAddFlashcard}
+          title="Add new flashcard"
+          position="bottom-right"
+          show={!loading}
+        />
+        {/* Add/Edit Word Modal */}
+        <AnimatePresence>
+          {showModal && (
+            <WordModal
+              isOpen={showModal}
+              onClose={() => {
+                setShowModal(false);
+                setEditingWord(null);
+              }}
+              onSubmit={handleSubmit}
+              editingWord={editingWord}
+              initialWord={formData?.word || ""}
+              language={formData?.language || language}
+              userId={currentUser?.uid || null}
+            />
+          )}
+        </AnimatePresence>
+        {/* Toast Notifications */}
+        <Toaster position="top-right" />
       </div>
     </div>
   );

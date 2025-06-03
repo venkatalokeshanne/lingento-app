@@ -3,14 +3,24 @@
 
 import { useState, useEffect } from 'react';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
+import { useAuth } from '@/context/AuthContext';
 import ReadingModule from './ReadingModule';
 import WritingModule from './WritingModule';
+import AddButton from '@/components/AddButton';
+import WordModal from '@/components/WordModal/WordModal';
 import { bedrockService } from "@/services/bedrockService";
 import { toast } from 'react-hot-toast';
+import { addUserData } from '@/utils/firebaseUtils';
+import { AnimatePresence } from 'framer-motion';
 
 export default function ReadingWritingHub() {
   const [activeTab, setActiveTab] = useState('reading');
   const { language, level, loading, error } = useUserPreferences();
+  const { currentUser } = useAuth();
+  
+  // Modal state for adding words
+  const [showWordModal, setShowWordModal] = useState(false);
+  const [selectedWord, setSelectedWord] = useState('');
   
   // Writing module state management
   const [writingState, setWritingState] = useState({
@@ -36,6 +46,42 @@ export default function ReadingWritingHub() {
   const userLevel = level || 'beginner';
   const userLanguage = language || 'french';
   console.log("User preferences:", { level: userLevel, language: userLanguage, loading, error });
+
+  // Handler for add word button
+  const handleAddWord = () => {
+    setSelectedWord('');
+    setShowWordModal(true);
+  };
+
+  // Handler for adding word to vocabulary
+  const handleWordSubmit = async (wordData) => {
+    if (!currentUser) {
+      toast.error("Please log in to add words to vocabulary");
+      return;
+    }
+
+    try {
+      const vocabularyEntry = {
+        word: wordData.word,
+        translation: wordData.translation || "",
+        pronunciation: wordData.pronunciation || "",
+        definition: wordData.definition || "",
+        example: wordData.example || "",
+        category: "Vocabulary",
+        language: userLanguage,
+        dateAdded: new Date().toISOString(),
+        source: "reading_writing_practice",
+      };
+
+      await addUserData(currentUser, "vocabulary", vocabularyEntry);
+      toast.success(`"${wordData.word}" added to vocabulary!`);
+      setShowWordModal(false);
+      setSelectedWord('');
+    } catch (error) {
+      console.error("Error adding to vocabulary:", error);
+      toast.error("Failed to add word to vocabulary");
+    }
+  };
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Generate initial prompt when component mounts or language/level changes
@@ -457,9 +503,34 @@ Create an engaging, educational text that provides unique insights about ${rando
               level={userLevel}
               language={userLanguage}
             />
-          )}
-        </div>
-      </div>      
+          )}        </div>
+      </div>
+      
+      {/* Add Word Button */}
+      <AddButton
+        onClick={handleAddWord}
+        title="Add new word to vocabulary"
+        position="bottom-right"
+        show={!loading}
+      />
+
+      {/* Word Modal */}
+      <AnimatePresence>
+        {showWordModal && (
+          <WordModal
+            isOpen={showWordModal}
+            onClose={() => {
+              setShowWordModal(false);
+              setSelectedWord('');
+            }}
+            onSubmit={handleWordSubmit}
+            initialWord={selectedWord}
+            language={userLanguage}
+            userId={currentUser?.uid || null}
+          />
+        )}
+      </AnimatePresence>
+      
       {/* Subtle Background Decoration */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/30 dark:bg-blue-900/10 rounded-full blur-3xl"></div>

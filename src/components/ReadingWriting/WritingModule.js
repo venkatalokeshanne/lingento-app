@@ -12,6 +12,9 @@ export default function WritingModule({ writingState, setWritingState, level, la
   const { currentUser } = useAuth();
   const [wordCount, setWordCount] = useState(0);
 
+  // Debug log to check received props
+  console.log('WritingModule received props:', { level, language });
+
   const levels = {
     beginner: 'Beginner (A1-A2)',
     intermediate: 'Intermediate (B1-B2)',
@@ -321,12 +324,11 @@ Return only valid JSON format.`;      const response = await bedrockService.gene
       advanced: { min: 300, max: 500 }
     };
     
-    const target = targets[level];
+    const target = targets[level] || targets.beginner; // Fallback to beginner if level is undefined
     if (wordCount < target.min) return 'text-orange-500';
     if (wordCount > target.max) return 'text-red-500';
     return 'text-green-500';
   };
-
   // Get target word count range
   const getTargetRange = () => {
     const targets = {
@@ -334,8 +336,8 @@ Return only valid JSON format.`;      const response = await bedrockService.gene
       intermediate: '200-300',
       advanced: '300-500'
     };
-    return targets[level];
-  };  return (
+    return targets[level] || targets.beginner; // Fallback to beginner if level is undefined
+  };return (
     <div className="space-y-4">
       {/* Compact Header with Essential Controls */}
       <div className="bg-white/90 dark:bg-gray-800/90 shadow-md rounded-xl p-4 border border-gray-100 dark:border-gray-700">

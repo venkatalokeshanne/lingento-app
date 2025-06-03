@@ -498,12 +498,16 @@ class TranslateService {  constructor() {
   isLanguageSupported(language) {
     return this.languageCodes.hasOwnProperty(language.toLowerCase());
   }
-
   // Check if a word is likely to be in common mappings (avoid API call)
   isCommonWord(text, language) {
     const normalizedText = text.toLowerCase().trim();
     const mappings = this.commonWordMappings[language?.toLowerCase()];
     return mappings && mappings.hasOwnProperty(normalizedText);
+  }
+
+  // Check if service is ready
+  isReady() {
+    return this.isInitialized;
   }
 
   // Get estimated character count for a text (for free tier monitoring)
@@ -578,5 +582,6 @@ export const {
   getCacheStats,
   preloadTranslation,
   getSupportedLanguages,
-  isLanguageSupported
+  isLanguageSupported,
+  isReady
 } = translateService;

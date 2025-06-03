@@ -5,9 +5,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserPreferences } from '../../context/UserPreferencesContext';
 import spacedRepetitionService from '../../services/spacedRepetitionService';
-import { fetchVocabularyAsFlashcards } from '../../utils/firebaseUtils';
+import { fetchVocabularyAsFlashcards, addUserData, updateUserData } from '../../utils/firebaseUtils';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import AddButton from '../AddButton';
+import WordModal from '../WordModal/WordModal';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Enhanced MetricCard with advanced analytics and better visual design
 const MetricCard = ({ title, value, subtitle, icon, color, trend, trendDirection, onClick, analytics }) => {
@@ -294,14 +297,14 @@ const AchievementsShowcase = ({ stats, studyStreak, masteredPercentage }) => {
       name: 'First Steps',
       description: 'Added your first word',
       icon: '🌱',
-      isUnlocked: stats.total > 0
+      isUnlocked: stats?.total > 0
     },
     {
       id: 'vocabulary_builder',
       name: 'Vocabulary Builder',
       description: 'Added 50 words',
       icon: '📚',
-      isUnlocked: stats.total >= 50
+      isUnlocked: stats?.total >= 50
     },
     {
       id: 'consistency_champion',
@@ -322,7 +325,7 @@ const AchievementsShowcase = ({ stats, studyStreak, masteredPercentage }) => {
       name: 'Fluency Seeker',
       description: '90% retention rate',
       icon: '🧠',
-      isUnlocked: stats.retentionRate >= 90
+      isUnlocked: (stats?.retentionRate || 0) >= 90
     },
     {
       id: 'dedication_master',
@@ -675,14 +678,25 @@ const ActivityTimeline = ({ recentActivity }) => {
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
-  const { preferences } = useUserPreferences();
-  const [flashcards, setFlashcards] = useState([]);
+  const { preferences } = useUserPreferences();  const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [goalCompleted, setGoalCompleted] = useState(0);
   const [studyStreak, setStudyStreak] = useState(0);
   const [recentActivity, setRecentActivity] = useState([]);
   const [weeklyTrend, setWeeklyTrend] = useState({ wordsAdded: 0, reviewsCompleted: 0 });
+  
+  // WordModal state
+  const [showModal, setShowModal] = useState(false);
+  const [editingWord, setEditingWord] = useState(null);
+  const [formData, setFormData] = useState({
+    word: '',
+    definition: '',
+    example: '',
+    difficulty: 'easy',
+    tags: [],
+    pronunciation: ''
+  });
 
   const dailyGoal = preferences?.dailyGoal || 20;
 
@@ -739,10 +753,8 @@ const Dashboard = () => {
           action: `Added ${recentlyAdded.length} new word${recentlyAdded.length > 1 ? 's' : ''}`,
           time: recentlyAdded.length > 3 ? 'Yesterday' : '2 days ago'
         });
-      }
-
-      // Check for perfect sessions
-      if (stats.retentionRate >= 90 && recentlyReviewed.length >= 5) {
+      }      // Check for perfect sessions
+      if ((stats?.retentionRate || 0) >= 90 && recentlyReviewed.length >= 5) {
         activities.push({
           type: 'perfect',
           action: 'Perfect review session!',
@@ -789,133 +801,163 @@ const Dashboard = () => {
     
     return streak;
   };
-
   useEffect(() => {
-    const loadData = async () => {
-      if (currentUser) {
-        try {
-          const cards = await fetchVocabularyAsFlashcards(
-            currentUser,
-            setFlashcards,
-            setLoading
-          );
-          
-          if (cards && cards.length > 0) {
-            // Calculate statistics
-            const statsData = spacedRepetitionService.getStatistics(cards);
-            setStats(statsData);
-            
-            // Calculate today's reviewed cards
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const reviewedToday = cards.filter(card => {
-              if (!card.lastReviewDate) return false;
-              
-              let reviewDate;
-              if (card.lastReviewDate.seconds) {
-                reviewDate = new Date(card.lastReviewDate.seconds * 1000);
-              } else {
-                reviewDate = new Date(card.lastReviewDate);
-              }
-              
-              reviewDate.setHours(0, 0, 0, 0);
-              return reviewDate.getTime() === today.getTime();
-            }).length;
-            
-            setGoalCompleted(reviewedToday);
-            
-            // Calculate study streak
-            const streakCount = calculateStudyStreak(cards);
-            setStudyStreak(streakCount);
-            
-            // Generate recent activity
-            const activities = generateRecentActivity(cards, statsData);
-            setRecentActivity(activities);
-            
-            // Calculate weekly trends
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            
-            const recentWords = cards.filter(card => {
-              if (!card.createdAt) return false;
-              const createDate = card.createdAt.seconds 
-                ? new Date(card.createdAt.seconds * 1000)
-                : new Date(card.createdAt);
-              return createDate > weekAgo;
-            });
-            
-            const recentReviews = cards.filter(card => {
-              if (!card.lastReviewDate) return false;
-              const reviewDate = card.lastReviewDate.seconds 
-                ? new Date(card.lastReviewDate.seconds * 1000)
-                : new Date(card.lastReviewDate);
-              return reviewDate > weekAgo;
-            });
-            
-            setWeeklyTrend({
-              wordsAdded: recentWords.length,
-              reviewsCompleted: recentReviews.length
-            });
-          }
-        } catch (error) {
-          console.error("Error loading flashcards data:", error);
-        }
-      }
-      setLoading(false);
-    };
-
     loadData();
   }, [currentUser]);
+
+  // Handler for adding new flashcard
+  const handleAddFlashcard = () => {
+    setEditingWord(null);
+    setFormData({
+      word: '',
+      definition: '',
+      example: '',
+      difficulty: 'easy',
+      tags: [],
+      pronunciation: ''
+    });
+    setShowModal(true);
+  };
+
+  // Handle form submission for WordModal
+  const handleSubmit = async (wordData, editingWordToUpdate = null) => {
+    if (!wordData.word || !wordData.translation) {
+      toast.error('Word and translation are required');
+      return;
+    }
+
+    try {
+      // Prepare the data to save from the WordModal component
+      const saveData = { ...wordData };
+      const currentEditingWord = editingWordToUpdate || editingWord;
+
+      // If we have verb conjugations, add them
+      if (wordData.verbConjugations && Object.keys(wordData.verbConjugations).length > 0) {
+        saveData.conjugations = wordData.verbConjugations;
+        // Mark as verb type for easier identification
+        if (!saveData.category || saveData.category === 'vocabulary') {
+          saveData.category = 'verbs';
+        }
+      }
+
+      if (currentEditingWord) {
+        // Update existing word
+        await updateUserData(currentUser, 'vocabulary', currentEditingWord.id, saveData);
+        toast.success('Word updated successfully!');
+      } else {
+        // Add new word
+        await addUserData(currentUser, 'vocabulary', saveData);
+        toast.success('Word added successfully!');
+      }
+
+      // Close modal and refresh data
+      setShowModal(false);
+      setEditingWord(null);
+      // Reload dashboard data to reflect the new word
+      loadData();
+    } catch (error) {
+      console.error('Error saving word:', error);
+      toast.error('Error saving word. Please try again.');
+    }
+  };
+
+  // Extract loadData function to reuse it
+  const loadData = async () => {
+    if (currentUser) {
+      try {
+        const cards = await fetchVocabularyAsFlashcards(
+          currentUser,
+          setFlashcards,
+          setLoading
+        );
+        
+        if (cards && cards.length > 0) {
+          // Calculate statistics
+          const statsData = spacedRepetitionService.getStatistics(cards);
+          setStats(statsData);
+          
+          // Calculate today's reviewed cards
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const reviewedToday = cards.filter(card => {
+            if (!card.lastReviewDate) return false;
+            
+            let reviewDate;
+            if (card.lastReviewDate.seconds) {
+              reviewDate = new Date(card.lastReviewDate.seconds * 1000);
+            } else {
+              reviewDate = new Date(card.lastReviewDate);
+            }
+            
+            reviewDate.setHours(0, 0, 0, 0);
+            return reviewDate.getTime() === today.getTime();
+          }).length;
+          
+          setGoalCompleted(reviewedToday);
+          
+          // Calculate study streak
+          const streakCount = calculateStudyStreak(cards);
+          setStudyStreak(streakCount);
+          
+          // Generate recent activity
+          const activities = generateRecentActivity(cards, statsData);
+          setRecentActivity(activities);
+          
+          // Calculate weekly trends
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          
+          const recentWords = cards.filter(card => {
+            if (!card.createdAt) return false;
+            const createDate = card.createdAt.seconds 
+              ? new Date(card.createdAt.seconds * 1000)
+              : new Date(card.createdAt);
+            return createDate > weekAgo;
+          });
+          
+          const recentReviews = cards.filter(card => {
+            if (!card.lastReviewDate) return false;
+            const reviewDate = card.lastReviewDate.seconds 
+              ? new Date(card.lastReviewDate.seconds * 1000)
+              : new Date(card.lastReviewDate);
+            return reviewDate > weekAgo;
+          });
+          
+          setWeeklyTrend({
+            wordsAdded: recentWords.length,
+            reviewsCompleted: recentReviews.length
+          });
+        }
+      } catch (error) {
+        console.error("Error loading flashcards data:", error);
+      }
+    }
+    setLoading(false);
+  };  const retentionPercentage = Math.round(stats?.retentionRate || 0);
+  const masteredPercentage = stats?.total > 0 ? Math.round((stats?.matured / stats?.total) * 100) : 0;
+  const progressTowardsGoal = Math.round((goalCompleted / dailyGoal) * 100);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Loading your progress...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
         </div>
-      </div>    );
-  }
-
-  if (!stats) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-200">Welcome to Lingento!</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-            Start your {preferences?.language || 'language'} learning journey by adding your first vocabulary words. 
-            Our spaced repetition system will help you master them efficiently.
-          </p>
-          <div className="space-y-4">
-            <Link href="/vocabulary" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition duration-200 shadow-lg">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Your First Words
-            </Link>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Goal: {dailyGoal} words per day • Level: {preferences?.level || 'beginner'}
-            </p>
-          </div>
-        </motion.div>
       </div>
     );
   }
 
-  const retentionPercentage = Math.round(stats.retentionRate || 0);
-  const masteredPercentage = stats.total > 0 ? Math.round((stats.matured / stats.total) * 100) : 0;
-  const progressTowardsGoal = Math.round((goalCompleted / dailyGoal) * 100);
+  if (!stats) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-400">No data available. Start studying to see your progress!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -1435,8 +1477,36 @@ const Dashboard = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
             <span className="font-semibold">Reading & Writing</span>
-          </Link>
-        </motion.div>
+          </Link>        </motion.div>
+
+        {/* AddButton for creating new vocabulary */}
+        <AddButton
+          onClick={handleAddFlashcard}
+          title="Add new vocabulary"
+          position="bottom-right"
+          show={!loading}
+        />
+
+        {/* Add/Edit Word Modal */}
+        <AnimatePresence>
+          {showModal && (
+            <WordModal
+              isOpen={showModal}
+              onClose={() => {
+                setShowModal(false);
+                setEditingWord(null);
+              }}
+              onSubmit={handleSubmit}
+              editingWord={editingWord}
+              initialWord={formData?.word || ''}
+              language={formData?.language || preferences?.language}
+              userId={currentUser?.uid || null}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Toast Notifications */}
+        <Toaster position="top-right" />
       </div>
     </div>
   );
