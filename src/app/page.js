@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import SocialMetaTags from "@/components/SocialMetaTags";
 
 export default function Home() {
   const { currentUser } = useAuth();
@@ -29,6 +30,12 @@ export default function Home() {
   }, [featuredWords.length]);
     return (
     <>
+      <SocialMetaTags 
+        title="Lingento | Learn Any Language Effectively with Smart Flashcards"
+        description="Master vocabulary in multiple languages with spaced repetition. Interactive flashcards, personalized learning paths, and AI-powered features to accelerate your language learning journey."
+        image="/og-image.svg"
+        url="https://lingentoo.com"
+      />
       {/* Structured Data for SEO */}
       <script
         type="application/ld+json"

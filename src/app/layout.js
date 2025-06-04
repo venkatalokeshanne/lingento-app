@@ -28,22 +28,31 @@ export const metadata = {
     email: false,
     address: false,
     telephone: false,
-  },
-  metadataBase: new URL('https://lingentoo.com'),
+  },  metadataBase: new URL('https://lingentoo.com'),
   alternates: {
     canonical: 'https://lingentoo.com',
     languages: {
       'en-US': 'https://lingentoo.com',
       'fr-FR': 'https://lingentoo.com/fr',
     },
-  },
-  openGraph: {    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+  },  icons: {
+    icon: [
+      { url: '/icon', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
+    shortcut: '/favicon.svg',
+    apple: [
+      { url: '/apple-icon', sizes: '180x180', type: 'image/png' }
+    ],
+  },// Enhanced Open Graph metadata for better social sharing
+  openGraph: {
+    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
     description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
     url: 'https://lingentoo.com',
     siteName: 'Lingento',
     images: [
       {
-        url: 'https://lingentoo.com/og-image.jpg',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Lingento - Learn Languages with Smart Flashcards',
@@ -51,13 +60,14 @@ export const metadata = {
     ],
     locale: 'en_US',
     type: 'website',
-  },
+  },  // Enhanced Twitter metadata
   twitter: {
-    card: 'summary_large_image',    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+    card: 'summary_large_image',
+    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
     description: "Master vocabulary in multiple languages with spaced repetition and interactive flashcards. Start your language learning journey today!",
     site: '@lingento',
     creator: '@lingento',
-    images: ['https://lingentoo.com/twitter-image.jpg'],
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,
@@ -114,10 +124,13 @@ export default function RootLayout({ children }) {
       }
     }
   };
-
   return (
     <html lang="en">
       <head>
+        {/* Favicon - Force override of default Vercel favicon */}
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.svg" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
