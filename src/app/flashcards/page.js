@@ -74,7 +74,7 @@ export default function FlashcardsPage() {
   const categories = [
     "All",
     ...new Set(allFlashcards.map((card) => card.category)),
-  ]; // Filter flashcards based on selected category and study mode
+  ];  // Filter flashcards based on selected category and study mode
   const getFilteredFlashcards = () => {
     let filtered =
       selectedCategory === "All"
@@ -86,13 +86,18 @@ export default function FlashcardsPage() {
 
     // Apply spaced repetition filtering
     if (studyMode === "review") {
+      // For review mode: exclude mastered words and get only due cards
+      filtered = filtered.filter((card) => !card.mastered);
       const dueCards = spacedRepetitionService.getDueCards(filtered);
       return dueCards;
     } else if (studyMode === "new") {
+      // For new mode: exclude mastered words and get only new cards
+      filtered = filtered.filter((card) => !card.mastered);
       return filtered.filter((card) => card.isNew !== false);
     }
 
-    return filtered; // 'all' mode
+    // For 'all' mode: include everything (including mastered words)
+    return filtered;
   };
   const filteredFlashcards = getFilteredFlashcards();
   
@@ -152,9 +157,8 @@ export default function FlashcardsPage() {
       setError(error.message);
     }
   };
-
   const handleMarkLearned = async (cardId, mastered) => {
-    // Handler for marking cards as learned/not learned (using utility function)  const handleMarkLearned = async (cardId, mastered) => {
+    // Handler for marking cards as learned/not learned (using utility function)
     try {
       await updateVocabularyMastered(currentUser, cardId, mastered);
 
@@ -169,11 +173,17 @@ export default function FlashcardsPage() {
       if (mastered) {
         setIsPulsing(true);
         setTimeout(() => setIsPulsing(false), 1500); // Match animation duration
+        
+        // Auto-advance to next card when mastered (with a slight delay for animation)
+        setTimeout(() => {
+          console.log("🔄 Auto-advancing after marking as mastered...");
+          handleNext();
+        }, 800); // Small delay to allow animation to show
       }
     } catch (error) {
       console.error("Error updating vocabulary word:", error);
     }
-  };  // Handle spaced repetition quality rating
+  };// Handle spaced repetition quality rating
   const handleQualityRating = async (cardId, quality) => {
     console.log(
       "⭐ handleQualityRating called - cardId:",
@@ -371,9 +381,8 @@ export default function FlashcardsPage() {
       </div>
     );
   }
-
   return (
-    <div className="h-[91vh] bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 py-14 px-4 relative">
+    <div className="h-[91vh] bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 py-14 px-4 relative flashcard-section">
       <div className="max-w-screen-md mx-auto">
         {/* Header with user info and logout */}
         <div className="flex items-center justify-center mb-8">
@@ -761,9 +770,8 @@ export default function FlashcardsPage() {
                     // Example update handler
                     onExampleUpdate={handleExampleUpdate}
                   />
-                </motion.div>
-                {/* Modern Navigation buttons with Learned button in the middle - positioned at bottom */}
-                <div className="fixed bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex justify-center items-center gap-3 sm:gap-4 z-20 p-2">
+                </motion.div>                {/* Modern Navigation buttons with Learned button in the middle - positioned at bottom */}
+                <div className="fixed bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex justify-center items-center gap-3 sm:gap-4 z-20 p-2 flashcard-controls">
                   {/* Previous button */}{" "}
                   <motion.button
                     onClick={handlePrevious}
@@ -952,12 +960,12 @@ export default function FlashcardsPage() {
                 </p>{" "}
               </div>
             )}
-          </>
-        )}{" "}        {/* Add Button for creating new flashcards */}        <AddButton
+          </>        )}{" "}        {/* Add Button for creating new flashcards */}        <AddButton
           onClick={handleAddFlashcard}
           title="Add new flashcard"
           position="bottom-right"
           show={!loading}
+          className="add-button"
         />
         {/* Add/Edit Word Modal */}
         <AnimatePresence>

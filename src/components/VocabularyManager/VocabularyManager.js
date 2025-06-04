@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
+import { useTutorial } from '@/context/TutorialContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { fetchWords, addUserData, updateUserData, deleteUserData } from '@/utils/firebaseUtils';
 import { audioService } from '@/services/audioService';
@@ -448,7 +449,8 @@ export default function VocabularyManager() {
         language: language
       }));
     }
-  }, [language]);// Handle form submission
+  }, [language]);// Handle form submission  const { markWordAdded } = useTutorial();
+  
   const handleSubmit = async (wordData, editingWordToUpdate = null) => {
     if (!wordData.word || !wordData.translation) {
       toast.error('Word and translation are required');
@@ -472,10 +474,13 @@ export default function VocabularyManager() {
         // Update existing word
         await updateUserData(currentUser, 'vocabulary', currentEditingWord.id, saveData);
         toast.success('Word updated successfully!');
-      } else {
-        // Add new word
+      } else {        // Add new word
         await addUserData(currentUser, 'vocabulary', saveData);
         toast.success('Word added successfully!');
+        
+        // Trigger tutorial flow when a new word is added
+        console.log('Word added successfully, triggering tutorial');
+        markWordAdded();
       }
       
       // Close modal and refresh words

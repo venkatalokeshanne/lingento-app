@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import Navigation from "@/components/Navigation";
 import PWAComponents from "@/components/PWAComponents";
+import TutorialManager from "@/components/TutorialManager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,11 +42,13 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ThemeProvider>
             <UserPreferencesProvider>
-              <PWAComponents />
-              <Navigation />
-              <main className="min-h-screen pt-16">
-                {children}
-              </main>
+              <TutorialManager>
+                <PWAComponents />
+                <Navigation />
+                <main className="min-h-screen pt-16">
+                  {children}
+                </main>
+              </TutorialManager>
             </UserPreferencesProvider>
           </ThemeProvider>
         </AuthProvider>

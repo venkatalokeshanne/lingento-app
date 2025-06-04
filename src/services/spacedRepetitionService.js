@@ -144,6 +144,11 @@ class SpacedRepetitionService {
     const now = new Date();
     
     const dueCards = cards.filter(card => {
+      // Exclude mastered cards from due cards
+      if (card.mastered === true) {
+        return false;
+      }
+      
       if (!card.nextReviewDate) {
         return true; // New cards - always include in review mode
       }
@@ -192,11 +197,10 @@ class SpacedRepetitionService {
     
     // Add due cards up to the limit
     studyCards = filteredDue.slice(0, maxCards);
-    
-    // If we have space and want new cards, add some new cards
+      // If we have space and want new cards, add some new cards
     if (studyCards.length < maxCards && includeNew) {
       const newCards = cards
-        .filter(card => card.isNew && !studyCards.includes(card))
+        .filter(card => card.isNew && !studyCards.includes(card) && card.mastered !== true)
         .slice(0, maxCards - studyCards.length);
       
       studyCards = [...studyCards, ...newCards];
@@ -214,25 +218,26 @@ class SpacedRepetitionService {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    // Debug log to check matured cards
-    const maturedCards = cards.filter(c => c.isMatured);
-    console.log('Matured cards found:', maturedCards.length, maturedCards);
-    
-    const stats = {
+      // Debug log to check mastered cards (using correct property)
+    const masteredCards = cards.filter(c => c.mastered === true);
+    console.log('Mastered cards found:', masteredCards.length, masteredCards);    const stats = {
       total: cards.length,
-      new: cards.filter(c => c.isNew).length,
-      learning: cards.filter(c => c.isLearning).length,
-      review: cards.filter(c => c.isReview).length,
-      matured: cards.filter(c => c.isMatured).length,
-      
-      dueToday: cards.filter(c => {
+      new: cards.filter(c => c.isNew && c.mastered !== true).length,
+      learning: cards.filter(c => c.isLearning && c.mastered !== true).length,
+      review: cards.filter(c => c.isReview && c.mastered !== true).length,
+      matured: cards.filter(c => c.mastered === true).length,
+        dueToday: cards.filter(c => {
+        // Exclude mastered cards from due today count
+        if (c.mastered === true) return false;
+        
         if (!c.nextReviewDate) return c.isNew;
         const reviewDate = this.convertTimestampToDate(c.nextReviewDate);
         return reviewDate <= tomorrow;
       }).length,
-      
-      overdue: cards.filter(c => {
+        overdue: cards.filter(c => {
+        // Exclude mastered cards from overdue count
+        if (c.mastered === true) return false;
+        
         if (!c.nextReviewDate) return false;
         const reviewDate = this.convertTimestampToDate(c.nextReviewDate);
         return reviewDate < today;

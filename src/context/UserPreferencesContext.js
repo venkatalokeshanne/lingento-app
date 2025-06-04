@@ -162,10 +162,14 @@ export function UserPreferencesProvider({ children }) {
   const getPreference = (key) => {
     return preferences[key] ?? defaultPreferences[key];
   };
-
   // Check if user has completed onboarding
   const hasCompletedOnboarding = () => {
     return preferences.language && preferences.level && preferences.nativeLanguage;
+  };
+
+  // Check if user has completed tutorial
+  const hasCompletedTutorial = () => {
+    return preferences.tutorialCompleted === true;
   };
 
   // Load preferences when user changes
@@ -188,8 +192,7 @@ export function UserPreferencesProvider({ children }) {
         unsubscribe();
       }
     };
-  }, [currentUser]);
-  const value = {
+  }, [currentUser]);  const value = {
     preferences,
     loading,
     error,
@@ -197,6 +200,7 @@ export function UserPreferencesProvider({ children }) {
     resetPreferences,
     getPreference,
     hasCompletedOnboarding,
+    hasCompletedTutorial,
     // Quick access to commonly used preferences
     language: preferences.language,
     level: preferences.level,

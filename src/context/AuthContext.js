@@ -6,7 +6,9 @@ import {
   createUser, 
   signIn, 
   logOut, 
-  getCurrentUser 
+  getCurrentUser,
+  signInWithGoogle,
+  signInWithFacebook
 } from '@/firebase/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -23,6 +25,7 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Register a new user
   const signup = async (email, password) => {
@@ -32,7 +35,8 @@ export function AuthProvider({ children }) {
       setError(result.error);
       return { success: false, error: result.error };
     }
-    return { success: true };
+    setIsNewUser(true);
+    return { success: true, isNewUser: true };
   };
 
   // Login an existing user
@@ -43,7 +47,9 @@ export function AuthProvider({ children }) {
       setError(result.error);
       return { success: false, error: result.error };
     }
-    return { success: true };
+    // Set new user status from result
+    setIsNewUser(result.isNewUser === true);
+    return { success: true, isNewUser: result.isNewUser === true };
   };
 
   // Logout the current user
@@ -54,6 +60,7 @@ export function AuthProvider({ children }) {
       setError(result.error);
       return { success: false, error: result.error };
     }
+    setIsNewUser(false);
     return { success: true };
   };
 
@@ -67,15 +74,45 @@ export function AuthProvider({ children }) {
     // Cleanup subscription
     return unsubscribe;
   }, []);
+  
+  // Login with Google
+  const loginWithGoogle = async () => {
+    setError('');
+    const result = await signInWithGoogle();
+    if (result.error) {
+      setError(result.error);
+      return { success: false, error: result.error };
+    }
+    // Set new user status from result
+    setIsNewUser(result.isNewUser === true);
+    return { success: true, isNewUser: result.isNewUser === true };
+  };
+
+  // Login with Facebook
+  const loginWithFacebook = async () => {
+    setError('');
+    const result = await signInWithFacebook();
+    if (result.error) {
+      setError(result.error);
+      return { success: false, error: result.error };
+    }
+    // Set new user status from result
+    setIsNewUser(result.isNewUser === true);
+    return { success: true, isNewUser: result.isNewUser === true };
+  };
 
   // Value object to be provided to consumers
   const value = {
     currentUser,
     loading,
     error,
+    isNewUser,
     signup,
     login,
-    logout
+    logout,
+    loginWithGoogle,
+    loginWithFacebook,
+    setIsNewUser // Expose this to reset the state after tutorial is shown
   };
 
   return (

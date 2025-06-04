@@ -722,11 +722,10 @@ const Dashboard = () => {
           action: `Reviewed ${recentlyReviewed.length} word${recentlyReviewed.length > 1 ? 's' : ''}`,
           time: recentlyReviewed.length > 5 ? 'Today' : 'A few hours ago',
           badge: recentlyReviewed.length >= 10 ? 'Productive!' : null
-        });
-      }
+        });      }
 
       // Check for newly mastered words
-      const newlyMastered = cards?.filter(card => card.isMatured) || [];
+      const newlyMastered = cards?.filter(card => card.mastered === true) || [];
       if (newlyMastered.length > 0) {
         const lastMastered = newlyMastered[newlyMastered.length - 1];
         activities.push({
@@ -986,14 +985,6 @@ const Dashboard = () => {
                 <p className="text-lg font-semibold text-gray-800 dark:text-white">
                   {goalCompleted} / {dailyGoal}
                 </p>
-              </div>
-              <div className="w-12 h-12 relative">
-                <ProgressCircle 
-                  percentage={progressTowardsGoal} 
-                  size={48} 
-                  strokeWidth={4}
-                  color="text-indigo-500 dark:text-indigo-400"
-                />
               </div>
             </div>
           </div>

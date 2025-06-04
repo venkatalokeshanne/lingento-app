@@ -4,9 +4,10 @@ import { useUserPreferences } from '@/context/UserPreferencesContext';
 import Dashboard from '../../components/Dashboard/Dashboard';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import OnboardingFlow from '../../components/OnboardingFlow';
+import TutorialFlow from '../../components/TutorialFlow';
 
 export default function DashboardPage() {
-  const { hasCompletedOnboarding, loading } = useUserPreferences();
+  const { hasCompletedOnboarding, hasCompletedTutorial, loading } = useUserPreferences();
 
   return (
     <ProtectedRoute>
@@ -16,6 +17,20 @@ export default function DashboardPage() {
         </div>
       ) : !hasCompletedOnboarding() ? (
         <OnboardingFlow />
+      ) : !hasCompletedTutorial() ? (
+        <div className="relative">
+          <Dashboard />
+          <TutorialFlow 
+            onComplete={() => {
+              // Tutorial completed, will show main dashboard
+              console.log('Tutorial completed');
+            }}
+            onSkip={() => {
+              // Tutorial skipped, will show main dashboard
+              console.log('Tutorial skipped');
+            }}
+          />
+        </div>
       ) : (
         <Dashboard />
       )}

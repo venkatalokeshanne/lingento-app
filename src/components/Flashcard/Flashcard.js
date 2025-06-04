@@ -495,10 +495,9 @@ export default function Flashcard({
                     )}
                   </div>
                 )}
-              </div>
-              {/* Quality Rating Buttons for Spaced Repetition */}
+              </div>              {/* Quality Rating Buttons for Spaced Repetition */}
               {showQualityRating && showRating && (
-                <div className="mt-6 space-y-3">
+                <div className="mt-6 space-y-3 quality-rating">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
                     How well did you know this?
                   </p>

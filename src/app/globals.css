@@ -51,6 +51,28 @@ body {
   50% { opacity: 1; transform: scale(1); }
 }
 
+/* Tutorial Countdown Animation for Auto-advance Feature */
+@keyframes countdown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* Tutorial Card Animation */
+@keyframes tutorialGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(79, 70, 229, 0.5);
+  }
+}
+
+/* Subtle background pattern animation */
+@keyframes patternShift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
 @keyframes correcthoverGlow {
   0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0); }
   50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
