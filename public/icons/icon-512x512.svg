@@ -1,5 +1,60 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="85" fill="#4f46e5"/>
-  <text x="256" y="310" font-family="Arial, sans-serif" font-size="180" font-weight="bold" text-anchor="middle" fill="white">L</text>
-  <circle cx="256" cy="400" r="24" fill="#fbbf24"/>
+  <text x="256" y="350" font-family="Arial, sans-serif" font-size="288" font-weight="bold" text-anchor="middle" fill="white">L</text>
+  <circle cx="352" cy="192" r="32" fill="#fbbf24"/>
+</svg>
+    <linearGradient id="letterGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+    <filter id="glow512" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow512" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background with rich gradient -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad512)" filter="url(#shadow512)"/>
+  
+  <!-- Modern L with premium design -->
+  <path d="M144 112 L216 112 L216 296 L336 296 L336 368 L144 368 Z" fill="url(#letterGrad512)" stroke="rgba(255,255,255,0.25)" stroke-width="4" filter="url(#glow512)"/>
+  
+  <!-- Enhanced speech bubble for language learning -->
+  <ellipse cx="352" cy="176" rx="56" ry="48" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" stroke-width="3"/>
+  <circle cx="352" cy="176" r="32" fill="#fbbf24" filter="url(#glow512)"/>
+  
+  <!-- Language indicator -->
+  <text x="352" y="190" font-family="Arial, sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="white">Fr</text>
+  
+  <!-- Learning elements scattered around -->
+  <circle cx="96" cy="144" r="16" fill="rgba(255,255,255,0.35)"/>
+  <circle cx="400" cy="400" r="19.2" fill="rgba(251,191,36,0.55)"/>
+  <circle cx="128" cy="384" r="10.5" fill="rgba(96,165,250,0.45)"/>
+  <circle cx="432" cy="96" r="8" fill="rgba(244,114,182,0.4)"/>
+  
+  <!-- Learning progression indicators -->
+  <circle cx="272" cy="96" r="8" fill="rgba(52,211,153,0.7)"/>
+  <circle cx="304" cy="80" r="6.5" fill="rgba(34,197,94,0.6)"/>
+  <circle cx="336" cy="96" r="5" fill="rgba(16,185,129,0.5)"/>
+  <circle cx="368" cy="80" r="4" fill="rgba(5,150,105,0.4)"/>
+  
+  <!-- Vocabulary/word elements -->
+  <rect x="80" y="320" width="48" height="8" rx="4" fill="rgba(255,255,255,0.3)"/>
+  <rect x="80" y="336" width="36" height="8" rx="4" fill="rgba(255,255,255,0.25)"/>
+  <rect x="80" y="352" width="28" height="8" rx="4" fill="rgba(255,255,255,0.2)"/>
+  
+  <!-- Interactive learning symbols -->
+  <path d="M416 320 Q432 304 448 320 Q432 336 416 320" fill="rgba(96,165,250,0.4)" stroke="rgba(96,165,250,0.6)" stroke-width="2"/>
+  
+  <!-- Top highlight for premium feel -->
+  <rect width="512" height="128" rx="112" fill="rgba(255,255,255,0.06)"/>
+  
+  <!-- Bottom accent -->
+  <ellipse cx="256" cy="456" rx="120" ry="24" fill="rgba(0,0,0,0.1)"/>
 </svg>
