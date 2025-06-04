@@ -18,6 +18,7 @@ import {
 } from "@/utils/firebaseUtils";
 import { spacedRepetitionService } from "@/services/spacedRepetitionService";
 import "@/components/Flashcard/flashcard.css";
+import SEOHead from "@/components/SEOHead";
 
 export default function FlashcardsPage() {
   const { currentUser, logout } = useAuth();
@@ -380,10 +381,26 @@ export default function FlashcardsPage() {
         </div>
       </div>
     );
-  }
-  return (
-    <div className="h-[91vh] bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 py-14 px-4 relative flashcard-section">
-      <div className="max-w-screen-md mx-auto">
+  }  return (
+    <>
+      <SEOHead 
+        title="French Flashcards | Interactive Vocabulary Learning with Spaced Repetition"
+        description="Master French vocabulary with our interactive flashcards featuring spaced repetition algorithm. Practice pronunciation, track progress, and learn efficiently with AI-powered French learning tools."
+        keywords={[
+          'French flashcards',
+          'vocabulary flashcards', 
+          'spaced repetition flashcards',
+          'interactive French learning',
+          'French pronunciation practice',
+          'vocabulary builder',
+          'French study cards'
+        ]}
+        canonical="https://lingentoo.com/flashcards"
+        ogImage="https://lingentoo.com/og-flashcards.jpg"
+        twitterImage="https://lingentoo.com/twitter-flashcards.jpg"
+      />
+      <div className="h-[91vh] bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 py-14 px-4 relative flashcard-section">
+        <div className="max-w-screen-md mx-auto">
         {/* Header with user info and logout */}
         <div className="flex items-center justify-center mb-8">
           {/* <div className="flex items-center gap-4">
@@ -981,12 +998,13 @@ export default function FlashcardsPage() {
               initialWord={formData?.word || ""}
               language={formData?.language || language}
               userId={currentUser?.uid || null}
-            />
+                    />
           )}
         </AnimatePresence>
         {/* Toast Notifications */}
         <Toaster position="top-right" />
       </div>
     </div>
+    </>
   );
 }

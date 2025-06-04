@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import SimpleVocabularyQuiz from '@/components/Quiz/SimpleVocabularyQuiz';
 import { Toaster } from 'react-hot-toast';
+import SEOHead from '@/components/SEOHead';
 
 // Loading component
 function QuizLoading() {
@@ -20,7 +21,28 @@ function QuizLoading() {
 export default function QuizPage() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen">        <Suspense fallback={<QuizLoading />}>
+      <SEOHead 
+        title="French Vocabulary Quiz | Lingento - Test Your French Knowledge"
+        description="Test your French vocabulary with AI-powered quizzes. Adaptive difficulty, instant feedback, and spaced repetition to maximize your French learning results."
+        keywords={[
+          'French vocabulary quiz',
+          'French quiz',
+          'test French vocabulary',
+          'French language quiz',
+          'vocabulary test',
+          'French word quiz',
+          'practice French vocabulary',
+          'French learning quiz',
+          'adaptive French quiz',
+          'AI French quiz',
+          'French vocabulary assessment',
+          'French knowledge test'
+        ]}
+        canonical="https://lingentoo.com/quiz"
+        ogImage="https://lingentoo.com/og-quiz.jpg"
+        twitterImage="https://lingentoo.com/twitter-quiz.jpg"
+      />
+      <div className="min-h-screen"><Suspense fallback={<QuizLoading />}>
           <SimpleVocabularyQuiz />
         </Suspense>
         

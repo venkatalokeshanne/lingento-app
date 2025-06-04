@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import SEOHead from '@/components/SEOHead';
 
 export default function PricingPage() {
   const { currentUser } = useAuth();
@@ -84,9 +85,28 @@ export default function PricingPage() {
     // Handle premium plan selection - would integrate with payment system
     console.log(`Selected ${plan.name} plan`);
   };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <>
+      <SEOHead 
+        title="Pricing Plans | Lingento - Choose Your French Learning Plan"
+        description="Choose the perfect French learning plan for you. Free, Pro, and Premium options with advanced spaced repetition, AI feedback, and comprehensive vocabulary training."
+        keywords={[
+          'French learning pricing',
+          'French course pricing',
+          'French app pricing',
+          'language learning subscription',
+          'French learning plans',
+          'affordable French learning',
+          'French premium features',
+          'vocabulary learning cost',
+          'French learning membership',
+          'French tutor pricing'
+        ]}
+        canonical="https://lingentoo.com/pricing"
+        ogImage="https://lingentoo.com/og-pricing.jpg"
+        twitterImage="https://lingentoo.com/twitter-pricing.jpg"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
       <div className="container mx-auto px-6 py-16">
         <motion.div
@@ -234,6 +254,65 @@ export default function PricingPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Structured Data for Pricing */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "name": "Lingento French Learning Platform",
+            "description": "AI-powered French vocabulary learning with spaced repetition",
+            "provider": {
+              "@type": "Organization",
+              "name": "Lingento",
+              "url": "https://lingentoo.com"
+            },
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Free Plan",
+                "description": "Perfect for getting started with French vocabulary",
+                "price": "0",
+                "priceCurrency": "USD",
+                "eligibleQuantity": {
+                  "@type": "QuantitativeValue",
+                  "value": "1000",
+                  "unitText": "vocabulary words"
+                }
+              },
+              {
+                "@type": "Offer", 
+                "name": "Pro Plan",
+                "description": "Ideal for serious learners wanting comprehensive features",
+                "price": "9.99",
+                "priceCurrency": "USD",
+                "billingIncrement": "P1M",
+                "eligibleQuantity": {
+                  "@type": "QuantitativeValue",
+                  "value": "10000",
+                  "unitText": "vocabulary words"
+                }
+              },
+              {
+                "@type": "Offer",
+                "name": "Premium Plan", 
+                "description": "For language enthusiasts who want everything",
+                "price": "19.99",
+                "priceCurrency": "USD",
+                "billingIncrement": "P1M",
+                "eligibleQuantity": {
+                  "@type": "QuantitativeValue",
+                  "value": "unlimited",
+                  "unitText": "vocabulary content"
+                }
+              }
+                    ]
+          })
+        }}
+      />
     </div>
+    </>
   );
 }

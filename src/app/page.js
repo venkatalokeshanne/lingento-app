@@ -5,6 +5,26 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
+// SEO metadata for the home page
+export const metadata = {
+  title: "Lingento | Learn French Effectively with Smart Flashcards & Spaced Repetition",
+  description: "Master French vocabulary with our AI-powered spaced repetition system. Interactive flashcards, personalized learning paths, and proven techniques. Join 2,500+ learners achieving fluency in just 5 minutes daily.",
+  keywords: "learn French online, French vocabulary flashcards, spaced repetition French, French language learning app, master French vocabulary, French pronunciation practice, interactive French lessons, AI French tutor, French learning software, vocabulary builder French",
+  openGraph: {
+    title: "Lingento | Learn French Effectively with Smart Flashcards",
+    description: "Master French vocabulary with our AI-powered spaced repetition system. Join 2,500+ learners achieving fluency in just 5 minutes daily.",
+    url: "https://lingentoo.com",
+    images: [
+      {
+        url: "https://lingentoo.com/og-home.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Lingento French Learning App - Master vocabulary with smart flashcards",
+      },
+    ],
+  },
+};
+
 export default function Home() {
   const { currentUser } = useAuth();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -27,8 +47,60 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [featuredWords.length]);
-  
-  return (
+    return (
+    <>
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Lingento",
+            "description": "Master French vocabulary with our AI-powered spaced repetition system. Interactive flashcards, personalized learning paths, and proven techniques.",
+            "url": "https://lingentoo.com",
+            "applicationCategory": "EducationalApplication",
+            "operatingSystem": "Any",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "reviewCount": "2500",
+              "bestRating": "5",
+              "worstRating": "1"
+            },
+            "author": {
+              "@type": "Organization",
+              "name": "Lingento Team",
+              "url": "https://lingentoo.com"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Lingento",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://lingentoo.com/icons/icon-512x512.png",
+                "width": 512,
+                "height": 512
+              }
+            },
+            "featureList": [
+              "AI-powered spaced repetition",
+              "Interactive flashcards",
+              "Personalized learning paths",
+              "Progress tracking",
+              "Offline learning capability",
+              "Multi-device synchronization"
+            ]
+          })
+        }}
+      />
+      
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -905,9 +977,9 @@ export default function Home() {
                   <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇪🇸 Español</button>
                 </div>
               </div>
-          </div>
-        </div>
+          </div>        </div>
       </footer>
     </div>
+    </>
   );
 }

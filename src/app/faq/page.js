@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEOHead from '@/components/SEOHead';
 
 export default function FAQPage() {
   const [activeCategory, setActiveCategory] = useState('general');
@@ -131,9 +132,28 @@ export default function FAQPage() {
   const toggleExpanded = (index) => {
     setExpandedItem(expandedItem === index ? null : index);
   };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <>
+      <SEOHead 
+        title="FAQ | Lingento - Frequently Asked Questions About French Learning"
+        description="Get answers to common questions about Lingento French learning app. Learn about spaced repetition, vocabulary training, pronunciation, and our learning methods."
+        keywords={[
+          'French learning FAQ',
+          'Lingento questions',
+          'spaced repetition questions',
+          'French vocabulary help',
+          'language learning support',
+          'French app help',
+          'pronunciation guide',
+          'vocabulary learning questions',
+          'French learning tips',
+          'learning progress help'
+        ]}
+        canonical="https://lingentoo.com/faq"
+        ogImage="https://lingentoo.com/og-faq.jpg"
+        twitterImage="https://lingentoo.com/twitter-faq.jpg"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-6 py-16">
         {/* Header */}
         <motion.div
@@ -256,6 +276,52 @@ export default function FAQPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Structured Data for FAQ */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is spaced repetition and how does it work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Spaced repetition is a learning technique that shows you vocabulary cards at increasing intervals. Words you find difficult appear more frequently, while words you know well appear less often. This optimizes your study time and improves long-term retention by up to 90%."
+                }
+              },
+              {
+                "@type": "Question", 
+                "name": "What makes Lingento different from other language learning apps?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Lingento focuses specifically on vocabulary mastery using advanced spaced repetition algorithms. We offer AI-powered pronunciation guides, contextual examples, writing practice with feedback, and detailed progress analytics. Our approach is scientifically-backed and designed for serious learners."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need any prior French knowledge to start?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No! Lingento is designed for learners at all levels, from complete beginners to advanced students. Our system adapts to your current level and provides appropriate vocabulary based on your progress and goals."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How much time should I spend studying each day?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "We recommend 15-30 minutes per day for optimal results. Consistency is more important than duration. Our spaced repetition algorithm will show you the most important words to review each day, making your study time highly efficient."
+                }
+              }
+            ]
+                  })
+        }}
+      />
     </div>
+    </>
   );
 }
