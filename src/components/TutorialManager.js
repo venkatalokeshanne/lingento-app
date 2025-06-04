@@ -42,10 +42,9 @@ export default function TutorialManager({ children }) {
       hasCompletedTutorial: hasCompletedTutorial(),
       preferences
     });
-    setShowTutorial(true);
     // If we're forcing the tutorial to show, or if it's a new user who hasn't completed the tutorial
     // Note: we don't auto-show the tutorial on login anymore - it will be triggered by word addition instead
-    if (forceShowTutorial || (isNewUser && !hasCompletedTutorial() && false)) {
+    if (forceShowTutorial || (isNewUser)) {
       console.log('TutorialManager: Showing tutorial on login');
       setShowTutorial(true);
     }
