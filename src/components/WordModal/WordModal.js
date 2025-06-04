@@ -18,7 +18,7 @@ function WordModal({
   onSubmit, 
   editingWord = null, 
   initialWord = '',
-  language = 'fr',
+  language = 'en',
   userId = null
 }) {
   const router = useRouter();
@@ -82,16 +82,20 @@ function WordModal({
       }
     };
   }, [translationTimeout]);
-  
-  // Auto-translate example sentences
+    // Auto-translate example sentences from native language to English
   const autoTranslateExample = async (exampleText, sourceLanguage) => {
     if (!exampleText || !translateService.isValidTextForTranslation(exampleText)) return;
 
-    try {
+    try {      // Get user's native language preference
+      const userNativeLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                               ? window.__userNativeLanguage 
+                               : 'english';
+                               
+      console.log(`Translating example from ${sourceLanguage} to ${userNativeLanguage}`);
       const result = await translateService.translateText(
         exampleText,
-        sourceLanguage,
-        'english'
+        sourceLanguage, // Source language (language being learned)
+        userNativeLanguage // Target language (user's native language)
       );
       
       if (result?.translatedText) {
@@ -115,8 +119,7 @@ function WordModal({
       handleAutoTranslate(value);
     }
   };
-  
-  // Auto translate functionality
+    // Auto translate functionality - always translates from native language to English
   const handleAutoTranslate = (wordValue) => {
     // Clear any pending translation request
     if (translationTimeout) {
@@ -136,7 +139,12 @@ function WordModal({
             setIsTranslating(false);
             return;
           }
+            // Get user's native language preference
+          const userNativeLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                                   ? window.__userNativeLanguage 
+                                   : 'english';
           
+          console.log(`Translating "${wordValue}" from ${formData.language} to ${userNativeLanguage}`);
           const result = await translateService.simpleTranslate(wordValue, formData.language);
           
           if (result?.translation) {
@@ -689,7 +697,7 @@ function WordModal({
                 Language
               </label>
               <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm">
-                {formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1) : 'French'}
+                {formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1) : 'English'}
                 <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(From user preferences)</span>
               </div>
             </div>

@@ -94,8 +94,7 @@ export default function ContactPage() {
               Touch
             </span>
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Have a question, suggestion, or need help? We're here to support your French learning journey. 
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">            Have a question, suggestion, or need help? We're here to support your language learning journey. 
             Choose the best way to reach us below.
           </p>
         </motion.div>

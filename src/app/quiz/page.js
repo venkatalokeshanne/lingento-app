@@ -20,23 +20,22 @@ function QuizLoading() {
 
 export default function QuizPage() {
   return (
-    <ProtectedRoute>
-      <SEOHead 
-        title="French Vocabulary Quiz | Lingento - Test Your French Knowledge"
-        description="Test your French vocabulary with AI-powered quizzes. Adaptive difficulty, instant feedback, and spaced repetition to maximize your French learning results."
+    <ProtectedRoute>      <SEOHead 
+        title="Vocabulary Quiz | Lingento - Test Your Language Knowledge"
+        description="Test your vocabulary with AI-powered quizzes. Adaptive difficulty, instant feedback, and spaced repetition to maximize your language learning results."
         keywords={[
-          'French vocabulary quiz',
-          'French quiz',
-          'test French vocabulary',
-          'French language quiz',
+          'vocabulary quiz',
+          'language quiz',
+          'test vocabulary',
+          'language learning quiz',
           'vocabulary test',
-          'French word quiz',
-          'practice French vocabulary',
-          'French learning quiz',
-          'adaptive French quiz',
-          'AI French quiz',
-          'French vocabulary assessment',
-          'French knowledge test'
+          'word quiz',
+          'practice vocabulary',
+          'language learning quiz',
+          'adaptive language quiz',
+          'AI language quiz',
+          'vocabulary assessment',
+          'language knowledge test'
         ]}
         canonical="https://lingentoo.com/quiz"
         ogImage="https://lingentoo.com/og-quiz.jpg"

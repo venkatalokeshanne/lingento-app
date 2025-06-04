@@ -262,10 +262,24 @@ class TranslateService {  constructor() {
     if (!/[a-zA-ZÀ-ÿ\u0100-\u017F\u0400-\u04FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(trimmedText)) return false;
     
     return true;
-  }
-
-  // Translate text using DeepL API
-  async translateText(text, sourceLanguage = 'auto', targetLanguage = 'english') {
+  }  // Translate text using DeepL API
+  async translateText(text, sourceLanguage = 'auto', targetLanguage = null) {
+    // Get target language - if none provided, try to get from user preferences,
+    // otherwise default to English
+    if (!targetLanguage || targetLanguage === 'auto') {
+      try {
+        // Try to get from user preferences if available
+        if (typeof window !== 'undefined' && window.__userNativeLanguage) {
+          targetLanguage = window.__userNativeLanguage;
+          console.log(`Using user preferred native language: ${targetLanguage}`);
+        } else {
+          targetLanguage = 'english';
+        }
+      } catch (e) {
+        targetLanguage = 'english';
+      }
+    }
+    
     // Try to re-initialize if not initialized
     if (!this.isInitialized) {
       this.initializeDeepL();
@@ -273,7 +287,10 @@ class TranslateService {  constructor() {
     
     if (!this.isInitialized) {
       throw new Error('DeepL translator not initialized');
-    }    // Validate text for translation to avoid wasting API calls
+    }
+    
+    // Log translation direction for debugging
+    console.log(`Translating from: ${sourceLanguage} to ${targetLanguage}`)// Validate text for translation to avoid wasting API calls
     // For vocabulary items, we want to allow shorter texts
     const isVocabularyWord = text && text.trim().split(/\s+/).length === 1;
     if (!this.isValidTextForTranslation(text, isVocabularyWord)) {
@@ -523,7 +540,7 @@ class TranslateService {  constructor() {
       isCommon: this.isCommonWord(word, language),
       needsTranslation: !this.getCachedTranslation(word, language, 'english') && !this.isCommonWord(word, language)
     }));
-  }// Simple translate from specified language to English with optimization
+  }  // Translate from source language to user's native language with optimization
   async simpleTranslate(inputText, sourceLanguage) {
     // Validate input text - allow short words for vocabulary
     if (!this.isValidTextForTranslation(inputText, true)) {
@@ -531,15 +548,26 @@ class TranslateService {  constructor() {
     }
 
     const trimmedText = inputText.trim();
+    
+    // Get user's native language preference if available
+    let targetLanguage = 'english';
+    try {
+      if (typeof window !== 'undefined' && window.__userNativeLanguage) {
+        targetLanguage = window.__userNativeLanguage;
+      }
+    } catch (e) {
+      console.log('Could not access user preferences, defaulting to English');
+    }
 
-    if (!sourceLanguage || sourceLanguage === 'english') {
-      // If source is English or not specified, return as-is
+    // If the source matches the target language, no need to translate
+    if (!sourceLanguage || sourceLanguage === targetLanguage) {
+      console.log(`Source (${sourceLanguage}) matches target language (${targetLanguage}), returning as-is`);
       return {
         word: trimmedText,
         translation: trimmedText,
-        sourceLanguage: 'english'
+        sourceLanguage: sourceLanguage || targetLanguage
       };
-    }    // First check for common word mappings for better accuracy
+    }// First check for common word mappings for better accuracy
     const commonMapping = this.getCommonWordMapping(trimmedText, sourceLanguage);
     if (commonMapping) {
       this.trackCacheHit(); // Count common word mapping as cache hit
@@ -548,15 +576,17 @@ class TranslateService {  constructor() {
         translation: commonMapping,
         sourceLanguage: sourceLanguage
       };
-    }
-
-    try {
-      // Translate from the specified language to English
-      const translation = await this.translateText(trimmedText, sourceLanguage, 'english');
+    }    try {
+      // Translate from the specified language to user's native language
+      const targetLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                            ? window.__userNativeLanguage 
+                            : 'english';
+      
+      const translation = await this.translateText(trimmedText, sourceLanguage, targetLanguage);
       
       return {
         word: trimmedText, // Keep original as the word
-        translation: translation.translatedText, // Translated text as English translation
+        translation: translation.translatedText, // Translated text in user's native language
         sourceLanguage: sourceLanguage
       };
     } catch (error) {

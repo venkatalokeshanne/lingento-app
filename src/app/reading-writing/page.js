@@ -7,25 +7,24 @@ import SEOHead from '@/components/SEOHead';
 
 export default function ReadingWritingPage() {
   return (
-    <ProtectedRoute>
-      <SEOHead 
-        title="French Reading & Writing Practice | Lingento - Improve French Comprehension"
-        description="Practice French reading comprehension and writing skills with interactive exercises, guided texts, and AI feedback. Improve your French literacy at your own pace."
+    <ProtectedRoute>      <SEOHead 
+        title="Reading & Writing Practice | Lingento - Improve Language Comprehension"
+        description="Practice reading comprehension and writing skills with interactive exercises, guided texts, and AI feedback. Improve your language literacy at your own pace."
         keywords={[
-          'French reading practice',
-          'French writing practice',
-          'French comprehension',
-          'French reading exercises',
-          'French writing exercises',
-          'improve French reading',
-          'improve French writing',
-          'French literacy',
-          'French text analysis',
-          'French writing feedback',
-          'French reading skills',
-          'French writing skills',
-          'practice French writing',
-          'practice French reading'
+          'reading practice',
+          'writing practice',
+          'language comprehension',
+          'reading exercises',
+          'writing exercises',
+          'improve reading',
+          'improve writing',
+          'language literacy',
+          'text analysis',
+          'writing feedback',
+          'reading skills',
+          'writing skills',
+          'practice writing',
+          'practice reading'
         ]}
         canonical="https://lingentoo.com/reading-writing"
         ogImage="https://lingentoo.com/og-reading-writing.jpg"

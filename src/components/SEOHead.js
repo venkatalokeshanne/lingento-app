@@ -1,9 +1,8 @@
 import Head from 'next/head';
 
-export default function SEOHead({ 
-  title = "Lingento | Learn French Effectively with Smart Flashcards",
-  description = "Master French vocabulary with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your French language journey.",
-  keywords = "learn French, French vocabulary, flashcards, spaced repetition, language learning, French tutor, vocabulary builder, French pronunciation, French grammar, online French course",
+export default function SEOHead({   title = "Lingento | Learn Any Language Effectively with Smart Flashcards",
+  description = "Master vocabulary in any language with our effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language journey.",
+  keywords = "language learning, vocabulary flashcards, spaced repetition, language tutor, vocabulary builder, pronunciation practice, grammar learning, online language course",
   image = "https://lingentoo.com/og-image.jpg",
   url = "https://lingentoo.com",
   type = "website",

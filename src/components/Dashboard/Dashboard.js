@@ -678,13 +678,14 @@ const ActivityTimeline = ({ recentActivity }) => {
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
-  const { preferences } = useUserPreferences();  const [flashcards, setFlashcards] = useState([]);
+  const { preferences, updatePreferences } = useUserPreferences();
+
+  const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [goalCompleted, setGoalCompleted] = useState(0);
   const [studyStreak, setStudyStreak] = useState(0);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [weeklyTrend, setWeeklyTrend] = useState({ wordsAdded: 0, reviewsCompleted: 0 });
+  const [recentActivity, setRecentActivity] = useState([]);  const [weeklyTrend, setWeeklyTrend] = useState({ wordsAdded: 0, reviewsCompleted: 0 });
   
   // WordModal state
   const [showModal, setShowModal] = useState(false);
@@ -697,7 +698,6 @@ const Dashboard = () => {
     tags: [],
     pronunciation: ''
   });
-
   const dailyGoal = preferences?.dailyGoal || 20;
 
   // Generate realistic recent activity based on actual user data
@@ -859,7 +859,6 @@ const Dashboard = () => {
       toast.error('Error saving word. Please try again.');
     }
   };
-
   // Extract loadData function to reuse it
   const loadData = async () => {
     if (currentUser) {
@@ -869,17 +868,19 @@ const Dashboard = () => {
           setFlashcards,
           setLoading
         );
-        
-        if (cards && cards.length > 0) {
-          // Calculate statistics
-          const statsData = spacedRepetitionService.getStatistics(cards);
-          setStats(statsData);
+          if (cards && cards.length > 0) {          // Filter cards by user's learning language from preferences
+          const filteredCards = preferences?.language 
+            ? cards.filter(card => card.language === preferences.language)
+            : cards;
           
-          // Calculate today's reviewed cards
+          // Calculate statistics using filtered cards
+          const statsData = spacedRepetitionService.getStatistics(filteredCards);
+          setStats(statsData);
+            // Calculate today's reviewed cards using filtered cards
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           
-          const reviewedToday = cards.filter(card => {
+          const reviewedToday = filteredCards.filter(card => {
             if (!card.lastReviewDate) return false;
             
             let reviewDate;
@@ -895,19 +896,19 @@ const Dashboard = () => {
           
           setGoalCompleted(reviewedToday);
           
-          // Calculate study streak
-          const streakCount = calculateStudyStreak(cards);
+          // Calculate study streak using filtered cards
+          const streakCount = calculateStudyStreak(filteredCards);
           setStudyStreak(streakCount);
           
-          // Generate recent activity
-          const activities = generateRecentActivity(cards, statsData);
+          // Generate recent activity using filtered cards
+          const activities = generateRecentActivity(filteredCards, statsData);
           setRecentActivity(activities);
           
-          // Calculate weekly trends
+          // Calculate weekly trends using filtered cards
           const weekAgo = new Date();
           weekAgo.setDate(weekAgo.getDate() - 7);
           
-          const recentWords = cards.filter(card => {
+          const recentWords = filteredCards.filter(card => {
             if (!card.createdAt) return false;
             const createDate = card.createdAt.seconds 
               ? new Date(card.createdAt.seconds * 1000)
@@ -915,7 +916,7 @@ const Dashboard = () => {
             return createDate > weekAgo;
           });
           
-          const recentReviews = cards.filter(card => {
+          const recentReviews = filteredCards.filter(card => {
             if (!card.lastReviewDate) return false;
             const reviewDate = card.lastReviewDate.seconds 
               ? new Date(card.lastReviewDate.seconds * 1000)
@@ -968,18 +969,28 @@ const Dashboard = () => {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <div className="flex flex-col md:flex-row md:items-center justify-between">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between">            <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 Learning Dashboard
+                {preferences?.language && (
+                  <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-3">
+                    - {preferences.language.charAt(0).toUpperCase() + preferences.language.slice(1)}
+                  </span>
+                )}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                {preferences?.language && (
-                  <span className="capitalize">{preferences.language}</span>
-                )} language • {preferences?.level || 'Beginner'} level
+                {preferences?.language ? (
+                  <>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mr-2">
+                      📊 Filtered by {preferences.language.charAt(0).toUpperCase() + preferences.language.slice(1)}
+                    </span>
+                    {preferences?.level || 'Beginner'} level
+                  </>
+                ) : (
+                  <>All languages • {preferences?.level || 'Beginner'} level</>
+                )}
               </p>
-            </div>
-            <div className="mt-4 md:mt-0 flex items-center space-x-4">
+            </div>            <div className="mt-4 md:mt-0 flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm text-gray-500 dark:text-gray-400">Today's Goal</p>
                 <p className="text-lg font-semibold text-gray-800 dark:text-white">

@@ -1,4 +1,4 @@
-# 🇫🇷 French A1 Full Syllabus - Table of Contents
+# 🌍 A1 Language Learning Full Syllabus - Table of Contents
 ## CEFR Level A1 Complete Learning Framework
 
 ---
@@ -231,14 +231,14 @@
 
 ### **7. 🗺️ CULTURE (Culture et Société)**
 #### **7.1 Cultural Topics**
-- 7.1.1 French-speaking countries and regions
-- 7.1.2 Basic French etiquette and social norms
-- 7.1.3 French cuisine and dining culture
-- 7.1.4 French educational system basics
-- 7.1.5 French holidays and celebrations
-- 7.1.6 French media and entertainment
-- 7.1.7 French lifestyle and daily life
-- 7.1.8 French geography and landmarks
+- 7.1.1 Countries and regions where the language is spoken
+- 7.1.2 Basic cultural etiquette and social norms
+- 7.1.3 Traditional cuisine and dining culture
+- 7.1.4 Educational system basics
+- 7.1.5 Holidays and celebrations
+- 7.1.6 Media and entertainment
+- 7.1.7 Lifestyle and daily life
+- 7.1.8 Geography and landmarks
 
 ---
 
@@ -250,56 +250,56 @@
 - Skills Focus: Speaking, Listening
 - Grammar: être, avoir, personal pronouns
 - Vocabulary: Greetings, personal information
-- Culture: French politeness conventions
+- Culture: Politeness conventions
 
 ##### **Module 2: Personal World** 👤
 - Duration: 2 weeks
 - Skills Focus: All four skills
 - Grammar: Adjectives, possessive adjectives
 - Vocabulary: Family, physical descriptions
-- Culture: French family structure
+- Culture: Family structures
 
 ##### **Module 3: Daily Life** 🏠
 - Duration: 2 weeks
 - Skills Focus: Reading, Writing, Speaking
 - Grammar: Regular -er verbs, time expressions
 - Vocabulary: Daily routine, home, time
-- Culture: French daily schedules
+- Culture: Daily routines
 
 ##### **Module 4: Around Town** 🏙️
 - Duration: 2 weeks
 - Skills Focus: Listening, Speaking
 - Grammar: Prepositions of place, directions
 - Vocabulary: Places, transportation, directions
-- Culture: French cities and neighborhoods
+- Culture: Cities and neighborhoods
 
 ##### **Module 5: Food and Dining** 🍽️
 - Duration: 2 weeks
 - Skills Focus: All four skills
 - Grammar: Partitive articles, quantities
 - Vocabulary: Food, restaurants, shopping
-- Culture: French cuisine and dining etiquette
+- Culture: Cuisine and dining etiquette
 
 ##### **Module 6: Leisure and Hobbies** 🎨
 - Duration: 2 weeks
 - Skills Focus: Speaking, Writing
 - Grammar: Near future, modal verbs
 - Vocabulary: Sports, hobbies, entertainment
-- Culture: French leisure activities
+- Culture: Leisure activities
 
 ##### **Module 7: Travel and Movement** ✈️
 - Duration: 2 weeks
 - Skills Focus: Reading, Listening
 - Grammar: Irregular verbs (aller, venir)
 - Vocabulary: Travel, countries, transportation
-- Culture: French geography and tourism
+- Culture: Geography and tourism
 
 ##### **Module 8: Communication** 📱
 - Duration: 1-2 weeks
 - Skills Focus: All four skills
 - Grammar: Review and consolidation
 - Vocabulary: Technology, communication
-- Culture: French communication styles
+- Culture: Communication styles
 
 ---
 
@@ -347,4 +347,4 @@
 
 ---
 
-*This table of contents provides a comprehensive roadmap for A1 French language learning, following CEFR guidelines and ensuring systematic skill development across all language competencies.*
+*This table of contents provides a comprehensive roadmap for A1 language learning, following CEFR guidelines and ensuring systematic skill development across all language competencies.*

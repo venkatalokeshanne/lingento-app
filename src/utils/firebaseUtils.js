@@ -132,18 +132,23 @@ export const fetchWords = async (currentUser, setWords, setLoading) => {
  */
 export const convertVocabularyToFlashcards = (vocabularyWords) => {
   return vocabularyWords.map(word => {    // Function to create a translated example sentence
-    const createTranslatedExample = async (example, originalWord, translation, sourceLanguage = 'french') => {
+    const createTranslatedExample = async (example, originalWord, translation, sourceLanguage = 'english') => {
       if (!example) return null;
       
-      try {
-        // Import the translation service
+      try {        // Import the translation service
         const { translateService } = await import('@/services/translateService');
         
-        // Use the translation service to translate the complete example sentence
+        // Get user's native language preference if available
+        const userNativeLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                                 ? window.__userNativeLanguage 
+                                 : 'english';
+        
+        // Use the translation service to translate the complete example sentence to user's native language
+        console.log(`Translating example from ${sourceLanguage} to ${userNativeLanguage} in firebaseUtils`);
         const result = await translateService.translateText(
           example, 
           sourceLanguage, 
-          'english'
+          userNativeLanguage
         );
         
         if (result && result.translatedText) {
@@ -225,12 +230,16 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
     
     console.log('Raw vocabulary data from Firestore:', vocabularyWords);
     console.log('Words with isMatured=true in raw data:', vocabularyWords.filter(word => word.isMatured));
-    
-    // Convert vocabulary to flashcards with complete example translation
+      // Convert vocabulary to flashcards with complete example translation
     const flashcards = await Promise.all(vocabularyWords.map(async (word) => {
       let translatedExample = null;
-        // Translate complete example sentence if it exists
-      if (word.example) {
+      
+      // First, check if the word already has a translated example from when it was created
+      if (word.translatedExample) {
+        console.log(`Using existing translated example for word: ${word.word}`);
+        translatedExample = word.translatedExample;
+      } else if (word.example) {
+        // Only generate new translation if no existing translation is available
         try {
           const { translateService } = await import('@/services/translateService');
           
@@ -240,10 +249,17 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
             // Use fallback for invalid text
             translatedExample = `[Translation needed] ${word.example}`;
           } else {
+            // Get user's native language preference instead of hardcoding 'english'
+            const userNativeLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                                     ? window.__userNativeLanguage 
+                                     : 'english';
+            const sourceLanguage = word.language || 'english';
+            
+            console.log(`Translating word example from ${sourceLanguage} to ${userNativeLanguage}`);
             const result = await translateService.translateText(
               word.example, 
-              word.language || 'french', 
-              'english'
+              sourceLanguage,
+              userNativeLanguage // Use user's native language instead of hardcoded 'english'
             );
             
             if (result && result.translatedText) {
@@ -278,8 +294,7 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
         translatedExample: translatedExample,
         originalWord: word.word,
         translation: word.translation,
-        originalCategory: word.category,
-        language: word.language || 'french',
+        originalCategory: word.category,        language: word.language || 'english',
         createdAt: word.createdAt,
         updatedAt: word.updatedAt,
 

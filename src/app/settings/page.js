@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { LANGUAGES, LEVELS } from '@/constants/languages';
 
 export default function SettingsPage() {
   const { preferences, updatePreferences, resetPreferences, loading: prefsLoading } = useUserPreferences();
-  
-  const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
+    language: '',
+    level: 'beginner',
     soundEnabled: true,
     autoPlay: true,
     audioSpeed: 1.0,
@@ -17,11 +19,12 @@ export default function SettingsPage() {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
   // Initialize form data when preferences load
   useEffect(() => {
     if (!prefsLoading && preferences) {
       setFormData({
+        language: preferences.language || '',
+        level: preferences.level || 'beginner',
         soundEnabled: preferences.soundEnabled ?? true,
         autoPlay: preferences.autoPlay ?? true,
         audioSpeed: preferences.audioSpeed ?? 1.0,
@@ -155,10 +158,21 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Settings Navigation Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 p-6 sticky top-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Quick Access</h2>
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 p-6 sticky top-4">                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Quick Access</h2>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700">
+                    <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-800/50 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Learning</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Language & level</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-800/50 rounded-lg flex items-center justify-center">
                       <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 7.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M4.929 4.929a9 9 0 000 12.728M7.757 7.757a5 5 0 000 8.486" />
@@ -220,9 +234,96 @@ export default function SettingsPage() {
                       <span className="font-medium">{message.text}</span>
                     </div>
                   </div>
-                )}
+                )}                <form onSubmit={handleSubmit} className="space-y-10">
+                  {/* Learning Preferences */}
+                  <div className="group">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Learning Preferences</h2>
+                        <p className="text-gray-600 dark:text-gray-300">Choose your target language and proficiency level</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-700/20 space-y-6">
+                      {/* Language Selection */}
+                      <div className="space-y-4">
+                        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                          Target Language
+                        </label>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                          Which language would you like to learn?
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {LANGUAGES.map((lang) => (
+                            <button
+                              key={lang.value}
+                              type="button"
+                              onClick={() => handleChange('language', lang.value)}
+                              className={`group relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                                formData.language === lang.value
+                                  ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 shadow-lg ring-2 ring-emerald-200 dark:ring-emerald-400'
+                                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-600/50'
+                              }`}
+                            >
+                              <div className="text-2xl mb-2">{lang.flag}</div>
+                              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{lang.label}</div>
+                              {formData.language === lang.value && (
+                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                <form onSubmit={handleSubmit} className="space-y-10">
+                      {/* Level Selection */}
+                      <div className="space-y-4">
+                        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                          Proficiency Level
+                        </label>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                          What's your current level in this language?
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {LEVELS.map((level) => (
+                            <button
+                              key={level.value}
+                              type="button"
+                              onClick={() => handleChange('level', level.value)}
+                              className={`group text-left p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
+                                formData.level === level.value
+                                  ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/50 shadow-lg ring-2 ring-emerald-200 dark:ring-emerald-400'
+                                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-600/50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{level.label}</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400">{level.description}</div>
+                                </div>
+                                {formData.level === level.value && (
+                                  <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Audio Settings */}
                   <div className="group">
                     <div className="flex items-center gap-3 mb-6">

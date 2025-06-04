@@ -32,15 +32,14 @@ export default function FlashcardsPage() {
 
   // WordModal state
   const [showModal, setShowModal] = useState(false);
-  const [editingWord, setEditingWord] = useState(null);
-  const [formData, setFormData] = useState({
+  const [editingWord, setEditingWord] = useState(null);  const [formData, setFormData] = useState({
     word: "",
     translation: "",
     pronunciation: "",
     definition: "",
     example: "",
     category: "vocabulary",
-    language: language || "french",
+    language: language || "english",
   });
 
   // Handler for adding new flashcard
@@ -53,7 +52,7 @@ export default function FlashcardsPage() {
       definition: "",
       example: "",
       category: "vocabulary",
-      language: language || "french",
+      language: language || "english",
     });
     setShowModal(true);
   };
@@ -383,17 +382,15 @@ export default function FlashcardsPage() {
     );
   }  return (
     <>
-      <SEOHead 
-        title="French Flashcards | Interactive Vocabulary Learning with Spaced Repetition"
-        description="Master French vocabulary with our interactive flashcards featuring spaced repetition algorithm. Practice pronunciation, track progress, and learn efficiently with AI-powered French learning tools."
+      <SEOHead        title="Language Flashcards | Interactive Vocabulary Learning with Spaced Repetition"
+        description="Master vocabulary with our interactive flashcards featuring spaced repetition algorithm. Practice pronunciation, track progress, and learn efficiently with AI-powered language learning tools."
         keywords={[
-          'French flashcards',
-          'vocabulary flashcards', 
-          'spaced repetition flashcards',
-          'interactive French learning',
-          'French pronunciation practice',
+          'language flashcards',
+          'vocabulary flashcards',          'spaced repetition flashcards',
+          'interactive language learning',
+          'language pronunciation practice',
           'vocabulary builder',
-          'French study cards'
+          'language study cards'
         ]}
         canonical="https://lingentoo.com/flashcards"
         ogImage="https://lingentoo.com/og-flashcards.jpg"
@@ -758,7 +755,7 @@ export default function FlashcardsPage() {
                     mastered={filteredFlashcards[activeIndex].mastered}
                     onMasterToggle={handleMarkLearned}
                     onQualityRating={handleQualityRating} // User language preference
-                    language={language || "french"}
+                    language={language || "english"}
                     // Additional vocabulary data for examples
                     example={filteredFlashcards[activeIndex].example}
                     translatedExample={

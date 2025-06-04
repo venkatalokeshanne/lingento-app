@@ -14,7 +14,7 @@ export const useUserPreferences = () => {
 
 // Default preferences
 const defaultPreferences = {
-  language: 'french',
+  language: '', // No default language - user must select during onboarding
   level: 'beginner',
   nativeLanguage: 'english',
   dailyGoal: 20, // words per day
@@ -192,7 +192,17 @@ export function UserPreferencesProvider({ children }) {
         unsubscribe();
       }
     };
-  }, [currentUser]);  const value = {
+  }, [currentUser]); 
+  // Expose native language to window object for translateService
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Make native language available globally for the translation service
+      window.__userNativeLanguage = preferences.nativeLanguage || 'english';
+      console.log(`Set user native language for translations: ${window.__userNativeLanguage}`);
+    }
+  }, [preferences.nativeLanguage]);
+
+  const value = {
     preferences,
     loading,
     error,

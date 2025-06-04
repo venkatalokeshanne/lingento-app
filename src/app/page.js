@@ -5,35 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
-// SEO metadata for the home page
-export const metadata = {
-  title: "Lingento | Learn French Effectively with Smart Flashcards & Spaced Repetition",
-  description: "Master French vocabulary with our AI-powered spaced repetition system. Interactive flashcards, personalized learning paths, and proven techniques. Join 2,500+ learners achieving fluency in just 5 minutes daily.",
-  keywords: "learn French online, French vocabulary flashcards, spaced repetition French, French language learning app, master French vocabulary, French pronunciation practice, interactive French lessons, AI French tutor, French learning software, vocabulary builder French",
-  openGraph: {
-    title: "Lingento | Learn French Effectively with Smart Flashcards",
-    description: "Master French vocabulary with our AI-powered spaced repetition system. Join 2,500+ learners achieving fluency in just 5 minutes daily.",
-    url: "https://lingentoo.com",
-    images: [
-      {
-        url: "https://lingentoo.com/og-home.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Lingento French Learning App - Master vocabulary with smart flashcards",
-      },
-    ],
-  },
-};
-
 export default function Home() {
   const { currentUser } = useAuth();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const featuredWords = [
-    { word: "happiness", translation: "bonheur", language: "French", pronunciation: "/lə bɔ.nœʁ/" },
+  const [isAnimating, setIsAnimating] = useState(false);  const featuredWords = [
+    { word: "happiness", translation: "bonheur", language: "French", pronunciation: "/bɔ.nœʁ/" },
     { word: "freedom", translation: "libertad", language: "Spanish", pronunciation: "/li.βeɾ.ˈtað/" },
-    { word: "love", translation: "amor", language: "Italian", pronunciation: "/aˈmore/" },
-    { word: "wisdom", translation: "sabiduría", language: "Spanish", pronunciation: "/sa.βi.ðu.ˈɾi.a/" }
+    { word: "love", translation: "Liebe", language: "German", pronunciation: "/ˈliːbə/" },
+    { word: "wisdom", translation: "saggezza", language: "Italian", pronunciation: "/sadˈdʒettsa/" },
+    { word: "peace", translation: "平和", language: "Japanese", pronunciation: "/heiwa/" }
   ];
 
   useEffect(() => {
@@ -57,7 +37,7 @@ export default function Home() {
             "@context": "https://schema.org",
             "@type": "WebApplication",
             "name": "Lingento",
-            "description": "Master French vocabulary with our AI-powered spaced repetition system. Interactive flashcards, personalized learning paths, and proven techniques.",
+            "description": "Master vocabulary in multiple languages with our AI-powered spaced repetition system. Interactive flashcards, personalized learning paths, and proven techniques.",
             "url": "https://lingentoo.com",
             "applicationCategory": "EducationalApplication",
             "operatingSystem": "Any",
@@ -972,9 +952,9 @@ export default function Home() {
             </p>              <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>Choose your language:</span>
-                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇺🇸 English</button>
-                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇫🇷 Français</button>
+                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇺🇸 English</button>                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇫🇷 Français</button>
                   <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇪🇸 Español</button>
+                  <button className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">🇩🇪 Deutsch</button>
                 </div>
               </div>
           </div>        </div>

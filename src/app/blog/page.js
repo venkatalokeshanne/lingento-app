@@ -7,9 +7,8 @@ import SEOHead from '@/components/SEOHead';
 export default function BlogPage() {
   const blogPosts = [
     {
-      id: 1,
-      title: 'The Science Behind Spaced Repetition for Language Learning',
-      excerpt: 'Discover why spaced repetition is the most effective method for memorizing French vocabulary and how to maximize your learning results.',
+      id: 1,      title: 'The Science Behind Spaced Repetition for Language Learning',
+      excerpt: 'Discover why spaced repetition is the most effective method for memorizing vocabulary and how to maximize your learning results.',
       category: 'Learning Strategies',
       readTime: '8 min read',
       date: 'March 15, 2024',
@@ -17,49 +16,44 @@ export default function BlogPage() {
       featured: true
     },
     {
-      id: 2,
-      title: '10 Most Common French Words Every Beginner Should Know',
-      excerpt: 'Start your French journey with these essential vocabulary words that appear in 80% of everyday conversations.',
+      id: 2,      title: '10 Most Common Words Every Language Beginner Should Know',
+      excerpt: 'Start your language learning journey with these essential vocabulary words that appear in 80% of everyday conversations.',
       category: 'Vocabulary',
       readTime: '5 min read',
       date: 'March 12, 2024',
-      slug: 'essential-french-words-beginners'
+      slug: 'essential-words-beginners'
     },
     {
-      id: 3,
-      title: 'Master French Pronunciation: A Complete Guide',
-      excerpt: 'Learn the secrets of French pronunciation with our comprehensive guide including audio examples and practice exercises.',
+      id: 3,      title: 'Master Language Pronunciation: A Complete Guide',
+      excerpt: 'Learn the secrets of perfect pronunciation with our comprehensive guide including audio examples and practice exercises.',
       category: 'Pronunciation',
       readTime: '12 min read',
       date: 'March 10, 2024',
-      slug: 'master-french-pronunciation-guide'
+      slug: 'master-pronunciation-guide'
     },
     {
-      id: 4,
-      title: 'How to Create Effective French Flashcards',
-      excerpt: 'Maximize your vocabulary retention with proven flashcard techniques and design principles for French learners.',
+      id: 4,      title: 'How to Create Effective Language Flashcards',
+      excerpt: 'Maximize your vocabulary retention with proven flashcard techniques and design principles for language learners.',
       category: 'Study Tips',
       readTime: '6 min read',
       date: 'March 8, 2024',
-      slug: 'effective-french-flashcards'
+      slug: 'effective-language-flashcards'
     },
     {
-      id: 5,
-      title: 'French Grammar Made Simple: Key Rules for Beginners',
-      excerpt: 'Understand the fundamentals of French grammar with clear explanations and practical examples.',
+      id: 5,      title: 'Grammar Made Simple: Key Rules for Language Beginners',
+      excerpt: 'Understand the fundamentals of grammar with clear explanations and practical examples.',
       category: 'Grammar',
       readTime: '10 min read',
       date: 'March 5, 2024',
-      slug: 'french-grammar-beginners'
+      slug: 'grammar-beginners'
     },
     {
-      id: 6,
-      title: 'Building Your French Vocabulary: Advanced Techniques',
-      excerpt: 'Advanced strategies for expanding your French vocabulary beyond basic words and phrases.',
+      id: 6,      title: 'Building Your Vocabulary: Advanced Techniques',
+      excerpt: 'Advanced strategies for expanding your vocabulary beyond basic words and phrases.',
       category: 'Vocabulary',
       readTime: '9 min read',
       date: 'March 3, 2024',
-      slug: 'advanced-french-vocabulary-techniques'
+      slug: 'advanced-vocabulary-techniques'
     }
   ];
 
@@ -73,21 +67,19 @@ export default function BlogPage() {
   ];
   return (
     <>
-      <SEOHead 
-        title="French Learning Blog | Lingento - Tips, Strategies & Language Insights"
-        description="Discover effective French learning strategies, vocabulary tips, pronunciation guides, and language learning insights from our expert team."
+      <SEOHead        title="Language Learning Blog | Lingento - Tips, Strategies & Language Insights"
+        description="Discover effective language learning strategies, vocabulary tips, pronunciation guides, and language learning insights from our expert team."
         keywords={[
-          'French learning blog',
-          'French language tips',
-          'vocabulary learning strategies', 
-          'French pronunciation guide',
-          'spaced repetition tips',
-          'French grammar tips',
           'language learning blog',
-          'French study methods',
-          'French learning resources',
-          'improve French skills',
-          'French learning advice',
+          'language learning tips',
+          'vocabulary learning strategies', 
+          'pronunciation guide',
+          'spaced repetition tips',
+          'grammar tips',          'language learning blog',
+          'language study methods',
+          'language learning resources',
+          'improve language skills',
+          'language learning advice',
           'language acquisition tips'
         ]}
         canonical="https://lingentoo.com/blog"
@@ -102,15 +94,14 @@ export default function BlogPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
-          >
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              French Learning{' '}
+          >            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Language Learning{' '}
               <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Blog
               </span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Expert tips, strategies, and insights to accelerate your French learning journey
+              Expert tips, strategies, and insights to accelerate your language learning journey
             </p>
           </motion.div>
         </div>
@@ -208,12 +199,11 @@ export default function BlogPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="mt-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-8 text-center"
-        >
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Stay Updated with French Learning Tips
+        >          <h2 className="text-3xl font-bold text-white mb-4">
+            Stay Updated with Language Learning Tips
           </h2>
           <p className="text-indigo-100 mb-6 max-w-2xl mx-auto">
-            Get weekly French learning tips, vocabulary lists, and study strategies delivered to your inbox.
+            Get weekly language learning tips, vocabulary lists, and study strategies delivered to your inbox.
           </p>
           <div className="max-w-md mx-auto flex gap-3">
             <input
@@ -234,9 +224,8 @@ export default function BlogPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "Blog",
-            "name": "Lingento French Learning Blog",
-            "description": "Expert French learning tips, strategies, and insights",
+            "@type": "Blog",            "name": "Lingento Language Learning Blog",
+            "description": "Expert language learning tips, strategies, and insights",
             "url": "https://lingentoo.com/blog",
             "publisher": {
               "@type": "Organization",

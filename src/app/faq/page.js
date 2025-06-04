@@ -17,10 +17,9 @@ export default function FAQPage() {
   ];
 
   const faqs = {
-    general: [
-      {
+    general: [      {
         q: "What is Lingento?",
-        a: "Lingento is a modern French vocabulary learning app that uses scientifically-proven spaced repetition algorithms to help you master French words efficiently. Our platform combines AI-powered features with traditional learning methods to provide personalized vocabulary building experience."
+        a: "Lingento is a modern vocabulary learning app that uses scientifically-proven spaced repetition algorithms to help you master words efficiently. Our platform combines AI-powered features with traditional learning methods to provide personalized vocabulary building experience."
       },
       {
         q: "How does spaced repetition work?",
@@ -30,8 +29,7 @@ export default function FAQPage() {
         q: "What makes Lingento different from other language learning apps?",
         a: "Lingento focuses specifically on vocabulary mastery using advanced spaced repetition algorithms. We offer AI-powered pronunciation guides, contextual examples, writing practice with feedback, and detailed progress analytics. Our approach is scientifically-backed and designed for serious learners."
       },
-      {
-        q: "Do I need any prior French knowledge to start?",
+      {        q: "Do I need any prior language knowledge to start?",
         a: "No! Lingento is designed for learners at all levels, from complete beginners to advanced students. Our system adapts to your current level and provides appropriate vocabulary based on your progress and goals."
       },
       {
@@ -133,20 +131,19 @@ export default function FAQPage() {
     setExpandedItem(expandedItem === index ? null : index);
   };
   return (
-    <>
-      <SEOHead 
-        title="FAQ | Lingento - Frequently Asked Questions About French Learning"
-        description="Get answers to common questions about Lingento French learning app. Learn about spaced repetition, vocabulary training, pronunciation, and our learning methods."
+    <>      <SEOHead 
+        title="FAQ | Lingento - Frequently Asked Questions About Language Learning"
+        description="Get answers to common questions about Lingento language learning app. Learn about spaced repetition, vocabulary training, pronunciation, and our learning methods."
         keywords={[
-          'French learning FAQ',
+          'language learning FAQ',
           'Lingento questions',
           'spaced repetition questions',
-          'French vocabulary help',
+          'vocabulary help',
           'language learning support',
-          'French app help',
+          'language app help',
           'pronunciation guide',
           'vocabulary learning questions',
-          'French learning tips',
+          'language learning tips',
           'learning progress help'
         ]}
         canonical="https://lingentoo.com/faq"
@@ -255,9 +252,8 @@ export default function FAQPage() {
             transition={{ delay: 0.6 }}
             className="mt-16 text-center bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-white"
           >
-            <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
-            <p className="mb-6 opacity-90">
-              Our support team is here to help you succeed in your French learning journey.
+            <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>            <p className="mb-6 opacity-90">
+              Our support team is here to help you succeed in your language learning journey.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
@@ -302,8 +298,7 @@ export default function FAQPage() {
                 }
               },
               {
-                "@type": "Question",
-                "name": "Do I need any prior French knowledge to start?",
+                "@type": "Question",                "name": "Do I need any prior language knowledge to start?",
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "No! Lingento is designed for learners at all levels, from complete beginners to advanced students. Our system adapts to your current level and provides appropriate vocabulary based on your progress and goals."

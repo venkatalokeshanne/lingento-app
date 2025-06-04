@@ -68,24 +68,52 @@ class AudioService {
     document.addEventListener("click", enableAudio, { once: true });
     document.addEventListener("touchstart", enableAudio, { once: true });
     document.addEventListener("keydown", enableAudio, { once: true });
-  }
-
-  getVoiceId(language) {
+  }  getVoiceId(language) {
+    // Updated voice map with preference for neural-capable voices where available
     const voiceMap = {
-      french: "Lea",
-      spanish: "Conchita",
-      german: "Marlene",
-      italian: "Carla",
-      portuguese: "Ines",
-      english: "Joanna",
-      chinese: "Zhiyu",
-      japanese: "Mizuki",
-      korean: "Seoyeon",
-      arabic: "Zeina",
-      hindi: "Aditi",
-      russian: "Tatyana",
+      french: "Lea", // Neural compatible
+      spanish: "Lupe", // Neural compatible
+      german: "Vicki", // Neural compatible
+      italian: "Bianca", // Neural compatible
+      portuguese: "Camila", // Neural compatible
+      english: "Joanna", // Neural compatible
+      chinese: "Zhiyu", // Neural compatible
+      japanese: "Takumi", // Neural compatible
+      korean: "Seoyeon", // Neural compatible
+      arabic: "Zeina", // Standard only
+      hindi: "Kajal", // Neural compatible
+      russian: "Tatyana", // Standard only
     };
     return voiceMap[language?.toLowerCase()] || "Joanna";
+  }
+    // Determine if a voice supports neural engine
+  supportsNeuralEngine(voiceId) {
+    // List of voices that support the neural engine
+    // Source: AWS Polly documentation - https://docs.aws.amazon.com/polly/latest/dg/NTTS-main.html
+    const neuralVoices = [
+      // English voices
+      "Joanna", "Matthew", "Salli", "Kimberly", "Kendra", "Joey", "Stephen", "Ruth", "Kevin", "Ivy",
+      "Amy", "Emma", "Brian", "Arthur", "Olivia", 
+      // Spanish voices
+      "Lupe", "Pedro", "Miguel", "Mia",
+      // French voices
+      "Lea", "Gabrielle", "Rémi",
+      // Portuguese voices
+      "Camila", "Vitoria", "Thiago",
+      // Italian voices 
+      "Bianca", "Adriano",
+      // German voices
+      "Vicki", "Daniel", "Hannah",
+      // Japanese voices
+      "Takumi", "Kazuha",
+      // Korean voices
+      "Seoyeon",
+      // Hindi voices
+      "Kajal",
+      // Chinese voices
+      "Zhiyu"
+    ];
+    return neuralVoices.includes(voiceId);
   }
   async playAudio(text, language = "english", options = {}) {
     return new Promise(async (resolve, reject) => {
@@ -112,17 +140,20 @@ class AudioService {
         }        if (this.pollyClient) {
           try {
             // Pass speed from options to synthesizeWithPolly
+            console.log(`Using AWS Polly for language: ${language}`);
             const audioData = await this.synthesizeWithPolly(text, language, {
               speed: options.speed || 1.0
             });
             await this.playAudioData(audioData, options);
             return resolve();
           } catch (pollyError) {
-            console.warn("Polly playback failed:", pollyError.message);
+            console.warn(`Polly playback failed for ${language}:`, pollyError.message);
+            console.log("Falling back to browser speech synthesis");
             await this.playWithBrowserSpeech(text, language, options);
             return resolve();
           }
         } else {
+          console.log(`Using browser speech synthesis for language: ${language}`);
           await this.playWithBrowserSpeech(text, language, options);
           return resolve();
         }
@@ -133,11 +164,16 @@ class AudioService {
         reject(error);
       }
     });
-  }
-  async synthesizeWithPolly(text, language, options = {}) {
+  }  async synthesizeWithPolly(text, language, options = {}) {
     // Include speed in the cache key to store different speeds separately
     const speed = options.speed || 1.0;
-    const cacheKey = `${text}-${language}-${speed}`;
+    const voiceId = this.getVoiceId(language);
+    
+    // Determine the engine based on voice support
+    const engine = this.supportsNeuralEngine(voiceId) ? "neural" : "standard";
+    
+    // Include engine in cache key
+    const cacheKey = `${text}-${language}-${speed}-${engine}`;
     if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
     // For AWS Polly, we use SSML to control speech rate rather than audio playback rate
@@ -148,17 +184,33 @@ class AudioService {
       Text: ssmlText,
       TextType: "ssml",
       OutputFormat: "mp3",
-      VoiceId: this.getVoiceId(language),
-      Engine: "neural",
-    };
-
-    try {
+      VoiceId: voiceId,
+      Engine: engine,
+    };    try {
       const data = await this.pollyClient.synthesizeSpeech(params).promise();
       const audioData = data.AudioStream;
       this.cache.set(cacheKey, audioData);
       return audioData;
     } catch (error) {
-      throw error;
+      console.error(`AWS Polly error with ${voiceId} (${engine}):`, error.message);
+      
+      // If neural engine failed, try standard engine as fallback
+      if (engine === "neural") {
+        console.log(`Falling back to standard engine for voice ${voiceId}`);
+        params.Engine = "standard";
+        try {
+          const data = await this.pollyClient.synthesizeSpeech(params).promise();
+          const audioData = data.AudioStream;
+          // Cache with standard engine
+          this.cache.set(`${text}-${language}-${speed}-standard`, audioData);
+          return audioData;
+        } catch (fallbackError) {
+          console.error("Standard engine fallback also failed:", fallbackError.message);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
     }
   }  async playAudioData(audioData, options = {}) {
     return new Promise((resolve, reject) => {

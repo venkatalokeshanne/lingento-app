@@ -21,7 +21,7 @@ export default function HelpCenterPage() {
       id: 1,
       title: 'Welcome to Lingento: Your First Steps',
       category: 'getting-started',
-      description: 'Learn how to set up your account and start your French vocabulary journey.',
+      description: 'Learn how to set up your account and start your vocabulary journey.',
       readTime: '3 min read',
       difficulty: 'Beginner',
       tags: ['setup', 'beginner', 'account']
@@ -59,7 +59,7 @@ export default function HelpCenterPage() {
       id: 5,
       title: 'Using the Writing Practice Feature',
       category: 'features',
-      description: 'How to improve your French writing with AI-powered feedback.',
+      description: 'How to improve your writing with AI-powered feedback.',
       readTime: '7 min read',
       difficulty: 'Intermediate',
       tags: ['writing', 'AI', 'feedback']
@@ -166,9 +166,8 @@ export default function HelpCenterPage() {
             <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Center
             </span>
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
-            Find answers, learn new features, and get the most out of your French learning experience.
+          </h1>          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+            Find answers, learn new features, and get the most out of your language learning experience.
           </p>
 
           {/* Search Bar */}

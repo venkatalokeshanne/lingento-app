@@ -4,39 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-
-const LANGUAGES = [
-  { value: 'french', label: 'French', flag: '🇫🇷' },
-  { value: 'spanish', label: 'Spanish', flag: '🇪🇸' },
-  { value: 'german', label: 'German', flag: '🇩🇪' },
-  { value: 'italian', label: 'Italian', flag: '🇮🇹' },
-  { value: 'portuguese', label: 'Portuguese', flag: '🇵🇹' },
-  { value: 'russian', label: 'Russian', flag: '🇷🇺' },
-  { value: 'chinese', label: 'Chinese', flag: '🇨🇳' },
-  { value: 'japanese', label: 'Japanese', flag: '🇯🇵' },
-  { value: 'korean', label: 'Korean', flag: '🇰🇷' },
-];
-
-const NATIVE_LANGUAGES = [
-  { value: 'english', label: 'English', flag: '🇺🇸' },
-  { value: 'spanish', label: 'Spanish', flag: '🇪🇸' },
-  { value: 'french', label: 'French', flag: '🇫🇷' },
-  { value: 'german', label: 'German', flag: '🇩🇪' },
-  { value: 'italian', label: 'Italian', flag: '🇮🇹' },
-  { value: 'portuguese', label: 'Portuguese', flag: '🇵🇹' },
-  { value: 'chinese', label: 'Chinese', flag: '🇨🇳' },
-  { value: 'japanese', label: 'Japanese', flag: '🇯🇵' },
-  { value: 'korean', label: 'Korean', flag: '🇰🇷' },
-];
-
-const LEVELS = [
-  { value: 'beginner', label: 'Beginner', description: 'Just starting out' },
-  { value: 'elementary', label: 'Elementary', description: 'Basic words and phrases' },
-  { value: 'intermediate', label: 'Intermediate', description: 'Comfortable with basics' },
-  { value: 'upper-intermediate', label: 'Upper Intermediate', description: 'Complex conversations' },
-  { value: 'advanced', label: 'Advanced', description: 'Near fluent' },
-  { value: 'proficient', label: 'Proficient', description: 'Native-like fluency' },
-];
+import { LANGUAGES, NATIVE_LANGUAGES, LEVELS } from '@/constants/languages';
 
 export default function ProfilePage() {
   const { currentUser } = useAuth();
@@ -54,7 +22,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!prefsLoading && preferences) {
       setFormData({
-        language: preferences.language || 'french',
+        language: preferences.language || 'english',
         level: preferences.level || 'beginner',
         nativeLanguage: preferences.nativeLanguage || 'english',
         dailyGoal: preferences.dailyGoal || 20,

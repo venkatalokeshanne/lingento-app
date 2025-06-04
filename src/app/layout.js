@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Lingento | Learn French Effectively with Smart Flashcards",
-  description: "Master French vocabulary with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your French language journey.",
-  keywords: "learn French, French vocabulary, flashcards, spaced repetition, language learning, French tutor, vocabulary builder, French pronunciation, French grammar, online French course",
+  title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+  description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language learning journey.",
+  keywords: "language learning, vocabulary builder, flashcards, spaced repetition, learn languages, multilingual education, pronunciation practice, grammar learning, online language course",
   authors: [{ name: "Lingento Team" }],
   creator: "Lingento",
   publisher: "Lingento",
@@ -37,9 +37,8 @@ export const metadata = {
       'fr-FR': 'https://lingentoo.com/fr',
     },
   },
-  openGraph: {
-    title: "Lingento | Learn French Effectively with Smart Flashcards",
-    description: "Master French vocabulary with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
+  openGraph: {    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+    description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
     url: 'https://lingentoo.com',
     siteName: 'Lingento',
     images: [
@@ -47,16 +46,15 @@ export const metadata = {
         url: 'https://lingentoo.com/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Lingento - Learn French with Smart Flashcards',
+        alt: 'Lingento - Learn Languages with Smart Flashcards',
       },
     ],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
-    title: "Lingento | Learn French Effectively with Smart Flashcards",
-    description: "Master French vocabulary with spaced repetition and interactive flashcards. Start your French learning journey today!",
+    card: 'summary_large_image',    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+    description: "Master vocabulary in multiple languages with spaced repetition and interactive flashcards. Start your language learning journey today!",
     site: '@lingento',
     creator: '@lingento',
     images: ['https://lingentoo.com/twitter-image.jpg'],
@@ -95,7 +93,7 @@ export default function RootLayout({ children }) {
     "@type": "WebApplication",
     "name": "Lingento",
     "url": "https://lingentoo.com",
-    "description": "Master French vocabulary with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
+    "description": "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Any",
     "offers": {

@@ -15,7 +15,7 @@ export default function PricingPage() {
     {
       name: 'Free',
       price: { monthly: 0, annual: 0 },
-      description: 'Perfect for getting started with French vocabulary',
+      description: 'Perfect for getting started with vocabulary learning',
       features: [
         'Access to 1,000 vocabulary words',
         'Basic spaced repetition algorithm',
@@ -87,20 +87,16 @@ export default function PricingPage() {
   };
   return (
     <>
-      <SEOHead 
-        title="Pricing Plans | Lingento - Choose Your French Learning Plan"
-        description="Choose the perfect French learning plan for you. Free, Pro, and Premium options with advanced spaced repetition, AI feedback, and comprehensive vocabulary training."
-        keywords={[
-          'French learning pricing',
-          'French course pricing',
-          'French app pricing',
-          'language learning subscription',
-          'French learning plans',
-          'affordable French learning',
-          'French premium features',
-          'vocabulary learning cost',
-          'French learning membership',
-          'French tutor pricing'
+      <SEOHead        title="Pricing Plans | Lingento - Choose Your Language Learning Plan"
+        description="Choose the perfect language learning plan for you. Free, Pro, and Premium options with advanced spaced repetition, AI feedback, and comprehensive vocabulary training."
+        keywords={[          'language learning pricing',
+          'language course pricing',
+          'language app pricing',
+          'language learning subscription',          'language learning plans',
+          'affordable language learning',
+          'language premium features',
+          'vocabulary learning cost',          'language learning membership',
+          'language tutor pricing'
         ]}
         canonical="https://lingentoo.com/pricing"
         ogImage="https://lingentoo.com/og-pricing.jpg"
@@ -261,9 +257,8 @@ export default function PricingPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "Service",
-            "name": "Lingento French Learning Platform",
-            "description": "AI-powered French vocabulary learning with spaced repetition",
+            "@type": "Service",            "name": "Lingento Language Learning Platform",
+            "description": "AI-powered vocabulary learning with spaced repetition",
             "provider": {
               "@type": "Organization",
               "name": "Lingento",
@@ -273,7 +268,7 @@ export default function PricingPage() {
               {
                 "@type": "Offer",
                 "name": "Free Plan",
-                "description": "Perfect for getting started with French vocabulary",
+                "description": "Perfect for getting started with vocabulary learning",
                 "price": "0",
                 "priceCurrency": "USD",
                 "eligibleQuantity": {

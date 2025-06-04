@@ -152,14 +152,14 @@ export default function Navigation() {
               className="group flex items-center space-x-3"
             >
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  {/* Book with French flag accent */}
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">                  {/* Book with global learning accent */}
                   <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/>
                   <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 5h-8V5h8v2z"/>
-                  {/* French accent - small tricolor */}
-                  <rect x="12" y="9" width="1.5" height="6" fill="#0055A4" opacity="0.8"/>
-                  <rect x="13.5" y="9" width="1.5" height="6" fill="#FFFFFF" opacity="0.9"/>
-                  <rect x="15" y="9" width="1.5" height="6" fill="#EF4135" opacity="0.8"/>
+                  {/* Global language accent - rainbow */}
+                  <rect x="12" y="9" width="1" height="6" fill="#4285F4" opacity="0.8"/>
+                  <rect x="13" y="9" width="1" height="6" fill="#34A853" opacity="0.8"/>
+                  <rect x="14" y="9" width="1" height="6" fill="#FBBC05" opacity="0.8"/>
+                  <rect x="15" y="9" width="1" height="6" fill="#EA4335" opacity="0.8"/>
                   {/* Learning symbol - brain/lightbulb hybrid */}
                   <circle cx="10" cy="12" r="1.5" fill="currentColor" opacity="0.8"/>
                   <path d="M8.5 10.5c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5" stroke="currentColor" strokeWidth="0.8" fill="none" opacity="0.6"/>

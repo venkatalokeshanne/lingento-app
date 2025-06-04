@@ -12,7 +12,7 @@ export default function Community() {
     { id: 'beginners', name: 'Beginners' },
     { id: 'grammar', name: 'Grammar' },
     { id: 'pronunciation', name: 'Pronunciation' },
-    { id: 'culture', name: 'French Culture' },
+    { id: 'culture', name: 'Culture' },
     { id: 'resources', name: 'Resources' }
   ];
 
@@ -22,68 +22,66 @@ export default function Community() {
     { label: 'Languages Discussed', value: '12' },
     { label: 'Study Groups', value: '156' }
   ];
-
   const featuredPosts = [
     {
       id: 1,
-      title: 'Essential French Phrases for Travel',
+      title: 'Essential Travel Phrases for Any Language',
       author: 'Marie Dubois',
       avatar: '/api/placeholder/40/40',
       category: 'beginners',
       replies: 23,
       likes: 156,
       timeAgo: '2 hours ago',
-      excerpt: 'Planning a trip to France? Here are the must-know phrases that will help you navigate any situation...'
+      excerpt: 'Planning a trip abroad? Here are the must-know phrases that will help you navigate any situation...'
     },
     {
       id: 2,
-      title: 'Understanding French Subjunctive Mood',
+      title: 'Understanding Grammar Moods in Language Learning',
       author: 'Pierre Martin',
       avatar: '/api/placeholder/40/40',
       category: 'grammar',
       replies: 45,
       likes: 234,
       timeAgo: '4 hours ago',
-      excerpt: 'The subjunctive mood can be tricky, but with these simple rules and examples, you\'ll master it in no time...'
+      excerpt: 'Grammar moods can be tricky, but with these simple rules and examples, you\'ll master them in no time...'
     },
     {
       id: 3,
-      title: 'French Movie Recommendations for Language Learning',
+      title: 'Foreign Movie Recommendations for Language Learning',
       author: 'Sophie Chen',
       avatar: '/api/placeholder/40/40',
       category: 'resources',
       replies: 67,
       likes: 389,
       timeAgo: '6 hours ago',
-      excerpt: 'Discover amazing French films that will improve your listening skills while entertaining you...'
+      excerpt: 'Discover amazing foreign films that will improve your listening skills while entertaining you...'
     },
     {
       id: 4,
-      title: 'Mastering the French "R" Sound',
+      title: 'Mastering Difficult Pronunciation Sounds',
       author: 'Jean-Luc Bernard',
       avatar: '/api/placeholder/40/40',
       category: 'pronunciation',
       replies: 34,
       likes: 198,
       timeAgo: '8 hours ago',
-      excerpt: 'Step-by-step guide to pronouncing the French "R" with audio examples and practice exercises...'
+      excerpt: 'Step-by-step guide to pronouncing difficult sounds with audio examples and practice exercises...'
     }
   ];
-
   const studyGroups = [
     {
       id: 1,
-      name: 'Morning French Practice',
+      name: 'Morning Language Practice',
       members: 234,
-      description: 'Daily 30-minute French conversation practice every morning at 8 AM EST',
+      description: 'Daily 30-minute conversation practice every morning at 8 AM EST',
       nextSession: 'Tomorrow 8:00 AM',
       level: 'Intermediate'
     },
     {
       id: 2,
-      name: 'French Book Club',
+      name: 'Foreign Language Book Club',
       members: 156,
-      description: 'Reading French literature together and discussing in French',
+      description: 'Reading literature in target languages and discussing together',
       nextSession: 'Friday 7:00 PM',
       level: 'Advanced'
     },
@@ -91,7 +89,7 @@ export default function Community() {
       id: 3,
       name: 'Beginner Friendly Zone',
       members: 567,
-      description: 'Safe space for beginners to ask questions and practice basic French',
+      description: 'Safe space for beginners to ask questions and practice basics',
       nextSession: 'Daily',
       level: 'Beginner'
     }
@@ -115,12 +113,11 @@ export default function Community() {
               <Link href="/" className="text-indigo-600 hover:text-indigo-500 transition-colors">
                 ← Back to Home
               </Link>
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              French Learning Community
+            </div>            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Language Learning Community
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl">
-              Connect with fellow French learners, share resources, ask questions, and practice together.
+              Connect with fellow language learners, share resources, ask questions, and practice together.
             </p>
           </motion.div>
         </div>
@@ -250,9 +247,8 @@ export default function Community() {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white"
             >
-              <h3 className="text-xl font-bold mb-3">Join Our Community</h3>
-              <p className="text-indigo-100 mb-4">
-                Connect with thousands of French learners from around the world.
+              <h3 className="text-xl font-bold mb-3">Join Our Community</h3>              <p className="text-indigo-100 mb-4">
+                Connect with thousands of language learners from around the world.
               </p>
               <button className="w-full bg-white text-indigo-600 font-semibold py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors">
                 Sign Up Free

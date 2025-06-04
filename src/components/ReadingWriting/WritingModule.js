@@ -22,7 +22,7 @@ export default function WritingModule({ writingState, setWritingState, level, la
   };
 
   const languages = {
-    french: 'French',
+    english: 'English',
     spanish: 'Spanish',
     german: 'German',
     italian: 'Italian',
@@ -142,7 +142,7 @@ The prompt must be creative, specific, written entirely in ${language}, and insp
       console.error('Error generating prompt:', error);
         // Simple fallback prompt if AI fails - in target language
       const simpleFallbacks = {
-        french: {
+        english: {
           beginner: `Écrivez sur votre journée typique. Que faites-vous du matin au soir?`,
           intermediate: `Décrivez une expérience mémorable que vous avez vécue récemment. Que s'est-il passé et comment vous êtes-vous senti(e)?`,
           advanced: `Quelle est votre opinion sur le rôle de la technologie dans l'éducation moderne? Discutez des avantages et des inconvénients.`

@@ -11,22 +11,20 @@ export default function VocabularyPage() {
 
   return (
     <ProtectedRoute>
-      <SEOHead 
-        title="French Vocabulary Builder | Lingento - Master French Words Fast"
-        description="Build your French vocabulary with our advanced spaced repetition system. Learn 10,000+ French words with flashcards, pronunciation guides, and adaptive learning technology."
+      <SEOHead        title="Vocabulary Builder | Lingento - Master Words Fast"
+        description="Build your vocabulary with our advanced spaced repetition system. Learn 10,000+ words with flashcards, pronunciation guides, and adaptive learning technology."
         keywords={[
-          'French vocabulary',
-          'French words',
+          'vocabulary',
           'vocabulary builder',
-          'French flashcards',
+          'flashcards',
           'spaced repetition',
-          'French pronunciation',
-          'learn French vocabulary',
-          'French language learning',
+          'pronunciation',
+          'learn vocabulary',
+          'language learning',
           'vocabulary practice',
-          'French vocabulary app',
-          'memorize French words',
-          'French vocabulary training'
+          'vocabulary app',
+          'memorize words',
+          'vocabulary training'
         ]}
         canonical="https://lingentoo.com/vocabulary"
         ogImage="https://lingentoo.com/og-vocabulary.jpg"

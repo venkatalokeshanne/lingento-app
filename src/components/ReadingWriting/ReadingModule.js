@@ -75,7 +75,7 @@ export default function ReadingModule({
   };
 
   const languages = {
-    french: "French",
+    english: "English",
     spanish: "Spanish",
     german: "German",
     italian: "Italian",

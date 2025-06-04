@@ -6,36 +6,30 @@ import SEOHead from '@/components/SEOHead';
 
 export default function ResourcesPage() {
   const resourceCategories = [
-    {
-      title: 'Vocabulary Lists',
-      description: 'Curated French vocabulary organized by topics and difficulty levels',
+    {      title: 'Vocabulary Lists',
+      description: 'Curated vocabulary organized by topics and difficulty levels',
       icon: '📚',
-      resources: [
-        { name: '100 Most Common French Words', type: 'PDF', difficulty: 'Beginner' },
-        { name: 'French Food & Cooking Vocabulary', type: 'Interactive', difficulty: 'Intermediate' },
-        { name: 'Business French Terms', type: 'PDF', difficulty: 'Advanced' },
-        { name: 'French Travel Phrases', type: 'Audio + PDF', difficulty: 'Beginner' }
+      resources: [        { name: '100 Most Common Words', type: 'PDF', difficulty: 'Beginner' },
+        { name: 'Food & Cooking Vocabulary', type: 'Interactive', difficulty: 'Intermediate' },
+        { name: 'Business Terms', type: 'PDF', difficulty: 'Advanced' },
+        { name: 'Travel Phrases', type: 'Audio + PDF', difficulty: 'Beginner' }
       ]
     },
-    {
-      title: 'Grammar Guides',
-      description: 'Comprehensive French grammar explanations with examples',
+    {      title: 'Grammar Guides',
+      description: 'Comprehensive grammar explanations with examples',
       icon: '📝',
-      resources: [
-        { name: 'French Verb Conjugation Guide', type: 'Interactive', difficulty: 'All Levels' },
-        { name: 'French Articles & Gender Rules', type: 'PDF', difficulty: 'Beginner' },
+      resources: [        { name: 'Verb Conjugation Guide', type: 'Interactive', difficulty: 'All Levels' },
+        { name: 'Articles & Gender Rules', type: 'PDF', difficulty: 'Beginner' },
         { name: 'Subjunctive Mood Explained', type: 'Video + PDF', difficulty: 'Advanced' },
-        { name: 'French Tenses Timeline', type: 'Infographic', difficulty: 'Intermediate' }
+        { name: 'Tenses Timeline', type: 'Infographic', difficulty: 'Intermediate' }
       ]
     },
-    {
-      title: 'Pronunciation Tools',
-      description: 'Audio resources and guides for perfecting French pronunciation',
+    {      title: 'Pronunciation Tools',
+      description: 'Audio resources and guides for perfecting pronunciation',
       icon: '🔊',
-      resources: [
-        { name: 'French Phonetic Alphabet', type: 'Audio Guide', difficulty: 'Beginner' },
-        { name: 'Silent Letters in French', type: 'Interactive', difficulty: 'Intermediate' },
-        { name: 'French Accent Patterns', type: 'Audio + PDF', difficulty: 'Advanced' },
+      resources: [        { name: 'Phonetic Alphabet', type: 'Audio Guide', difficulty: 'Beginner' },
+        { name: 'Silent Letters Guide', type: 'Interactive', difficulty: 'Intermediate' },
+        { name: 'Accent Patterns', type: 'Audio + PDF', difficulty: 'Advanced' },
         { name: 'Liaison Rules Practice', type: 'Audio Exercises', difficulty: 'Intermediate' }
       ]
     },
@@ -43,33 +37,28 @@ export default function ResourcesPage() {
       title: 'Study Tools',
       description: 'Interactive tools and exercises to enhance your learning',
       icon: '🛠️',
-      resources: [
-        { name: 'French Conjugation Trainer', type: 'Web Tool', difficulty: 'All Levels' },
+      resources: [        { name: 'Conjugation Trainer', type: 'Web Tool', difficulty: 'All Levels' },
         { name: 'Vocabulary Flashcard Generator', type: 'Web Tool', difficulty: 'All Levels' },
-        { name: 'French Accent Marks Practice', type: 'Interactive', difficulty: 'Intermediate' },
-        { name: 'French Dictation Exercises', type: 'Audio + Interactive', difficulty: 'Advanced' }
+        { name: 'Accent Marks Practice', type: 'Interactive', difficulty: 'Intermediate' },
+        { name: 'Dictation Exercises', type: 'Audio + Interactive', difficulty: 'Advanced' }
       ]
     },
-    {
-      title: 'Cultural Insights',
-      description: 'Learn about French culture and customs while improving your language',
-      icon: '🇫🇷',
-      resources: [
-        { name: 'French Holidays & Traditions', type: 'Article Series', difficulty: 'All Levels' },
-        { name: 'French Etiquette Guide', type: 'PDF', difficulty: 'Intermediate' },
-        { name: 'Regional French Variations', type: 'Audio + PDF', difficulty: 'Advanced' },
-        { name: 'French Pop Culture Vocabulary', type: 'Interactive', difficulty: 'Intermediate' }
+    {      title: 'Cultural Insights',
+      description: 'Learn about different cultures and customs while improving your language',
+      icon: '🌍',
+      resources: [        { name: 'Cultural Holidays & Traditions', type: 'Article Series', difficulty: 'All Levels' },
+        { name: 'Cultural Etiquette Guide', type: 'PDF', difficulty: 'Intermediate' },
+        { name: 'Regional Language Variations', type: 'Audio + PDF', difficulty: 'Advanced' },
+        { name: 'Pop Culture Vocabulary', type: 'Interactive', difficulty: 'Intermediate' }
       ]
     },
-    {
-      title: 'Practice Exercises',
-      description: 'Hands-on exercises to reinforce your French skills',
+    {      title: 'Practice Exercises',
+      description: 'Hands-on exercises to reinforce your language skills',
       icon: '✏️',
-      resources: [
-        { name: 'Daily French Practice Worksheets', type: 'PDF Series', difficulty: 'All Levels' },
-        { name: 'French Reading Comprehension', type: 'Interactive', difficulty: 'Intermediate' },
-        { name: 'French Writing Prompts', type: 'PDF', difficulty: 'Advanced' },
-        { name: 'French Listening Exercises', type: 'Audio + Questions', difficulty: 'All Levels' }
+      resources: [        { name: 'Daily Practice Worksheets', type: 'PDF Series', difficulty: 'All Levels' },
+        { name: 'Reading Comprehension', type: 'Interactive', difficulty: 'Intermediate' },
+        { name: 'Writing Prompts', type: 'PDF', difficulty: 'Advanced' },
+        { name: 'Listening Exercises', type: 'Audio + Questions', difficulty: 'All Levels' }
       ]
     }
   ];
@@ -82,22 +71,20 @@ export default function ResourcesPage() {
   };
   return (
     <>
-      <SEOHead 
-        title="French Learning Resources | Lingento - Free Tools & Study Materials"
-        description="Access free French learning resources including vocabulary lists, pronunciation guides, grammar references, and study tools to accelerate your French mastery."
+      <SEOHead        title="Language Learning Resources | Lingento - Free Tools & Study Materials"
+        description="Access free language learning resources including vocabulary lists, pronunciation guides, grammar references, and study tools to accelerate your language mastery."
         keywords={[
-          'French learning resources',
-          'free French materials',
-          'French vocabulary lists',
-          'French grammar guide',
-          'French pronunciation tools',
-          'French study materials',
           'language learning resources',
-          'French reference materials',
-          'French learning tools',
-          'French study guides',
-          'French language resources',
-          'free French lessons'
+          'free language materials',
+          'vocabulary lists',
+          'grammar guide',
+          'pronunciation tools',
+          'language study materials',          'language learning resources',
+          'language reference materials',
+          'language learning tools',
+          'language study guides',
+          'language resources',
+          'free language lessons'
         ]}
         canonical="https://lingentoo.com/resources"
         ogImage="https://lingentoo.com/og-resources.jpg"
@@ -111,15 +98,14 @@ export default function ResourcesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
-          >
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              French Learning{' '}
+          >            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Language Learning{' '}
               <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Resources
               </span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Comprehensive collection of free French learning materials, tools, and guides to support your language journey
+              Comprehensive collection of free language learning materials, tools, and guides to support your language journey
             </p>
           </motion.div>
         </div>
@@ -184,12 +170,11 @@ export default function ResourcesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           className="mt-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-8 text-center"
-        >
-          <h2 className="text-3xl font-bold text-white mb-4">
-            🎯 Ultimate French Learning Bundle
+        >          <h2 className="text-3xl font-bold text-white mb-4">
+            🎯 Ultimate Language Learning Bundle
           </h2>
           <p className="text-indigo-100 mb-6 max-w-2xl mx-auto">
-            Get our complete collection of French learning resources including vocabulary lists, 
+            Get our complete collection of language learning resources including vocabulary lists, 
             grammar guides, pronunciation tools, and interactive exercises - all in one comprehensive bundle.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -247,9 +232,8 @@ export default function ResourcesPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "ItemList",
-            "name": "French Learning Resources",
-            "description": "Comprehensive collection of French learning materials and tools",
+            "@type": "ItemList",            "name": "Language Learning Resources",
+            "description": "Comprehensive collection of language learning materials and tools",
             "url": "https://lingentoo.com/resources",
             "itemListElement": resourceCategories.map((category, index) => ({
               "@type": "ListItem",

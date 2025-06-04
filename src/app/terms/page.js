@@ -14,10 +14,9 @@ export default function TermsOfService() {
 
       These Terms of Service ("Terms") govern your use of our website located at lingento.com (the "Service") operated by Lingento ("us", "we", or "our"). Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms.`
     },
-    {
-      id: 'description',
+    {      id: 'description',
       title: 'Description of Service',
-      content: `Lingento provides an online platform for learning French vocabulary through spaced repetition and AI-powered learning techniques. Our services include:
+      content: `Lingento provides an online platform for learning multiple languages through spaced repetition and AI-powered learning techniques. Our services include:
 
       • Interactive vocabulary lessons and exercises
       • Personalized learning paths and progress tracking

@@ -41,10 +41,9 @@ export default function ReadingWritingHub() {
     hasInitialText: false,
     generatedTopics: [] // Track generated topics to avoid repetition
   });
-
   // Get level and language from user preferences with fallbacks
   const userLevel = level || 'beginner';
-  const userLanguage = language || 'french';
+  const userLanguage = language || 'english';
   console.log("User preferences:", { level: userLevel, language: userLanguage, loading, error });
 
   // Handler for add word button

@@ -20,7 +20,7 @@ export default function Flashcard({
   onMasterToggle,
   onQualityRating,
   onExampleUpdate, // New prop to update examples
-  language = "french", // Additional vocabulary data for examples
+  language = "english", // Default language for backwards compatibility
   example,
   translatedExample,
   originalWord,
@@ -97,13 +97,17 @@ export default function Flashcard({
         const { translateService } = await import(
           "@/services/translateService"
         );
-        
-        // Check if text is valid for translation before trying to translate
-        if (translateService.isValidTextForTranslation(exampleText)) {
+          // Check if text is valid for translation before trying to translate
+        if (translateService.isValidTextForTranslation(exampleText)) {          // Get the user's native language preference from window if available
+          const userNativeLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                                    ? window.__userNativeLanguage 
+                                    : 'english';
+                                    
+          console.log(`Translating example from ${language} to ${userNativeLanguage}`);
           const result = await translateService.translateText(
             exampleText,
-            language,
-            "english"
+            language, // Source language (the language being learned)
+            userNativeLanguage // Target language (user's native language)
           );
           translatedText = result?.translatedText || "";
         } else {

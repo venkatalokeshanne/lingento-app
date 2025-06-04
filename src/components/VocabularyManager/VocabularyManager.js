@@ -427,7 +427,7 @@ export default function VocabularyManager() {
     definition: '',
     example: '',
     category: 'vocabulary',
-    language: language || 'french',
+    language: language || 'english',
   });
   
   // State for AI generation functionality
@@ -513,7 +513,7 @@ export default function VocabularyManager() {
       definition: word.definition || '',
       example: word.example || '',
       category: word.category || 'vocabulary',
-      language: word.language || language || 'french',
+      language: word.language || language || 'english',
     });
     setShowModal(true);
   };
@@ -526,7 +526,7 @@ export default function VocabularyManager() {
       definition: '',
       example: '',
       category: 'vocabulary',
-      language: language || 'french',    });
+      language: language || 'english',    });
     setShowModal(true);
   };
 
@@ -598,16 +598,17 @@ export default function VocabularyManager() {
     } catch (error) {
       console.error('Error with audio service:', error);
     }
-  };
-  const getStats = () => {
-    const total = words.length;
+  };  const getStats = () => {
+    // Filter words by user's language preference for stats
+    const filteredWords = words.filter(word => word.language === language);
+    const total = filteredWords.length;
     const byLanguage = words.reduce((acc, word) => {
       acc[word.language] = (acc[word.language] || 0) + 1;
       return acc;
     }, {});
     
-    // Count mastered words (you can adjust this logic based on your mastery criteria)
-    const mastered = words.filter(word => word.mastered === true).length;    
+    // Count mastered words (filtered by language)
+    const mastered = filteredWords.filter(word => word.mastered === true).length;    
     return { total, byLanguage, mastered };
   };
 

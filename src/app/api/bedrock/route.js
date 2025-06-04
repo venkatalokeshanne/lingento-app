@@ -189,6 +189,7 @@ Only return the definition, no other text.`;
 function buildPronunciationPrompt(word, language) {
   let languageSpecificInstructions = '';
   
+  // Language-specific pronunciation rules
   if (language.toLowerCase() === 'french') {
     languageSpecificInstructions = `
 French pronunciation rules:
@@ -431,10 +432,18 @@ function parseVerbConjugation(response) {
         currentForms = [];
         continue;
       }
+        // Check if this looks like a conjugation form (contains pronouns)
+      // Support multiple language pronoun patterns
+      const pronounPatterns = [
+        /^(je|tu|il|elle|on|nous|vous|ils|elles|qu?['']?\w*)\s+/i, // French
+        /^(I|you|he|she|it|we|they)\s+/i, // English
+        /^(yo|tú|él|ella|nosotros|vosotros|ellos|ellas)\s+/i, // Spanish
+        /^(ich|du|er|sie|es|wir|ihr|sie)\s+/i, // German
+        /^(io|tu|lui|lei|noi|voi|loro)\s+/i, // Italian
+        /^(eu|tu|ele|ela|nós|vós|eles|elas)\s+/i // Portuguese
+      ];
       
-      // Check if this looks like a conjugation form (contains pronouns)
-      if (line.match(/^(je|tu|il|elle|on|nous|vous|ils|elles|qu?['']?\w*)\s+/i) || 
-          line.match(/^(I|you|he|she|it|we|they)\s+/i)) {
+      if (pronounPatterns.some(pattern => line.match(pattern))) {
         if (currentTense) {
           currentForms.push(line);
         } else {

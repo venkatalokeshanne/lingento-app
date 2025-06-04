@@ -50,76 +50,72 @@ const createSVGImage = (title, description, bgColor = '#4f46e5', textColor = '#f
 };
 
 // Image configurations
-const images = [
-  {
+const images = [  {
     filename: 'og-home.jpg',
-    title: 'Lingento French Learning',
+    title: 'Lingento Language Learning',
     description: 'Master vocabulary with smart flashcards'
   },
   {
     filename: 'twitter-image.jpg',
-    title: 'Lingento French Learning',
+    title: 'Lingento Language Learning',
     description: 'Master vocabulary with smart flashcards'
   },
   {
     filename: 'og-vocabulary.jpg',
-    title: 'French Vocabulary Builder',
+    title: 'Vocabulary Builder',
     description: 'Spaced repetition flashcards & adaptive learning'
   },
   {
     filename: 'twitter-vocabulary.jpg',
-    title: 'French Vocabulary Builder',
+    title: 'Vocabulary Builder',
     description: 'Spaced repetition flashcards & adaptive learning'
   },
   {
     filename: 'og-flashcards.jpg',
-    title: 'Interactive French Flashcards',
+    title: 'Interactive Flashcards',
     description: 'Smart spaced repetition algorithm'
   },
   {
     filename: 'twitter-flashcards.jpg',
-    title: 'Interactive French Flashcards',
+    title: 'Interactive Flashcards',
     description: 'Smart spaced repetition algorithm'
-  },
-  {
+  },{
     filename: 'og-learning-path.jpg',
-    title: 'French Learning Path',
+    title: 'Language Learning Path',
     description: 'AI-powered curriculum & progress tracking'
   },
   {
     filename: 'twitter-learning-path.jpg',
-    title: 'French Learning Path',
+    title: 'Language Learning Path',
     description: 'AI-powered curriculum & progress tracking'
   },
   {
-    filename: 'og-reading-writing.jpg',
-    title: 'French Reading & Writing',
+    filename: 'og-reading-writing.jpg',    title: 'Reading & Writing',
     description: 'Interactive exercises & practice'
   },
   {
     filename: 'twitter-reading-writing.jpg',
-    title: 'French Reading & Writing',
+    title: 'Reading & Writing',
     description: 'Interactive exercises & practice'
-  },
-  {
+  },  {
     filename: 'og-quiz.jpg',
-    title: 'AI-Powered French Quiz',
+    title: 'AI-Powered Language Quiz',
     description: 'Adaptive testing & progress tracking'
   },
   {
     filename: 'twitter-quiz.jpg',
-    title: 'AI-Powered French Quiz',
+    title: 'AI-Powered Language Quiz',
     description: 'Adaptive testing & progress tracking'
   },
   {
     filename: 'og-pricing.jpg',
     title: 'Lingento Pricing Plans',
-    description: 'Choose your French learning journey'
+    description: 'Choose your language learning journey'
   },
   {
     filename: 'twitter-pricing.jpg',
     title: 'Lingento Pricing Plans',
-    description: 'Choose your French learning journey'
+    description: 'Choose your language learning journey'
   },
   {
     filename: 'og-faq.jpg',
@@ -130,45 +126,41 @@ const images = [
     filename: 'twitter-faq.jpg',
     title: 'Lingento FAQ',
     description: 'Frequently asked questions'
-  },
-  {
+  },  {
     filename: 'og-about.jpg',
     title: 'About Lingento',
-    description: 'Revolutionizing French language learning'
+    description: 'Revolutionizing language learning'
   },
   {
     filename: 'twitter-about.jpg',
     title: 'About Lingento',
-    description: 'Revolutionizing French language learning'
-  },
-  {
+    description: 'Revolutionizing language learning'
+  },  {
     filename: 'og-blog.jpg',
     title: 'Lingento Blog',
-    description: 'French learning tips & insights'
+    description: 'Language learning tips & insights'
   },
   {
     filename: 'twitter-blog.jpg',
     title: 'Lingento Blog',
-    description: 'French learning tips & insights'
-  },
-  {
+    description: 'Language learning tips & insights'
+  },  {
     filename: 'og-resources.jpg',
-    title: 'French Learning Resources',
+    title: 'Learning Resources',
     description: 'Grammar guides, vocabulary lists & more'
   },
   {
     filename: 'twitter-resources.jpg',
-    title: 'French Learning Resources',
+    title: 'Learning Resources',
     description: 'Grammar guides, vocabulary lists & more'
-  },
-  {
-    filename: 'og-learn-french-vocabulary.jpg',
-    title: 'Learn French Vocabulary',
+  },  {
+    filename: 'og-learn-vocabulary.jpg',
+    title: 'Learn Vocabulary',
     description: 'Master 10,000+ words with spaced repetition'
   },
   {
-    filename: 'twitter-learn-french-vocabulary.jpg',
-    title: 'Learn French Vocabulary',
+    filename: 'twitter-learn-vocabulary.jpg',
+    title: 'Learn Vocabulary',
     description: 'Master 10,000+ words with spaced repetition'
   }
 ];

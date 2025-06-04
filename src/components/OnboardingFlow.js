@@ -3,39 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
-
-const LANGUAGES = [
-  { value: 'french', label: 'French', flag: '🇫🇷' },
-  { value: 'spanish', label: 'Spanish', flag: '🇪🇸' },
-  { value: 'german', label: 'German', flag: '🇩🇪' },
-  { value: 'italian', label: 'Italian', flag: '🇮🇹' },
-  { value: 'portuguese', label: 'Portuguese', flag: '🇵🇹' },
-  { value: 'russian', label: 'Russian', flag: '🇷🇺' },
-  { value: 'chinese', label: 'Chinese', flag: '🇨🇳' },
-  { value: 'japanese', label: 'Japanese', flag: '🇯🇵' },
-  { value: 'korean', label: 'Korean', flag: '🇰🇷' },
-];
-
-const NATIVE_LANGUAGES = [
-  { value: 'english', label: 'English', flag: '🇺🇸' },
-  { value: 'spanish', label: 'Spanish', flag: '🇪🇸' },
-  { value: 'french', label: 'French', flag: '🇫🇷' },
-  { value: 'german', label: 'German', flag: '🇩🇪' },
-  { value: 'italian', label: 'Italian', flag: '🇮🇹' },
-  { value: 'portuguese', label: 'Portuguese', flag: '🇵🇹' },
-  { value: 'chinese', label: 'Chinese', flag: '🇨🇳' },
-  { value: 'japanese', label: 'Japanese', flag: '🇯🇵' },
-  { value: 'korean', label: 'Korean', flag: '🇰🇷' },
-];
-
-const LEVELS = [
-  { value: 'beginner', label: 'Beginner', description: 'Just starting out', emoji: '🌱' },
-  { value: 'elementary', label: 'Elementary', description: 'Basic words and phrases', emoji: '📚' },
-  { value: 'intermediate', label: 'Intermediate', description: 'Comfortable with basics', emoji: '🚀' },
-  { value: 'upper-intermediate', label: 'Upper Intermediate', description: 'Complex conversations', emoji: '⭐' },
-  { value: 'advanced', label: 'Advanced', description: 'Near fluent', emoji: '🏆' },
-  { value: 'proficient', label: 'Proficient', description: 'Native-like fluency', emoji: '👑' },
-];
+import { LANGUAGES, NATIVE_LANGUAGES, LEVELS } from '@/constants/languages';
 
 export default function OnboardingFlow() {
   const { currentUser } = useAuth();

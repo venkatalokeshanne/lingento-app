@@ -1,10 +1,10 @@
 export const metadata = {
-  title: "About Lingento | French Language Learning Made Simple",
-  description: "Learn about Lingento's mission to make French language learning accessible and effective. Discover our AI-powered spaced repetition system and join thousands of successful learners.",
-  keywords: "about Lingento, French learning platform, spaced repetition method, language learning technology, French vocabulary mastery",
+  title: "About Lingento | Language Learning Made Simple",
+  description: "Learn about Lingento's mission to make language learning accessible and effective. Discover our AI-powered spaced repetition system and join thousands of successful learners.",
+  keywords: "about Lingento, language learning platform, spaced repetition method, language learning technology, vocabulary mastery",
   openGraph: {
-    title: "About Lingento | French Language Learning Made Simple",
-    description: "Learn about Lingento's mission to make French language learning accessible and effective through AI-powered spaced repetition.",
+    title: "About Lingento | Language Learning Made Simple",
+    description: "Learn about Lingento's mission to make language learning accessible and effective through AI-powered spaced repetition.",
     url: "https://lingentoo.com/about",
   },
 };
@@ -18,16 +18,15 @@ export default function About() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "AboutPage",
-            "name": "About Lingento",
-            "description": "Learn about Lingento's mission to make French language learning accessible and effective through AI-powered spaced repetition.",
+            "name": "About Lingento",            "description": "Learn about Lingento's mission to make language learning accessible and effective through AI-powered spaced repetition.",
             "url": "https://lingentoo.com/about",
             "mainEntity": {
               "@type": "Organization",
               "name": "Lingento",
-              "description": "AI-powered French language learning platform using spaced repetition",
+              "description": "AI-powered language learning platform using spaced repetition",
               "url": "https://lingentoo.com",
               "foundingDate": "2024",
-              "mission": "To make French language learning accessible, effective, and enjoyable for everyone"
+              "mission": "To make language learning accessible, effective, and enjoyable for everyone"
             }
           })
         }}
@@ -39,16 +38,15 @@ export default function About() {
             About Lingento
           </h1>
           
-          <div className="prose prose-lg dark:prose-invert max-w-none">
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Lingento is revolutionizing French language learning through scientifically-proven spaced repetition and AI-powered personalization.
+          <div className="prose prose-lg dark:prose-invert max-w-none">            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              Lingento is revolutionizing language learning through scientifically-proven spaced repetition and AI-powered personalization.
             </p>
             
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">
               Our Mission
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              We believe that learning French should be accessible, effective, and enjoyable for everyone. Our platform combines cutting-edge technology with proven learning methodologies to help you master French vocabulary in just 5 minutes a day.
+              We believe that learning a new language should be accessible, effective, and enjoyable for everyone. Our platform combines cutting-edge technology with proven learning methodologies to help you master vocabulary in just 5 minutes a day.
             </p>
             
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">
@@ -60,9 +58,8 @@ export default function About() {
             
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">
               Join Our Community
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              With over 2,500 active learners and a 4.9/5 rating, Lingento has helped thousands of people achieve their French language goals. Whether you're a beginner or looking to expand your vocabulary, our platform adapts to your learning pace and style.
+            </h2>            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              With over 2,500 active learners and a 4.9/5 rating, Lingento has helped thousands of people achieve their language learning goals. Whether you're a beginner or looking to expand your vocabulary, our platform adapts to your learning pace and style.
             </p>
           </div>
         </div>

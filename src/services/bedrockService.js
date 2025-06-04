@@ -255,18 +255,17 @@ This must be a BRAND NEW response that has never been generated before.`;
       if (tenseData.tense && tenseData.forms) {        // Clean up tense name for use as object key
         let tenseName = tenseData.tense
           .toLowerCase()
-          .replace(/\s*\(.*?\)\s*/g, '') // Remove parenthetical explanations
-          .replace(/[àáâãäå]/g, 'a')      // Remove French accents
-          .replace(/[èéêë]/g, 'e')
-          .replace(/[ìíîï]/g, 'i')
-          .replace(/[òóôõö]/g, 'o')
-          .replace(/[ùúûü]/g, 'u')
-          .replace(/[ç]/g, 'c')
-          .replace(/[ñ]/g, 'n')
+          .replace(/\s*\(.*?\)\s*/g, '') // Remove parenthetical explanations          .replace(/[àáâãäå]/g, 'a')      // Remove accents from a
+          .replace(/[èéêë]/g, 'e')          // Remove accents from e
+          .replace(/[ìíîï]/g, 'i')          // Remove accents from i
+          .replace(/[òóôõö]/g, 'o')          // Remove accents from o
+          .replace(/[ùúûü]/g, 'u')          // Remove accents from u
+          .replace(/[ç]/g, 'c')             // Convert c with cedilla to c
+          .replace(/[ñ]/g, 'n')             // Convert n with tilde to n
           .replace(/[^a-z0-9\s]/g, '')    // Remove non-alphanumeric except spaces
           .replace(/\s+/g, ' ')           // Normalize spaces
           .trim();
-          // Map French tense names to cleaner English equivalents - only allow desired tenses
+          // Map language-specific tense names to standardized English equivalents
         const tenseMapping = {
           'present tense': 'present',
           'present': 'present',
