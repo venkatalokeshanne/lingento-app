@@ -1,16 +1,19 @@
-// API route for DeepL translation to avoid CORS issues
+// API route for AWS Translate
 import { NextResponse } from "next/server";
+import { TranslateClient, TranslateTextCommand } from "@aws-sdk/client-translate";
 
 export async function POST(request) {
   try {
     const { text, sourceLanguage, targetLanguage } = await request.json();
 
-    // Get DeepL API key from environment variables
-    const authKey = process.env.NEXT_PUBLIC_DEEPL_API_KEY;
+    // Get AWS configuration
+    const region = process.env.NEXT_PUBLIC_AWS_REGION || "us-east-1";
+    const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY;
 
-    if (!authKey) {
+    if (!accessKeyId || !secretAccessKey) {
       return NextResponse.json(
-        { error: "DeepL API key not configured" },
+        { error: "AWS credentials not configured" },
         { status: 500 }
       );
     }
@@ -22,96 +25,82 @@ export async function POST(request) {
       );
     }
 
-    // Language code mapping for DeepL API
+    // Language code mapping for AWS Translate
     const languageCodes = {
-      french: "FR",
-      spanish: "ES",
-      german: "DE",
-      italian: "IT",
-      portuguese: "PT-PT",
-      russian: "RU",
-      chinese: "ZH",
-      japanese: "JA",
-      korean: "KO",
-      english: "EN-US",
+      french: "fr",
+      spanish: "es",
+      german: "de",
+      italian: "it",
+      portuguese: "pt",
+      russian: "ru",
+      chinese: "zh",
+      japanese: "ja",
+      korean: "ko",
+      english: "en",
+      arabic: "ar",
+      hindi: "hi",
+      dutch: "nl",
+      polish: "pl",
+      turkish: "tr",
+      swedish: "sv",
+      norwegian: "no",
+      danish: "da",
+      finnish: "fi",
     };
+
     const getLanguageCode = (language) => {
       return languageCodes[language?.toLowerCase()] || languageCodes.english;
     };
+
     // Use the target language that was passed in, defaulting to English if none provided
     const targetCode = targetLanguage
       ? getLanguageCode(targetLanguage)
       : languageCodes.english;
     let sourceCode = null;
 
-    // DeepL supports auto-detection when sourceLanguage is not specified
+    // Set source language code if provided, otherwise AWS will auto-detect
     if (sourceLanguage && sourceLanguage !== "auto") {
       sourceCode = getLanguageCode(sourceLanguage);
     }
 
-    // Log translation direction - using user-specified target language
+    // Log translation direction
     console.log(
-      `API translating from: ${sourceLanguage} (${
-        sourceCode || "auto"
-      }) to: ${targetLanguage} (${targetCode})`
+      `AWS Translate: from ${sourceLanguage} (${sourceCode || "auto"}) to ${targetLanguage} (${targetCode})`
     );
 
-    // If targetLanguage was specified but isn't English, log a warning that we're ignoring it
-    if (targetLanguage && targetLanguage.toLowerCase() !== "english") {
-      console.warn(
-        `Ignoring requested target language: ${targetLanguage}. Always using English as target.`
-      );
+    // Create AWS Translate client
+    const translateClient = new TranslateClient({
+      region,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
 
-      // Prepare form data for DeepL API
-      const formData = new URLSearchParams();
-      formData.append("text", text);
-      formData.append("target_lang", targetCode);
+    // Prepare translation command
+    const command = new TranslateTextCommand({
+      Text: text,
+      TargetLanguageCode: targetCode,
+      ...(sourceCode && { SourceLanguageCode: sourceCode }),
+    });
 
-      if (sourceCode) {
-        formData.append("source_lang", sourceCode);
-      }
-
-      // Make request to DeepL API
-      const deeplResponse = await fetch(
-        "https://api-free.deepl.com/v2/translate",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `DeepL-Auth-Key ${authKey}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: formData,
-        }
-      );
-
-      if (!deeplResponse.ok) {
-        const errorText = await deeplResponse.text();
-        console.error("DeepL API error:", deeplResponse.status, errorText);
-
-        return NextResponse.json(
-          {
-            error: `DeepL API error: ${deeplResponse.status} ${deeplResponse.statusText}`,
-          },
-          { status: deeplResponse.status }
-        );
-      }
-
-      const data = await deeplResponse.json();
-
-      if (!data.translations || data.translations.length === 0) {
-        return NextResponse.json(
-          { error: "No translation received from DeepL API" },
-          { status: 500 }
-        );
-      }
-
-      const translation = data.translations[0];
+    try {
+      // Make request to AWS Translate
+      const translationResponse = await translateClient.send(command);
 
       return NextResponse.json({
-        translatedText: translation.text,
-        sourceLanguageCode: translation.detected_source_language || sourceCode,
+        translatedText: translationResponse.TranslatedText,
+        sourceLanguageCode: translationResponse.SourceLanguageCode,
         targetLanguageCode: targetCode,
       });
+    } catch (awsError) {
+      console.error("AWS Translate error:", awsError);
+      return NextResponse.json(
+        {
+          error: `AWS Translate error: ${awsError.message || awsError}`,
+        },
+        { status: awsError.$metadata?.httpStatusCode || 500 }
+      );
     }
   } catch (error) {
     console.error("Translation API error:", error);

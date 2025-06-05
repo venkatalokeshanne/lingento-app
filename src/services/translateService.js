@@ -1,13 +1,14 @@
-// TranslateService - Centralized DeepL translation management with caching
+// TranslateService - Centralized AWS Translate management with caching
 'use client';
 
-class TranslateService {  constructor() {
+class TranslateService {
+  constructor() {
     this.translationCache = new Map(); // Cache for translations
     this.translationPromiseCache = new Map(); // Cache for translation promises
     this.isInitialized = false;
     this.translator = null;
     
-    this.initializeDeepL();
+    this.initializeTranslate();
     
     // Load cached translations from localStorage for persistence
     if (typeof window !== 'undefined') {
@@ -18,7 +19,10 @@ class TranslateService {  constructor() {
         this.saveCacheToStorage();
       }, 60000); // Save every minute
     }
-  }initializeDeepL() {
+  }
+
+  // Initialize AWS Translate
+  initializeTranslate() {
     if (this.isInitialized) return;
     
     try {
@@ -26,26 +30,37 @@ class TranslateService {  constructor() {
       this.apiEndpoint = '/api/translate';
       this.isInitialized = true;
       
-      // Check if using free tier and log optimization tips
-      console.log('DeepL translator initialized successfully (using internal API)');
-      console.log('💡 Free tier optimization enabled: enhanced caching, validation, and common word mappings');
+      // Check if using AWS and log initialization
+      console.log('AWS Translate initialized successfully (using internal API)');
+      console.log('💡 Cache optimization enabled: enhanced caching, validation, and common word mappings');
       console.log('📊 Use the Translation Usage Monitor to track your daily API usage');
       
     } catch (error) {
-      console.error('Failed to initialize DeepL translator:', error);
+      console.error('Failed to initialize AWS Translate:', error);
     }
-  }// Language code mapping for DeepL API
+  }
+
+  // Language code mapping for AWS Translate
   languageCodes = {
-    french: 'FR',
-    spanish: 'ES',
-    german: 'DE',
-    italian: 'IT',
-    portuguese: 'PT-PT',
-    russian: 'RU',
-    chinese: 'ZH',
-    japanese: 'JA',
-    korean: 'KO',
-    english: 'EN-US'
+    french: 'fr',
+    spanish: 'es',
+    german: 'de',
+    italian: 'it',
+    portuguese: 'pt',
+    russian: 'ru',
+    chinese: 'zh',
+    japanese: 'ja',
+    korean: 'ko',
+    english: 'en',
+    arabic: 'ar',
+    hindi: 'hi',
+    dutch: 'nl',
+    polish: 'pl',
+    turkish: 'tr',
+    swedish: 'sv',
+    norwegian: 'no',
+    danish: 'da',
+    finnish: 'fi'
   };
   // Common word corrections for better translation accuracy and reduced API usage
   commonWordMappings = {
@@ -237,7 +252,7 @@ class TranslateService {  constructor() {
       this.translationCache.delete(firstKey);
     }
   }
-  // Get language code for DeepL API
+  // Get language code for AWS Translate
   getLanguageCode(language) {
     return this.languageCodes[language.toLowerCase()] || this.languageCodes.english;
   }  // Validate text for translation (optimize for free tier usage)
@@ -262,7 +277,7 @@ class TranslateService {  constructor() {
     if (!/[a-zA-ZÀ-ÿ\u0100-\u017F\u0400-\u04FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(trimmedText)) return false;
     
     return true;
-  }  // Translate text using DeepL API
+  }  // Translate text using AWS Translate
   async translateText(text, sourceLanguage = 'auto', targetLanguage = null) {
     // Get target language - if none provided, try to get from user preferences,
     // otherwise default to English
@@ -282,11 +297,11 @@ class TranslateService {  constructor() {
     
     // Try to re-initialize if not initialized
     if (!this.isInitialized) {
-      this.initializeDeepL();
+      this.initializeTranslate();
     }
     
     if (!this.isInitialized) {
-      throw new Error('DeepL translator not initialized');
+      throw new Error('AWS Translate not initialized');
     }
     
     // Log translation direction for debugging
