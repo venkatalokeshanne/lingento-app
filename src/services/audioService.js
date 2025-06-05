@@ -423,10 +423,33 @@ class AudioService {
   requiresUserInteraction() {
     return this.isUserInteractionRequired;
   }
-
   clearCache() {
     this.cache.clear();
   }
+
+  updatePlaybackSpeed(speed) {
+    // Update playback speed for currently playing audio
+    if (this.currentAudio?.audio && !this.currentAudio.isStopped) {
+      try {
+        this.currentAudio.audio.playbackRate = speed;
+        console.log("Playback speed updated to:", speed);
+        return true;
+      } catch (error) {
+        console.error("Failed to update playback speed:", error);
+        return false;
+      }
+    }
+
+    // For speech synthesis, we cannot change speed mid-playback
+    // We would need to restart the speech with new rate
+    if (typeof window !== "undefined" && "speechSynthesis" in window && speechSynthesis.speaking) {
+      console.log("Cannot change speech synthesis speed mid-playback. Use stop and restart.");
+      return false;
+    }
+
+    return false;
+  }
+
   cleanup() {
     this.stop();
     this.currentAudio = null;

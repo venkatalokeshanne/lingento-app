@@ -12,6 +12,7 @@ import { bedrockService } from "@/services/bedrockService";
 import { toast } from 'react-hot-toast';
 import { addUserData } from '@/utils/firebaseUtils';
 import { AnimatePresence } from 'framer-motion';
+import audioService from "@/services/audioService";
 
 export default function ReadingWritingHub() {
   const [activeTab, setActiveTab] = useState('reading');
@@ -40,11 +41,21 @@ export default function ReadingWritingHub() {
     isGenerating: false,
     hasInitialText: false,
     generatedTopics: [] // Track generated topics to avoid repetition
-  });
-  // Get level and language from user preferences with fallbacks
+  });  // Get level and language from user preferences with fallbacks
   const userLevel = level || 'beginner';
   const userLanguage = language || 'english';
   console.log("User preferences:", { level: userLevel, language: userLanguage, loading, error });
+  // Handler for tab switching with audio pause functionality
+  const handleTabSwitch = (newTab) => {
+    // If switching from reading to writing, pause any playing audio
+    if (activeTab === 'reading' && newTab === 'writing') {
+      if (audioService.isPlaying()) {
+        console.log("Pausing audio due to tab switch from Reading to Writing");
+        audioService.pause();
+      }
+    }
+    setActiveTab(newTab);
+  };
 
   // Handler for add word button
   const handleAddWord = () => {
@@ -469,9 +480,8 @@ Create an engaging, educational text that provides unique insights about ${rando
           
           {/* Compact Tab Navigation */}
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-1 shadow-md border border-white/20 dark:border-gray-700/50 w-full max-w-xs sm:max-w-md">
-            <div className="grid grid-cols-2 gap-1">
-              <button
-                onClick={() => setActiveTab('reading')}
+            <div className="grid grid-cols-2 gap-1">              <button
+                onClick={() => handleTabSwitch('reading')}
                 className={`relative px-3 py-2 rounded-md font-medium transition-all text-sm overflow-hidden ${
                   activeTab === 'reading'
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm'
@@ -484,7 +494,7 @@ Create an engaging, educational text that provides unique insights about ${rando
                 </div>
               </button>
               <button
-                onClick={() => setActiveTab('writing')}
+                onClick={() => handleTabSwitch('writing')}
                 className={`relative px-3 py-2 rounded-md font-medium transition-all text-sm overflow-hidden ${
                   activeTab === 'writing'
                     ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-sm'

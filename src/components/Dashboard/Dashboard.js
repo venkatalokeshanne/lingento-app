@@ -394,54 +394,7 @@ const AchievementsShowcase = ({ stats, studyStreak, masteredPercentage }) => {
   );
 };
 
-const InspirationCard = () => {
-  const quotes = [
-    "Learning a language is a journey, not a destination.",
-    "Every word you learn is a stepping stone to fluency.",
-    "The best way to learn a language is one word at a time.",
-    "Consistency beats intensity when learning languages.",
-    "Today's effort is tomorrow's fluency.",
-    "Small actions every day lead to big results over time.",
-    "Learning a new word a day keeps language barriers away.",
-    "The more you practice, the luckier you get with language."
-  ];
 
-  const randomIndex = Math.floor(Math.random() * quotes.length);
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 to-blue-500 p-8 shadow-lg"
-    >
-      <div className="absolute -right-8 -top-8">
-        <svg width="160" height="160" viewBox="0 0 160 160" className="opacity-20">
-          <circle cx="80" cy="80" r="80" fill="white" />
-        </svg>
-      </div>
-      <div className="absolute -left-4 -bottom-4">
-        <svg width="100" height="100" viewBox="0 0 100 100" className="opacity-20">
-          <circle cx="50" cy="50" r="50" fill="white" />
-        </svg>
-      </div>
-      <div className="relative z-10">
-        <svg className="h-8 w-8 text-white opacity-80 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-        </svg>
-        <p className="text-xl font-light text-white italic leading-relaxed">"{quotes[randomIndex]}"</p>
-        <div className="mt-8 flex justify-end">
-          <button className="flex items-center text-sm font-medium text-white hover:text-blue-100">
-            <span className="mr-1">New inspiration</span>
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 const StreakDisplay = ({ streak, lastStudyDate }) => {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -961,56 +914,57 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
+      <div className="container mx-auto px-4 py-8 max-w-7xl">        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <div className="flex flex-col md:flex-row md:items-center justify-between">            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="text-center lg:text-left">
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
                 Learning Dashboard
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 justify-center lg:justify-start">
                 {preferences?.language && (
-                  <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-3">
-                    - {preferences.language.charAt(0).toUpperCase() + preferences.language.slice(1)}
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    📊 {preferences.language.charAt(0).toUpperCase() + preferences.language.slice(1)}
                   </span>
                 )}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {preferences?.language ? (
-                  <>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mr-2">
-                      📊 Filtered by {preferences.language.charAt(0).toUpperCase() + preferences.language.slice(1)}
-                    </span>
-                    {preferences?.level || 'Beginner'} level
-                  </>
-                ) : (
-                  <>All languages • {preferences?.level || 'Beginner'} level</>
-                )}
-              </p>
-            </div>            <div className="mt-4 md:mt-0 flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Today's Goal</p>
-                <p className="text-lg font-semibold text-gray-800 dark:text-white">
-                  {goalCompleted} / {dailyGoal}
-                </p>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                  {preferences?.level || 'Beginner'} level
+                </span>
+              </div>
+            </div>            <div className="hidden lg:flex justify-end">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-6 shadow-lg border border-indigo-100 dark:border-indigo-800 min-w-[160px]">
+                <div className="text-center">
+                  <span className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Today's Goal</span>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <span className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{goalCompleted}</span>
+                    <span className="text-xl text-gray-500 dark:text-gray-400">/</span>
+                    <span className="text-xl font-medium text-gray-700 dark:text-gray-200">{dailyGoal}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-700" 
+                      style={{ width: `${Math.min(100, (goalCompleted / dailyGoal) * 100)}%` }} 
+                    />
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
+                    {Math.round((goalCompleted / dailyGoal) * 100)}% complete
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </motion.div>
-        
-        {/* Top Row - Goals and Streak */}
+          {/* Top Row - Goals and Streak */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <GoalProgressCard completed={goalCompleted} total={dailyGoal} />
+            <GoalProgressCard completed={goalCompleted} total={dailyGoal} />
           <StreakDisplay streak={studyStreak} />
         </div>
-        
-        {/* Inspiration Card */}
-        <div className="mb-8">
-          <InspirationCard />
-        </div>
+  
           {/* Enhanced Metrics Grid with Analytics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard 

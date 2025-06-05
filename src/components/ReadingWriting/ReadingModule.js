@@ -16,21 +16,32 @@ export default function ReadingModule({
   level,
   language,
 }) {  const { currentUser } = useAuth();
-  const { audioSpeed } = useUserPreferences();
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { audioSpeed } = useUserPreferences();  const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [selectedWord, setSelectedWord] = useState(null);
   const [showWordModal, setShowWordModal] = useState(false);
+  const [translatedText, setTranslatedText] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   // Use audio speed from user preferences, with fallback to 0.8 for language learning
   const playbackSpeed = audioSpeed || 0.8;
 
   // Create a ref to track previous text for change detection
   const prevTextRef = useRef("");
-  
-  // Log when audio speed changes from user preferences
+    // Log when audio speed changes from user preferences
   useEffect(() => {
     console.log("Reading module using audio speed:", playbackSpeed);
   }, [playbackSpeed]);
+
+  // Update playback speed immediately when speed changes during playback
+  useEffect(() => {
+    if (isPlaying && !isPaused) {
+      const success = audioService.updatePlaybackSpeed(playbackSpeed);
+      if (success) {
+        console.log("Audio speed updated to:", playbackSpeed);
+      }
+    }
+  }, [playbackSpeed, isPlaying, isPaused]);
 
   // Extract state values from props
   const { text, textTitle, isGenerating } = readingState; // Sync local audio state with service state only when needed
@@ -63,6 +74,9 @@ export default function ReadingModule({
     if (prevTextRef.current && prevTextRef.current !== text && text) {
       console.log("Text changed, stopping audio");
       stopAudio();
+      // Clear translation when text changes
+      setTranslatedText('');
+      setShowTranslation(false);
     }
 
     prevTextRef.current = text;
@@ -381,10 +395,50 @@ Create an engaging, educational text that provides unique insights about ${rando
       await addUserData(currentUser, "vocabulary", vocabularyEntry);
       toast.success(`"${wordData.word}" added to vocabulary!`);
       setShowWordModal(false);
-      setSelectedWord(null);
-    } catch (error) {
+      setSelectedWord(null);    } catch (error) {
       console.error("Error adding to vocabulary:", error);
       toast.error("Failed to add word to vocabulary");
+    }
+  };
+
+  // Translate complete reading text
+  const translateCompleteText = async () => {
+    if (!text) {
+      toast.error("No text available to translate");
+      return;
+    }
+
+    if (isTranslating) return;
+
+    try {
+      setIsTranslating(true);
+      
+      // If translation is already available, just toggle display
+      if (translatedText && !showTranslation) {
+        setShowTranslation(true);
+        return;
+      }
+
+      // Translate the complete text to user's native language (English by default)
+      const result = await translateService.translateText(text, language, 'english');
+      setTranslatedText(result.translatedText);
+      setShowTranslation(true);
+      toast.success("Text translated successfully!");
+      
+    } catch (error) {
+      console.error("Translation error:", error);
+      toast.error("Failed to translate text. Please try again.");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  // Toggle translation display
+  const toggleTranslation = () => {
+    if (translatedText) {
+      setShowTranslation(!showTranslation);
+    } else {
+      translateCompleteText();
     }
   };
 
@@ -496,8 +550,7 @@ Create an engaging, educational text that provides unique insights about ${rando
                     </>
                   )}
                 </button>
-                
-                {(isPlaying || isPaused) && (
+                  {(isPlaying || isPaused) && (
                   <button
                     onClick={stopAudio}
                     className="px-2.5 py-1.5 bg-red-500 text-white rounded-md text-xs font-medium flex items-center gap-1.5"
@@ -508,16 +561,62 @@ Create an engaging, educational text that provides unique insights about ${rando
                     <span>Stop</span>
                   </button>
                 )}
+
+                {/* Translate Button */}
+                <button
+                  onClick={toggleTranslation}
+                  disabled={isTranslating}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 ${
+                    showTranslation
+                      ? "bg-purple-500 text-white"
+                      : "bg-indigo-500 text-white hover:bg-indigo-600"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isTranslating ? (
+                    <>
+                      <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Translating...</span>
+                    </>
+                  ) : showTranslation ? (
+                    <>
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                      </svg>
+                      <span>Hide Translation</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.723 1.447a1 1 0 11-1.79-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clipRule="evenodd"/>
+                      </svg>
+                      <span>Translate</span>
+                    </>
+                  )}
+                </button>
                   {/* Speed control UI removed, fixed speed of 0.8 is used */}
               </div>
             </div>
-          </div>
-
-          {/* Text Content */}
+          </div>          {/* Text Content */}
           <div className="p-3">
             <div className="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
               {renderInteractiveText(text)}
             </div>
+
+            {/* Translation Display */}
+            {showTranslation && translatedText && (
+              <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.723 1.447a1 1 0 11-1.79-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clipRule="evenodd"/>
+                  </svg>
+                  <h4 className="text-sm font-medium text-purple-800 dark:text-purple-200">Translation (English)</h4>
+                </div>
+                <div className="text-sm leading-relaxed text-purple-700 dark:text-purple-300">
+                  {translatedText}
+                </div>
+              </div>
+            )}
             
             {/* Compact Interactive Tip */}
             <div className="mt-3 flex items-center gap-1.5 border-t border-gray-100 dark:border-gray-700 pt-2 text-xs text-emerald-600 dark:text-emerald-400">
