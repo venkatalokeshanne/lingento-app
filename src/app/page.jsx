@@ -115,8 +115,9 @@ export default function Home() {
               Learn vocabulary in any language with our scientifically-proven spaced repetition system. 
               <span className="font-semibold text-indigo-600 dark:text-indigo-400"> Just 5 minutes a day.</span>
             </p>
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link href={currentUser ? "/flashcards" : "/register"} className="group px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-2xl font-semibold text-lg transition-all duration-300 text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+            
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <Link href={currentUser ? "/dashboard" : "/register"} className="group px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-2xl font-semibold text-lg transition-all duration-300 text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                 {currentUser ? "Continue Learning" : "Start Learning Free"}
                 <span className="ml-2 group-hover:translate-x-1 transition-transform duration-300">→</span>
               </Link>

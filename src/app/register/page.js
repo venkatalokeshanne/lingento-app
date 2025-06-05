@@ -27,18 +27,16 @@ export default function Register() {
       return;
     }
     
-    try {
-      const result = await signup(email, password);
+    try {      const result = await signup(email, password);
       if (result.success) {
         // Update user profile with display name
         if (auth.currentUser) {
           await updateProfile(auth.currentUser, {
             displayName: name
-          });
-        }
-        // Since it's a new user, we'll let the TutorialManager handle the redirect
-        // No need to explicitly redirect here
-      } else {
+          });        }
+        // Redirect to flashcards for proper onboarding flow
+        router.push("/flashcards");
+      }else {
         setRegisterError(result.error || "Failed to create account. Please try again.");
       }
     } catch (error) {
@@ -168,16 +166,11 @@ export default function Register() {
               onClick={async () => {
                 if (isLoading) return; // Prevent multiple clicks
                 setIsLoading(true);
-                setRegisterError("");
-                try {
-                  const result = await loginWithGoogle();
+                setRegisterError("");                try {                  const result = await loginWithGoogle();
                   if (result.success) {
-                    // If it's a new user, we'll let the TutorialManager handle the redirect
-                    // Otherwise, we'll redirect to the flashcards page
-                    if (!result.isNewUser) {
-                      router.push("/flashcards");
-                    }
-                  } else {
+                    // Redirect all users to flashcards for proper onboarding flow
+                    router.push("/flashcards");
+                  }else {
                     // Show user-friendly error message
                     if (result.error && (result.error.includes('popup-closed') || result.error.includes('cancelled'))) {
                       setRegisterError("Sign up was cancelled. Please try again.");
@@ -216,16 +209,11 @@ export default function Register() {
               onClick={async () => {
                 if (isLoading) return; // Prevent multiple clicks
                 setIsLoading(true);
-                setRegisterError("");
-                try {
-                  const result = await loginWithFacebook();
+                setRegisterError("");                try {                  const result = await loginWithFacebook();
                   if (result.success) {
-                    // If it's a new user, we'll let the TutorialManager handle the redirect
-                    // Otherwise, we'll redirect to the flashcards page
-                    if (!result.isNewUser) {
-                      router.push("/flashcards");
-                    }
-                  } else {
+                    // Redirect all users to flashcards for proper onboarding flow
+                    router.push("/flashcards");
+                  }else {
                     // Show user-friendly error message
                     if (result.error && (result.error.includes('popup-closed') || result.error.includes('cancelled'))) {
                       setRegisterError("Sign up was cancelled. Please try again.");

@@ -82,22 +82,22 @@ export default function ReadingWritingHub() {
     }
   };
 
-  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  // Generate initial prompt when component mounts or language/level changes
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS  // Generate initial prompt when component mounts or language/level changes
   useEffect(() => {
     if (!loading && userLanguage && userLevel && 
         (!writingState.hasInitialPrompt || 
         (writingState.prompt && !writingState.prompt.includes(userLanguage)))) {
+      console.log("Triggering initial writing prompt generation");
       generateInitialPrompt();
     }
-  }, [userLanguage, userLevel, writingState.hasInitialPrompt, loading]);
-
+  }, [userLanguage, userLevel, loading]); // Removed writingState.hasInitialPrompt from dependencies to prevent re-triggering
   // Generate initial reading text when component mounts or language/level changes
   useEffect(() => {
     if (!loading && userLanguage && userLevel && !readingState.hasInitialText) {
+      console.log("Triggering initial reading text generation");
       generateInitialReadingText();
     }
-  }, [userLanguage, userLevel, readingState.hasInitialText, loading]);
+  }, [userLanguage, userLevel, loading]); // Removed readingState.hasInitialText from dependencies to prevent re-triggering
 
   // Show loading state while preferences are loading
   if (loading) {
@@ -127,9 +127,15 @@ export default function ReadingWritingHub() {
         </div>
       </div>
     );
-  }const generateInitialPrompt = async () => {
+  }  const generateInitialPrompt = async () => {
     try {
       console.log("Generating AI prompt for:", { level: userLevel, language: userLanguage });
+      
+      // Prevent double execution by checking if already generating or has initial prompt
+      if (writingState.isGeneratingPrompt || writingState.hasInitialPrompt) {
+        console.log("Skipping initial prompt generation - already generating or has initial prompt");
+        return;
+      }
       
       if (!bedrockService.isReady()) {
         console.log("Bedrock service not ready");
@@ -256,9 +262,15 @@ The prompt must be creative, specific, written entirely in ${userLanguage}, and 
       
       toast.error("Failed to generate AI prompt, using fallback");
     }
-  };// Generate initial reading text using AI only
+  };  // Generate initial reading text using AI only
   const generateInitialReadingText = async () => {
     console.log("Generating initial reading text with AI for:", { level: userLevel, language: userLanguage });
+    
+    // Prevent double execution by checking if already generating or has initial text
+    if (readingState.isGenerating || readingState.hasInitialText) {
+      console.log("Skipping initial text generation - already generating or has initial text");
+      return;
+    }
     
     if (!bedrockService) {
       console.error("Bedrock service not available for initial text generation");

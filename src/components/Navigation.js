@@ -408,7 +408,7 @@ export default function Navigation() {
                   Log in
                 </Link>
                 <Link
-                  href="/signup"
+                  href="/register"
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors shadow-sm"
                 >
                   Sign up

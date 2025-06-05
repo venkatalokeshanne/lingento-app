@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPreferences } from '@/context/UserPreferencesContext';
 import TutorialFlow from '@/components/TutorialFlow';
@@ -17,39 +17,62 @@ import { TutorialProvider } from '@/context/TutorialContext';
  */
 export default function TutorialManager({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { currentUser, isNewUser, setIsNewUser } = useAuth();
-  const { updatePreferences, preferences, hasCompletedTutorial } = useUserPreferences();
-  const [showTutorial, setShowTutorial] = useState(false);
-  // Function to show tutorial when a word is added
+  const { updatePreferences, preferences, hasCompletedTutorial, hasCompletedOnboarding } = useUserPreferences();
+  const [showTutorial, setShowTutorial] = useState(false);// Function to show tutorial when a word is added
   const showTutorialOnWordAdded = () => {
-    console.log('Word added, showing tutorial');
-    // We'll show the tutorial when a word is added, regardless of whether the user has completed the tutorial before
+    console.log('Word added, checking if tutorial should be shown');
+    
+    // Only show tutorial if onboarding is complete
+    if (!hasCompletedOnboarding()) {
+      console.log('Onboarding not complete, skipping tutorial');
+      return;
+    }
+    
+    // Only show tutorial if it hasn't been completed yet
+    if (hasCompletedTutorial()) {
+      console.log('Tutorial already completed, skipping');
+      return;
+    }
+    
+    console.log('Showing tutorial after word addition');
     setShowTutorial(true);
   };
 
   // Force showing tutorial for all users to test functionality
   const forceShowTutorial = false; // Disabled forcing tutorial to show so it only appears when a word is added
-  
   // Check if the tutorial should be shown when auth or preferences change
   useEffect(() => {
     // Only proceed if the user is logged in
     if (!currentUser) return;
     
+    // Don't show tutorial on dashboard page - let dashboard handle its own onboarding/tutorial flow
+    if (pathname === '/dashboard') return;
+    
     // For testing purposes, log the current state
     console.log('TutorialManager: Auth state', { 
       isLoggedIn: !!currentUser, 
       isNewUser, 
+      hasCompletedOnboarding: hasCompletedOnboarding(),
       hasCompletedTutorial: hasCompletedTutorial(),
+      pathname,
       preferences
     });
-    // If we're forcing the tutorial to show, or if it's a new user who hasn't completed the tutorial
-    // Note: we don't auto-show the tutorial on login anymore - it will be triggered by word addition instead
-    if (forceShowTutorial || (isNewUser)) {
-      console.log('TutorialManager: Showing tutorial on login');
+    
+    // Only show tutorial if:
+    // 1. User has completed onboarding AND
+    // 2. User hasn't completed tutorial AND
+    // 3. User is new OR we're forcing it for testing
+    const shouldShowTutorial = hasCompletedOnboarding() && 
+                              !hasCompletedTutorial() && 
+                              (isNewUser || forceShowTutorial);
+    
+    if (shouldShowTutorial) {
+      console.log('TutorialManager: Showing tutorial after onboarding completion');
       setShowTutorial(true);
     }
-  }, [currentUser, isNewUser, hasCompletedTutorial, preferences, forceShowTutorial]);
-  // Handle tutorial completion
+  }, [currentUser, isNewUser, hasCompletedOnboarding, hasCompletedTutorial, pathname, preferences, forceShowTutorial]);// Handle tutorial completion
   const handleTutorialComplete = async () => {
     try {
       // Update user preferences to mark tutorial as completed
@@ -65,7 +88,7 @@ export default function TutorialManager({ children }) {
       
       // Set a small timeout to allow the animation to complete
       setTimeout(() => {
-        // Redirect to flashcards page after tutorial
+        // Redirect to flashcards page after tutorial completion
         router.push('/flashcards');
       }, 300);
     } catch (error) {

@@ -1,6 +1,52 @@
 @import "tailwindcss";
 @import "../styles/pwa.css";
 
+/* Custom scrollbar styles */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thumb-indigo-200 {
+    scrollbar-color: #c7d2fe transparent;
+  }
+  
+  .dark .scrollbar-thumb-indigo-800 {
+    scrollbar-color: #3730a3 transparent;
+  }
+  
+  .hover\:scrollbar-thumb-indigo-300:hover::-webkit-scrollbar-thumb {
+    background-color: #a5b4fc;
+  }
+  
+  .dark .hover\:scrollbar-thumb-indigo-700:hover::-webkit-scrollbar-thumb {
+    background-color: #4338ca;
+  }
+  
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Webkit scrollbar styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thumb-indigo-200::-webkit-scrollbar-thumb {
+  background-color: #c7d2fe;
+  border-radius: 20px;
+}
+
+.dark .scrollbar-thumb-indigo-800::-webkit-scrollbar-thumb {
+  background-color: #3730a3;
+  border-radius: 20px;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -132,6 +178,16 @@ body {
 
 .sparkle-effect {
   animation: sparkle 3s ease-in-out infinite;
+}
+
+/* Content scroll indicator for desktop */
+@keyframes scrollIndicatorPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+.content-scroll-indicator {
+  animation: scrollIndicatorPulse 2s ease-in-out infinite;
 }
 
 /* Enhanced Profile Settings Slider Styling */

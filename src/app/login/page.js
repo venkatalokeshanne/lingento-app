@@ -16,15 +16,10 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     setLoginError("");
-    
-    try {
-      const result = await login(email, password);
-      if (result.success) {
-        // If it's a new user, we'll let the TutorialManager handle the redirect
-        // Otherwise, we'll redirect to the flashcards page
-        if (!result.isNewUser) {
-          router.push("/flashcards");
-        }
+      try {
+      const result = await login(email, password);      if (result.success) {
+        // Redirect all users to flashcards for proper onboarding flow
+        router.push("/flashcards");
       } else {
         setLoginError(result.error || "Failed to login. Please check your credentials.");
       }
@@ -135,16 +130,11 @@ export default function Login() {
               onClick={async () => {
                 if (isLoading) return; // Prevent multiple clicks
                 setIsLoading(true);
-                setLoginError("");
-                try {
-                  const result = await loginWithGoogle();
+                setLoginError("");                try {                  const result = await loginWithGoogle();
                   if (result.success) {
-                    // If it's a new user, we'll let the TutorialManager handle the redirect
-                    // Otherwise, we'll redirect to the flashcards page
-                    if (!result.isNewUser) {
-                      router.push("/flashcards");
-                    }
-                  } else {
+                    // Redirect all users to flashcards for proper onboarding flow
+                    router.push("/flashcards");
+                  }else {
                     // Show user-friendly error message
                     if (result.error && (result.error.includes('popup-closed') || result.error.includes('cancelled'))) {
                       setLoginError("Login was cancelled. Please try again.");
@@ -183,15 +173,11 @@ export default function Login() {
               onClick={async () => {
                 if (isLoading) return; // Prevent multiple clicks
                 setIsLoading(true);
-                setLoginError("");                try {
-                  const result = await loginWithFacebook();
+                setLoginError("");                try {                  const result = await loginWithFacebook();
                   if (result.success) {
-                    // If it's a new user, we'll let the TutorialManager handle the redirect
-                    // Otherwise, we'll redirect to the flashcards page
-                    if (!result.isNewUser) {
-                      router.push("/flashcards");
-                    }
-                  } else {
+                    // Redirect all users to flashcards for proper onboarding flow
+                    router.push("/flashcards");
+                  }else {
                     // Show user-friendly error message
                     if (result.error && (result.error.includes('popup-closed') || result.error.includes('cancelled'))) {
                       setLoginError("Login was cancelled. Please try again.");
