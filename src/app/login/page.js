@@ -4,22 +4,35 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useUserPreferences } from "@/context/UserPreferencesContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");  const [isLoading, setIsLoading] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const { login, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { hasCompletedOnboarding } = useUserPreferences();
   const router = useRouter();
+  
+  const handleRedirect = () => {
+    // Redirect to /dashboard if onboarding is not completed, /flashcards otherwise
+    if (!hasCompletedOnboarding()) {
+      router.push("/dashboard");
+    } else {
+      router.push("/flashcards");
+    }
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setLoginError("");
-      try {
-      const result = await login(email, password);      if (result.success) {
-        // Redirect all users to flashcards for proper onboarding flow
-        router.push("/flashcards");
+    
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        handleRedirect();
       } else {
         setLoginError(result.error || "Failed to login. Please check your credentials.");
       }
@@ -31,6 +44,33 @@ export default function Login() {
     }
   };
   
+  // Same structure for social logins
+  const handleSocialLogin = async (socialLoginFunction) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    setLoginError("");
+    
+    try {
+      const result = await socialLoginFunction();
+      if (result.success) {
+        handleRedirect();
+      } else {
+        if (result.error?.includes('popup-closed') || result.error?.includes('cancelled')) {
+          setLoginError("Login was cancelled. Please try again.");
+        } else if (result.error?.includes('popup-blocked')) {
+          setLoginError("Popup was blocked. Please enable popups for this website.");
+        } else {
+          setLoginError(result.error || "Failed to login");
+        }
+      }
+    } catch (error) {
+      setLoginError("An error occurred during login");
+      console.error("Social login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 px-4">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
@@ -127,30 +167,8 @@ export default function Login() {
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <button 
-              onClick={async () => {
-                if (isLoading) return; // Prevent multiple clicks
-                setIsLoading(true);
-                setLoginError("");                try {                  const result = await loginWithGoogle();
-                  if (result.success) {
-                    // Redirect all users to flashcards for proper onboarding flow
-                    router.push("/flashcards");
-                  }else {
-                    // Show user-friendly error message
-                    if (result.error && (result.error.includes('popup-closed') || result.error.includes('cancelled'))) {
-                      setLoginError("Login was cancelled. Please try again.");
-                    } else if (result.error && result.error.includes('popup-blocked')) {
-                      setLoginError("Popup was blocked. Please enable popups for this website.");
-                    } else {
-                      setLoginError(result.error || "Failed to login with Google");
-                    }
-                  }
-                } catch (error) {
-                  setLoginError("An error occurred during Google login");
-                  console.error("Google login error:", error);
-                } finally {
-                  setIsLoading(false);
-                }
-              }}              className={`w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-sm font-medium ${
+              onClick={() => handleSocialLogin(loginWithGoogle)}
+              className={`w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-sm font-medium ${
                 isLoading ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
               disabled={isLoading}
@@ -170,29 +188,7 @@ export default function Login() {
               )}
             </button>
             <button 
-              onClick={async () => {
-                if (isLoading) return; // Prevent multiple clicks
-                setIsLoading(true);
-                setLoginError("");                try {                  const result = await loginWithFacebook();
-                  if (result.success) {
-                    // Redirect all users to flashcards for proper onboarding flow
-                    router.push("/flashcards");
-                  }else {
-                    // Show user-friendly error message
-                    if (result.error && (result.error.includes('popup-closed') || result.error.includes('cancelled'))) {
-                      setLoginError("Login was cancelled. Please try again.");
-                    } else if (result.error && result.error.includes('popup-blocked')) {
-                      setLoginError("Popup was blocked. Please enable popups for this website.");
-                    } else {
-                      setLoginError(result.error || "Failed to login with Facebook");
-                    }
-                  }
-                } catch (error) {
-                  setLoginError("An error occurred during Facebook login");
-                  console.error("Facebook login error:", error);
-                } finally {
-                  setIsLoading(false);
-                }              }}
+              onClick={() => handleSocialLogin(loginWithFacebook)}
               className={`w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-sm font-medium ${
                 isLoading ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
@@ -211,7 +207,8 @@ export default function Login() {
             </button>
           </div>
         </div>
-          <p className="mt-6 text-center text-base text-gray-500 dark:text-gray-400">
+        
+        <p className="mt-6 text-center text-base text-gray-500 dark:text-gray-400">
           Don't have an account yet?{' '}
           <Link href="/register" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
             Sign up
