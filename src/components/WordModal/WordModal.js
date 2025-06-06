@@ -33,7 +33,7 @@ function WordModal({
     category: '',
     language: language || 'fr'
   });
-    // Modal state for AI features
+  // Modal state for AI features
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
   const [showExamples, setShowExamples] = useState(false);
@@ -42,6 +42,12 @@ function WordModal({
   const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
+  
+  // Word suggestions state
+  const [wordSuggestions, setWordSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [suggestionTimeout, setSuggestionTimeout] = useState(null);
   
   // Audio state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -73,15 +79,37 @@ function WordModal({
       }
     }
   }, [editingWord, initialWord, language]);
-  
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (translationTimeout) {
         clearTimeout(translationTimeout);
       }
+      if (suggestionTimeout) {
+        clearTimeout(suggestionTimeout);
+      }
     };
-  }, [translationTimeout]);
+  }, [translationTimeout, suggestionTimeout]);
+
+  // Handle click outside to hide suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if the click is outside the word input and suggestions dropdown
+      const wordInput = event.target.closest('[name="word"]');
+      const suggestionsDropdown = event.target.closest('.suggestions-dropdown');
+      
+      if (!wordInput && !suggestionsDropdown) {
+        setShowSuggestions(false);
+      }
+    };
+
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showSuggestions]);
     // Auto-translate example sentences from native language to English
   const autoTranslateExample = async (exampleText, sourceLanguage) => {
     if (!exampleText || !translateService.isValidTextForTranslation(exampleText)) return;
@@ -108,16 +136,39 @@ function WordModal({
       console.error('Auto-translate example failed:', error);
     }
   };
-  
   // Handle input changes and auto-generate content
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Auto-translate, auto-generate pronunciation, and auto-generate examples when word field changes
-    if (name === 'word' && value.trim() && !editingWord) {
-      handleAutoTranslate(value);
+    // Generate word suggestions and auto-translate when word field changes
+    if (name === 'word') {
+      // Generate suggestions as user types
+      handleGenerateWordSuggestions(value);
+      
+      // Auto-translate for complete words
+      if (value.trim() && !editingWord) {
+        handleAutoTranslate(value);
+      }
+    } else {
+      // Hide suggestions when user focuses on other fields
+      setShowSuggestions(false);
     }
+  };
+  // Handle word field focus
+  const handleWordFieldFocus = () => {
+    // Show suggestions if we have them and the word field has content
+    if (wordSuggestions.length > 0 && formData.word.trim().length >= 2) {
+      setShowSuggestions(true);
+    }
+  };
+
+  // Handle word field blur with delay to allow suggestion clicks
+  const handleWordFieldBlur = () => {
+    // Use setTimeout to allow suggestion clicks to register before hiding
+    setTimeout(() => {
+      setShowSuggestions(false);
+    }, 200);
   };
     // Auto translate functionality - always translates from native language to English
   const handleAutoTranslate = (wordValue) => {
@@ -299,7 +350,86 @@ function WordModal({
       // Don't show error for this passive check
     }
   };
-  
+    // Generate word suggestions with AI
+  const handleGenerateWordSuggestions = async (partialWord) => {
+    // Clear any pending suggestion request
+    if (suggestionTimeout) {
+      clearTimeout(suggestionTimeout);
+    }    // Generate suggestions if the word is 2+ characters
+    if (partialWord?.trim().length >= 2) {
+      // Set a small delay to avoid too many API calls while typing
+      const timeoutId = setTimeout(async () => {
+        try {
+          setIsGeneratingSuggestions(true);
+          setShowSuggestions(true);
+          
+          let suggestions = [];
+          
+          // Try AI suggestions first if available
+          if (bedrockService.isReady()) {
+            try {
+              suggestions = await bedrockService.generateWordSuggestions(
+                partialWord.trim(),
+                formData.language
+              );
+            } catch (error) {
+              console.error('Error generating AI word suggestions:', error);
+            }
+          }
+          
+          // If no AI suggestions or AI not available, use fallback
+          if (!suggestions || suggestions.length === 0) {
+            suggestions = bedrockService.generateFallbackSuggestions(
+              partialWord.trim(),
+              formData.language
+            );
+          }
+          
+          if (suggestions && suggestions.length > 0) {
+            setWordSuggestions(suggestions);
+            
+            // Auto-hide suggestions after 10 seconds if no interaction
+            setTimeout(() => {
+              setShowSuggestions(false);
+            }, 10000);
+          } else {
+            setShowSuggestions(false);
+          }
+        } catch (error) {
+          console.error('Error generating word suggestions:', error);
+          setShowSuggestions(false);
+        } finally {
+          setIsGeneratingSuggestions(false);
+        }
+      }, 500); // 500ms delay for faster response
+      
+      setSuggestionTimeout(timeoutId);
+    } else {
+      // Hide suggestions if word is too short
+      setShowSuggestions(false);
+      setWordSuggestions([]);
+    }
+  };
+  // Handle suggestion selection
+  const handleSelectSuggestion = (suggestion) => {
+    // Extract just the word part (before the parentheses)
+    const wordPart = suggestion.split('(')[0].trim();
+    setFormData(prev => ({ ...prev, word: wordPart }));
+    setShowSuggestions(false);
+    setWordSuggestions([]);
+    
+    // Clear any pending suggestion timeout
+    if (suggestionTimeout) {
+      clearTimeout(suggestionTimeout);
+      setSuggestionTimeout(null);
+    }
+    
+    // Trigger auto-translate for the selected word
+    if (!editingWord) {
+      handleAutoTranslate(wordPart);
+    }
+  };
+
   // Use a selected example
   const useExample = (example) => {
     setFormData(prev => ({ ...prev, example }));
@@ -423,18 +553,23 @@ function WordModal({
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Main Word Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            <div className="space-y-1">              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Word *
-              </label>
-              <div className="relative">
+                {isGeneratingSuggestions && (
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                    (Getting suggestions...)
+                  </span>
+                )}
+              </label>              <div className="relative">
                 <input
                   type="text"
                   name="word"
                   value={formData.word}
                   onChange={handleInputChange}
+                  onFocus={handleWordFieldFocus}
+                  onBlur={handleWordFieldBlur}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-                  placeholder="Enter the word"
+                  placeholder="Enter the word (AI suggestions will appear)"
                   required
                 />
                 {formData.word && (
@@ -464,6 +599,45 @@ function WordModal({
                     )}
                   </button>
                 )}
+                  {/* Word Suggestions Dropdown */}
+                <AnimatePresence>
+                  {showSuggestions && wordSuggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="suggestions-dropdown absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                    >
+                      <div className="p-2">
+                        <div className="flex items-center gap-2 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          AI Suggestions
+                          {isGeneratingSuggestions && (
+                            <div className="ml-auto">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+                            </div>
+                          )}
+                        </div>
+                        {wordSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors duration-150 flex items-center justify-between group"
+                          >
+                            <span className="font-medium">{suggestion}</span>
+                            <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
             

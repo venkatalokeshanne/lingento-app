@@ -21,15 +21,18 @@ export async function POST(request) {
         !process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       console.error('Missing AWS credentials');
-      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId } = await request.json();
-    console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });
-
-    // For generate action, we need a prompt instead of word/language
+      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord } = await request.json();
+    console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });    // For generate action, we need a prompt instead of word/language
     if (action === 'generate' && !prompt) {
       return Response.json({ error: 'Missing required parameter: prompt' }, { status: 400 });
     }
 
-    if (action !== 'generate' && (!word || !language)) {
+    // For word suggestions, we need partialWord and language
+    if (action === 'wordSuggestions' && (!partialWord || !language)) {
+      return Response.json({ error: 'Missing required parameters (partialWord and language)' }, { status: 400 });
+    }
+
+    if (action !== 'generate' && action !== 'wordSuggestions' && (!word || !language)) {
       return Response.json({ error: 'Missing required parameters (word and language)' }, { status: 400 });
     }
 
@@ -56,6 +59,10 @@ export async function POST(request) {
       case 'pronunciation':
         aiPrompt = buildPronunciationPrompt(word, language);
         maxTokens = 150;
+        break;
+      case 'wordSuggestions':
+        aiPrompt = buildWordSuggestionsPrompt(partialWord, language);
+        maxTokens = 300;
         break;
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 });
@@ -306,6 +313,26 @@ Requirements:
 - Add any important notes about irregular forms or usage
 
 Return ONLY the JSON object, no other text.`;
+}
+
+// Build prompt for word suggestions
+function buildWordSuggestionsPrompt(partialWord, language) {
+  return `Complete the word "${partialWord}" by providing 5 actual words in ${language} that START with these exact letters: "${partialWord}".
+
+Requirements:
+- Words must literally begin with "${partialWord}" (case-insensitive)
+- Order by frequency and usefulness for language learners (most common first)
+- Include common vocabulary: nouns, verbs, adjectives
+- Provide English translation in parentheses
+- Avoid proper nouns, brand names, and overly technical terms
+- Focus on everyday vocabulary that language learners would use
+
+Examples for "reg" in French: ["regarder (to look)", "région (region)", "régime (diet)", "régler (to adjust)", "régulier (regular)"]
+
+Format your response as a JSON array of strings, like this:
+["word1 (translation)", "word2 (translation)", "word3 (translation)", "word4 (translation)", "word5 (translation)"]
+
+Only return the JSON array, no other text.`;
 }
 
 // Parse examples from AI response

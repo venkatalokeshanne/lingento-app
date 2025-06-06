@@ -354,6 +354,120 @@ This must be a BRAND NEW response that has never been generated before.`;
     return `[${part}] ${word}${translationText} - Definition not available without AI service. Please check your internet connection and try again.`;
   }
 
+  // Generate word suggestions based on partial input
+  async generateWordSuggestions(partialWord, language) {
+    // Don't cache suggestions to allow for fresh suggestions each time
+    try {
+      const response = await fetch('/api/bedrock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'wordSuggestions',
+          partialWord,
+          language
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Bedrock word suggestions API error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate word suggestions');
+      }
+
+      const data = await response.json();
+      const suggestions = data.result;
+      
+      // Parse suggestions if they come as a string
+      if (typeof suggestions === 'string') {
+        try {
+          return JSON.parse(suggestions);
+        } catch (e) {
+          // If parsing fails, split by lines and clean up
+          return suggestions.split('\n')
+            .filter(line => line.trim())
+            .slice(0, 5)
+            .map(line => line.trim().replace(/^[\d\-\*\.\s]+/, ''));
+        }
+      }
+      
+      return Array.isArray(suggestions) ? suggestions : [];
+    } catch (error) {
+      console.error('Error generating word suggestions:', error);
+      // Return fallback suggestions
+      return this.generateFallbackSuggestions(partialWord, language);
+    }
+  }
+  // Generate fallback suggestions when AI is not available
+  generateFallbackSuggestions(partialWord, language) {
+    // Expanded vocabulary for better word completion
+    const commonWords = {
+      french: [
+        'regarder (to look)', 'régime (diet)', 'région (region)', 'régler (to adjust)', 'régulier (regular)',
+        'bonjour (hello)', 'bonsoir (good evening)', 'beaucoup (a lot)', 'bien (well)', 'blanc (white)',
+        'chat (cat)', 'chien (dog)', 'chez (at/to)', 'chose (thing)', 'comme (like/as)',
+        'dans (in)', 'depuis (since)', 'dernier (last)', 'devant (in front of)', 'dire (to say)',
+        'eau (water)', 'école (school)', 'écrire (to write)', 'enfant (child)', 'entre (between)',
+        'faire (to do)', 'famille (family)', 'femme (woman)', 'fenêtre (window)', 'fois (time)',
+        'grand (big)', 'groupe (group)', 'guerre (war)', 'heure (hour)', 'histoire (story)',
+        'jamais (never)', 'jardin (garden)', 'jeune (young)', 'jouer (to play)', 'jour (day)',
+        'livre (book)', 'long (long)', 'main (hand)', 'maison (house)', 'manger (to eat)',
+        'nouveau (new)', 'nuit (night)', 'partir (to leave)', 'petit (small)', 'place (place)',
+        'quel (which)', 'question (question)', 'raison (reason)', 'répondre (to answer)', 'rester (to stay)',
+        'savoir (to know)', 'semaine (week)', 'sortir (to go out)', 'temps (time)', 'travail (work)',
+        'venir (to come)', 'ville (city)', 'vivre (to live)', 'voir (to see)', 'vouloir (to want)'
+      ],
+      spanish: [
+        'regalo (gift)', 'región (region)', 'regla (rule)', 'reír (to laugh)', 'reloj (clock)',
+        'hola (hello)', 'casa (house)', 'agua (water)', 'tiempo (time)', 'año (year)',
+        'día (day)', 'noche (night)', 'mañana (morning)', 'tarde (afternoon)', 'semana (week)',
+        'mes (month)', 'vida (life)', 'mundo (mundo)', 'país (country)', 'ciudad (city)',
+        'persona (person)', 'hombre (man)', 'mujer (woman)', 'niño (child)', 'familia (family)',
+        'amigo (friend)', 'amor (love)', 'trabajo (work)', 'escuela (school)', 'libro (book)',
+        'coche (car)', 'comida (food)', 'dinero (money)', 'puerta (door)', 'ventana (window)'
+      ],
+      italian: [
+        'regalo (gift)', 'regione (region)', 'regola (rule)', 'ridere (to laugh)', 'ricordare (to remember)',
+        'ciao (hello)', 'casa (house)', 'acqua (water)', 'tempo (time)', 'anno (year)',
+        'giorno (day)', 'notte (night)', 'mattina (morning)', 'sera (evening)', 'settimana (week)',
+        'mese (month)', 'vita (life)', 'mondo (world)', 'paese (country)', 'città (city)',
+        'persona (person)', 'uomo (man)', 'donna (woman)', 'bambino (child)', 'famiglia (family)',
+        'amico (friend)', 'amore (love)', 'lavoro (work)', 'scuola (school)', 'libro (book)'
+      ],
+      german: [
+        'regen (rain)', 'regel (rule)', 'region (region)', 'reden (to talk)', 'reisen (to travel)',
+        'hallo (hello)', 'haus (house)', 'wasser (water)', 'zeit (time)', 'jahr (year)',
+        'tag (day)', 'nacht (night)', 'morgen (morning)', 'abend (evening)', 'woche (week)',
+        'monat (month)', 'leben (life)', 'welt (world)', 'land (country)', 'stadt (city)',
+        'person (person)', 'mann (man)', 'frau (woman)', 'kind (child)', 'familie (family)',
+        'freund (friend)', 'liebe (love)', 'arbeit (work)', 'schule (school)', 'buch (book)'
+      ],
+      portuguese: [
+        'regalo (gift)', 'região (region)', 'regra (rule)', 'rir (to laugh)', 'relógio (clock)',
+        'olá (hello)', 'casa (house)', 'água (water)', 'tempo (time)', 'ano (year)',
+        'dia (day)', 'noite (night)', 'manhã (morning)', 'tarde (afternoon)', 'semana (week)',
+        'mês (month)', 'vida (life)', 'mundo (world)', 'país (country)', 'cidade (city)',
+        'pessoa (person)', 'homem (man)', 'mulher (woman)', 'criança (child)', 'família (family)',
+        'amigo (friend)', 'amor (love)', 'trabalho (work)', 'escola (school)', 'livro (book)'
+      ]
+    };
+
+    const languageWords = commonWords[language.toLowerCase()] || commonWords.french;
+    
+    // Filter based on partial word if it exists
+    if (partialWord && partialWord.length > 0) {
+      const filtered = languageWords.filter(word => 
+        word.toLowerCase().startsWith(partialWord.toLowerCase())
+      );
+      if (filtered.length > 0) {
+        return filtered.slice(0, 5); // Return up to 5 suggestions
+      }
+    }
+    
+    return languageWords.slice(0, 5); // Return first 5 if no match
+  }
+
   // Clear cache
   clearCache() {
     this.cache.clear();
