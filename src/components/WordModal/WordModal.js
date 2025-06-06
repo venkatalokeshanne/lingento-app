@@ -197,15 +197,19 @@ function WordModal({
           
           console.log(`Translating "${wordValue}" from ${formData.language} to ${userNativeLanguage}`);
           const result = await translateService.simpleTranslate(wordValue, formData.language);
-          
-          if (result?.translation) {
+            if (result?.translation) {
             setFormData(prev => ({ 
               ...prev, 
               translation: result.translation 
             }));
             
-            // After translating, try to auto-generate pronunciation
+            // After translating, try to auto-generate pronunciation and examples
             handleGeneratePronunciation(false, wordValue);
+            
+            // Auto-generate examples after a short delay to ensure translation is set
+            setTimeout(() => {
+              handleAutoGenerateExamples(wordValue, result.translation);
+            }, 300);
           }
         } catch (error) {
           console.error('Auto-translate failed:', error);
@@ -286,8 +290,7 @@ function WordModal({
       setIsGeneratingDefinition(false);
     }
   };
-  
-  // Generate examples with AI
+    // Generate examples with AI
   const handleGenerateExamples = async () => {
     if (!formData.word || !formData.translation || !bedrockService.isReady()) {
       toast.error('Please ensure word and translation are filled, and AI service is configured');
@@ -327,6 +330,42 @@ function WordModal({
       toast.error('Failed to generate examples');
     } finally {
       setIsGeneratingExamples(false);
+    }
+  };
+
+  // Auto-generate examples silently (without showing modal)
+  const handleAutoGenerateExamples = async (word, translation) => {
+    if (!word || !translation || !bedrockService.isReady()) {
+      return; // Silently fail for auto-generation
+    }
+
+    try {      
+      const examples = await bedrockService.generateExamples(
+        word,
+        translation,
+        formData.language,
+        formData.definition,
+        'intermediate'
+      );
+      
+      if (examples && examples.length > 0) {
+        // Use the first example automatically
+        const firstExample = examples[0];
+        setFormData(prev => ({
+          ...prev,
+          example: firstExample,
+          translatedExample: '' // Will be auto-translated
+        }));
+        
+        // Store all generated examples for manual selection later
+        setGeneratedExamples(examples);
+        
+        // Auto-translate the example
+        autoTranslateExample(firstExample, formData.language);
+      }
+    } catch (error) {
+      console.error('Error auto-generating examples:', error);
+      // Silently fail for auto-generation, don't show error toast
     }
   };
   

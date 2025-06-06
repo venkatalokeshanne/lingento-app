@@ -432,9 +432,13 @@ export default function VocabularyManager() {
   
   // State for AI generation functionality
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
+    // Extract unique filter values
+  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);
   
-  // Extract unique filter values
-  const categories = ['all', ...new Set(words.map(word => word.category))].filter(Boolean);  // Fetch words on component mount
+  // Debug logging for categories
+  console.log('Debug - Words:', words.length);
+  console.log('Debug - Categories extracted:', categories);
+  console.log('Debug - Words with categories:', words.map(word => ({ word: word.word, category: word.category })));// Fetch words on component mount
   useEffect(() => {
     if (currentUser) {
       fetchWords(currentUser, setWords, setLoading);
@@ -447,9 +451,11 @@ export default function VocabularyManager() {
       setFormData(prev => ({
         ...prev,
         language: language
-      }));
-    }
-  }, [language]);// Handle form submission  const { markWordAdded } = useTutorial();
+      }));    }
+  }, [language]);
+
+  // Handle form submission
+  const { markWordAdded } = useTutorial();
   
   const handleSubmit = async (wordData, editingWordToUpdate = null) => {
     if (!wordData.word || !wordData.translation) {
