@@ -3,11 +3,15 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useUserPreferences } from "@/context/UserPreferencesContext";
 import SocialMetaTags from "@/components/SocialMetaTags";
 
 export default function Home() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
+  const { hasCompletedOnboarding } = useUserPreferences();
+  const router = useRouter();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);  const featuredWords = [
     { word: "happiness", translation: "bonheur", language: "French", pronunciation: "/bɔ.nœʁ/" },
@@ -28,6 +32,27 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [featuredWords.length]);
+  // Automatic redirection for authenticated users
+  useEffect(() => {
+    console.log('Home page useEffect - Auth state:', { 
+      loading, 
+      currentUser: !!currentUser, 
+      hasCompletedOnboarding: currentUser ? hasCompletedOnboarding() : 'N/A' 
+    });
+    
+    // Wait for authentication state to be determined
+    if (!loading && currentUser) {
+      console.log('User is authenticated, redirecting...');
+      // Redirect to /dashboard if onboarding is not completed, /flashcards otherwise
+      if (!hasCompletedOnboarding()) {
+        console.log('Redirecting to /dashboard - onboarding not completed');
+        router.push("/dashboard");
+      } else {
+        console.log('Redirecting to /flashcards - onboarding completed');
+        router.push("/flashcards");
+      }
+    }
+  }, [currentUser, loading, hasCompletedOnboarding, router]);
     return (
     <>
       <SocialMetaTags 
@@ -463,8 +488,7 @@ export default function Home() {
                 </div>                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Start Your Journey</h3>
                 <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-6">
                   Jump right into learning vocabulary in your target language. Our smart algorithm adapts to your progress and shows you new words at the perfect pace.
-                </p>
-                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                </p>                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                   <span className="text-sm font-medium">Ready in seconds</span>
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
