@@ -19,6 +19,14 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioError, setAudioError] = useState(false);
 
+  // Handle keyboard navigation and auto-play audio on focus
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') {
+      // Play audio when card receives focus via tab or is activated
+      handleAudioPlay(e);
+    }
+  };
+
   const getCategoryIcon = (category) => {
     const icons = {
       vocabulary: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
@@ -96,13 +104,16 @@ function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
     if (word.conjugations && Object.keys(word.conjugations).length > 0) {
       onShowConjugations(word);
     }
-  };
-    return (
+  };    return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 overflow-hidden flex flex-col h-full transform hover:-translate-y-1"    >
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onFocus={handleAudioPlay}
+      className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 overflow-hidden flex flex-col h-full transform hover:-translate-y-1 cursor-pointer"
+    >
       {/* Card Header */}
       <div className="p-4 flex-1 flex flex-col">
         {/* Header with word, audio, and action buttons */}
@@ -807,18 +818,34 @@ export default function VocabularyManager() {
                       <div className="col-span-2 hidden sm:block">Language</div>
                       <div className="col-span-2 sm:col-span-3 text-right">Actions</div>
                     </div>
-                  </div>
-                  
-                  {/* Enhanced Table Body */}
+                  </div>                  {/* Enhanced Table Body */}
                   <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     <AnimatePresence>
-                      {filteredAndSortedWords.map(word => (
+                      {filteredAndSortedWords.map(word => {
+                        // Handle keyboard navigation for table rows
+                        const handleRowKeyDown = (e) => {
+                          if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') {
+                            // Play audio when row receives focus via tab or is activated
+                            e.preventDefault(); // Prevent default space/enter behavior
+                            speakWord(word);
+                          }
+                        };
+
+                        const handleRowFocus = () => {
+                          // Auto-play audio when row receives focus
+                          speakWord(word);
+                        };
+
+                        return (
                         <motion.div
                           key={word.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
-                          className="group px-4 sm:px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-200"
+                          tabIndex={0}
+                          onKeyDown={handleRowKeyDown}
+                          onFocus={handleRowFocus}
+                          className="group px-4 sm:px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-gradient-to-r focus:from-blue-50 focus:to-purple-50 dark:focus:from-blue-900/10 dark:focus:to-purple-900/10 transition-all duration-200 cursor-pointer"
                         >
                           <div className="grid grid-cols-8 sm:grid-cols-12 gap-3 sm:gap-4 items-start text-sm">                            {/* Word Column */}
                             <div className="col-span-3 sm:col-span-3">
@@ -891,7 +918,8 @@ export default function VocabularyManager() {
                             </div>
                           </div>
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </AnimatePresence>
                   </div>
                 </div>
