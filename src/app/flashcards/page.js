@@ -183,7 +183,7 @@ export default function FlashcardsPage() {
     } catch (error) {
       console.error("Error updating vocabulary word:", error);
     }
-  };// Handle spaced repetition quality rating
+  };  // Handle spaced repetition quality rating
   const handleQualityRating = async (cardId, quality) => {
     console.log(
       "⭐ handleQualityRating called - cardId:",
@@ -233,9 +233,7 @@ export default function FlashcardsPage() {
       if (autoAdvanceTimeoutId) {
         console.log("🔄 Clearing existing auto-advance timeout");
         clearTimeout(autoAdvanceTimeoutId);
-      }
-
-      // Auto-advance to next card with a longer delay to prevent double triggers
+      }      // Auto-advance to next card with a longer delay to prevent double triggers
       console.log("⏰ Setting timeout to advance to next card...");
       const timeoutId = setTimeout(() => {
         console.log("⏰ Timeout triggered, advancing cards...");

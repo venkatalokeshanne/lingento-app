@@ -52,10 +52,17 @@ export default function Flashcard({
   useEffect(() => {
     setLocalExample(example);
     setLocalTranslatedExample(translatedExample);
-  }, [example, translatedExample]);
-
-  // Auto-generate examples for the flashcard
-  const handleGenerateExamples = async () => {
+  }, [example, translatedExample]);  // Auto-generate examples for the flashcard
+  const handleGenerateExamples = async (e) => {
+    // Ensure event doesn't propagate and prevent any unwanted side effects
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    console.log("🔍 Add Example button clicked - event:", e);
+    console.log("🔍 Current state - isFlipped:", isFlipped, "showQualityRating:", showQualityRating, "showRating:", showRating);
+    
     if (!frontText || !backText || !bedrockService.isReady()) {
       toast.error(
         "Unable to generate examples. Please ensure AWS Bedrock is configured."
@@ -63,6 +70,8 @@ export default function Flashcard({
       return;
     }
 
+    console.log("🔍 Generating examples for:", frontText, "->", backText);
+    
     setIsGeneratingExamples(true);
     try {
       const examples = await bedrockService.generateExamples(
@@ -186,19 +195,23 @@ export default function Flashcard({
       setIsLoading(false);
       setIsPlaying(false);
     }
-  };
-  const handleFlip = () => {
+  };  const handleFlip = () => {
+    console.log("🔄 Card flip triggered - current isFlipped:", isFlipped, "showQualityRating:", showQualityRating);
     setIsFlipped(!isFlipped);
     // Show quality rating buttons when flipping to the back (answer side)
     if (!isFlipped && showQualityRating) {
+      console.log("🔄 Showing quality rating buttons");
       setShowRating(true);
     }
-  };
-  const handleQualityRating = (quality) => {
+  };const handleQualityRating = (quality) => {
+    console.log("⭐ Flashcard handleQualityRating called with quality:", quality);
+    console.log("⭐ Current state - showQualityRating:", showQualityRating, "showRating:", showRating);
+    
     // Prevent multiple clicks by hiding rating immediately
     setShowRating(false);
     
     if (onQualityRating) {
+      console.log("⭐ Calling parent onQualityRating");
       onQualityRating(id, quality);
     }
     
@@ -295,15 +308,14 @@ export default function Flashcard({
                     )}
                     <p className="text-sm text-gray-500 dark:text-gray-500">
                       Translate this word
-                    </p>
-
-                    {/* Generate Example Button */}
+                    </p>                    {/* Generate Example Button */}
                     {bedrockService.isReady() && (
                       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                         <button
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            handleGenerateExamples();
+                            handleGenerateExamples(e);
                           }}
                           disabled={isGeneratingExamples}
                           className="inline-flex items-center gap-2 px-3 py-2 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-md transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
@@ -446,15 +458,22 @@ export default function Flashcard({
                   <div className="text-center space-y-4">
                     <p className="text-lg sm:text-2xl text-center text-gray-900 dark:text-white font-medium leading-tight">
                       {backText}
-                    </p>
-
-                    {/* Generate Example Button for back side */}
+                    </p>                    {/* Generate Example Button for back side */}
                     {bedrockService.isReady() && !showQualityRating && (
-                      <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                      <div 
+                        className="pt-4 border-t border-gray-200 dark:border-gray-600"
+                        onClick={(e) => {
+                          console.log("🔍 Add Example container clicked");
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
                         <button
                           onClick={(e) => {
+                            console.log("🔍 Add Example button clicked");
+                            e.preventDefault();
                             e.stopPropagation();
-                            handleGenerateExamples();
+                            handleGenerateExamples(e);
                           }}
                           disabled={isGeneratingExamples}
                           className="inline-flex items-center gap-2 px-3 py-2 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-md transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
