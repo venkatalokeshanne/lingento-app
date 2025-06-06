@@ -5,7 +5,25 @@ const nextConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development'
+  disable: process.env.NODE_ENV === 'development',
+  // Add more aggressive update settings
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'offlineCache',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+        },
+      },
+    },
+  ],
+  buildExcludes: [/middleware-manifest\.json$/],
+  // Force service worker to update more frequently
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: true,
 })({
   // SEO optimizations
   trailingSlash: false,
@@ -16,8 +34,7 @@ const nextConfig = withPWA({
   images: {
     domains: ['lingentoo.com'],
     formats: ['image/webp', 'image/avif'],
-  },
-  
+  },  
   // Compression for better performance
   compress: true,
   
@@ -42,6 +59,34 @@ const nextConfig = withPWA({
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+      {
+        // Service worker should never be cached
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      {
+        // Workbox service worker should never be cached
+        source: '/workbox-:hash.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },

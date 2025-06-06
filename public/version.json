@@ -1,10 +1,26 @@
 {
-  "version": "1.0.0",
-  "buildDate": "2025-05-30",
+  "version": "1.1.0",
+  "buildDate": "2025-06-06",
+  "buildTime": "14:30:00",
+  "buildTimestamp": 1733529600000,
+  "buildISO": "2025-06-06T14:30:00.000Z",
+  "buildNumber": "20250606143000",
+  "deploymentId": "deploy-20250606-143000",
   "features": [
     "Progressive Web App support",
-    "Offline functionality", 
+    "Improved update mechanism", 
+    "Better cache management",
+    "Enhanced offline functionality",
     "Push notifications ready",
-    "Auto-update detection"
-  ]
+    "Auto-update detection",
+    "PWA debug utilities",
+    "Granular timestamp tracking"
+  ],
+  "pwa": {
+    "updateStrategy": "aggressive",
+    "cacheVersion": "datetime-based",
+    "forceUpdate": true,
+    "updateFrequency": "immediate",
+    "cachePattern": "YYYY.MM.DD-HH.MM.SS"
+  }
 }

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { UserPreferencesProvider } from "@/context/UserPreferencesContext";
 import Navigation from "@/components/Navigation";
 import PWAComponents from "@/components/PWAComponents";
+import PWADebugLoader from "@/components/PWADebugLoader";
 import TutorialManager from "@/components/TutorialManager";
 
 const geistSans = Geist({
@@ -143,13 +144,13 @@ export default function RootLayout({ children }) {
         <meta name="geo.region" content="US" />
         <meta name="geo.placename" content="United States" />
         <meta httpEquiv="content-language" content="en-us" />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      </head>      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
           <ThemeProvider>
             <UserPreferencesProvider>
               <TutorialManager>
                 <PWAComponents />
+                <PWADebugLoader />
                 <Navigation />
                 <main className="min-h-screen pt-16">
                   {children}

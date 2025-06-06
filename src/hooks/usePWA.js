@@ -22,7 +22,7 @@ export function usePWA() {
       const isInstalled = isStandalone || isWebkit;
       setIsInstalled(isInstalled);
       return isInstalled;
-    };// Register service worker and handle updates
+    };    // Register service worker and handle updates
     const registerServiceWorker = async () => {
       if ('serviceWorker' in navigator) {
         try {
@@ -31,23 +31,68 @@ export function usePWA() {
           const registration = await navigator.serviceWorker.getRegistration();
           
           if (registration) {
-            // Check for updates periodically
-            setInterval(() => {
-              registration.update();
-            }, 60000); // Check every minute
+            console.log('Service Worker found and configured');
+            
+            // Check for updates immediately and then periodically
+            const checkForUpdates = () => {
+              registration.update().then(() => {
+                console.log('Update check completed');
+              });
+            };
+            
+            // Check for updates every 30 seconds instead of every minute
+            setInterval(checkForUpdates, 30000);
+            
+            // Initial update check
+            checkForUpdates();
 
             // Handle service worker updates
             registration.addEventListener('updatefound', () => {
+              console.log('New service worker found');
               const newWorker = registration.installing;
               
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  setIsUpdateAvailable(true);
-                }
-              });
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  console.log('Service worker state changed:', newWorker.state);
+                  
+                  if (newWorker.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                      // New content is available
+                      console.log('New content is available, update ready');
+                      setIsUpdateAvailable(true);
+                    } else {
+                      // Content is cached for the first time
+                      console.log('Content is cached for the first time');
+                    }
+                  }
+                  
+                  if (newWorker.state === 'activated') {
+                    console.log('New service worker activated');
+                  }
+                });
+              }
             });
 
-            console.log('Service Worker found and configured');
+            // Listen for service worker messages
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              if (event.data && event.data.type === 'SW_ACTIVATED') {
+                console.log('Service Worker activated, reloading page');
+                // Small delay to ensure everything is ready
+                setTimeout(() => {
+                  window.location.reload();
+                }, 500);
+              }
+            });
+
+            // Handle controller changes (when skipWaiting is called)
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (refreshing) return;
+              refreshing = true;
+              console.log('Controller changed, refreshing page');
+              window.location.reload();
+            });
+            
           } else {
             console.log('No service worker registration found');
           }
@@ -55,7 +100,7 @@ export function usePWA() {
           console.error('Service Worker configuration failed:', error);
         }
       }
-    };    // Handle install prompt
+    };// Handle install prompt
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -98,14 +143,26 @@ export function usePWA() {
     setDeferredPrompt(null);
     return false;
   };
-
   const updateApp = () => {
+    console.log('Updating app...');
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then((registration) => {
         if (registration && registration.waiting) {
+          console.log('Sending SKIP_WAITING message to service worker');
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          
+          // Force immediate reload after short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          console.log('No waiting service worker found, forcing reload');
+          window.location.reload();
         }
       });
+    } else {
+      // Fallback: just reload the page
+      window.location.reload();
     }
   };
   return {
