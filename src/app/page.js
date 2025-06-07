@@ -77,13 +77,18 @@ export default function Home() {
       </div>
     );
   }
-    return (    <>
-      <SocialMetaTags 
+    return (    <>      <SocialMetaTags 
         title="Lingento | Learn Any Language Effectively with Smart Flashcards"
-        description="Master vocabulary in multiple languages with spaced repetition. Interactive flashcards, personalized learning paths, and AI-powered features to accelerate your language learning journey."
-        image="https://lingentoo.com/og-home.svg"
+        description="Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language learning journey."
+        image="https://lingentoo.com/og-image.png"
         url="https://lingentoo.com"
         type="website"
+        imageWidth="1200"
+        imageHeight="630"
+        imageAlt="Lingento - Learn Languages with Smart Flashcards - Home Page"
+        siteName="Lingento"
+        locale="en_US"
+        imageType="image/png"
       />
         {/* Enhanced Structured Data for SEO */}
       <script

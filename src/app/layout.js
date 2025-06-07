@@ -50,15 +50,18 @@ export const metadata = {
     title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
     description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
     url: 'https://lingentoo.com',
-    siteName: 'Lingento',    images: [
+    siteName: 'Lingento',
+    images: [
       {
-        url: 'https://lingentoo.com/og-image.svg',
+        url: 'https://lingentoo.com/og-image.png',
+        secureUrl: 'https://lingentoo.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Lingento - Learn Languages with Smart Flashcards',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
-    ],locale: 'en_US',
+    ],
+    locale: 'en_US',
     type: 'website',
   },
   // Enhanced Twitter metadata
@@ -124,13 +127,12 @@ export default function RootLayout({ children }) {
       }
     }
   };  return (
-    <html lang="en">      <head>
-        {/* Essential meta tags for WhatsApp and other social platforms */}
+    <html lang="en">      <head>        {/* Essential meta tags for WhatsApp and other social platforms */}
         <meta property="og:title" content="Lingento | Learn Any Language Effectively with Smart Flashcards" />
         <meta property="og:description" content="Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths." />
-        <meta property="og:image" content="https://lingentoo.com/og-image.svg" />
-        <meta property="og:image:secure_url" content="https://lingentoo.com/og-image.svg" />
-        <meta property="og:image:type" content="image/svg+xml" />
+        <meta property="og:image" content="https://lingentoo.com/og-image.png" />
+        <meta property="og:image:secure_url" content="https://lingentoo.com/og-image.png" />
+        <meta property="og:image:type" content="image/png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="Lingento - Learn Languages with Smart Flashcards" />
@@ -138,6 +140,7 @@ export default function RootLayout({ children }) {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Lingento" />
         <meta property="og:locale" content="en_US" />
+        <meta property="og:locale:alternate" content="fr_FR" />
         
         {/* Twitter Card tags */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -145,7 +148,7 @@ export default function RootLayout({ children }) {
         <meta name="twitter:creator" content="@lingento" />
         <meta name="twitter:title" content="Lingento | Learn Any Language Effectively with Smart Flashcards" />
         <meta name="twitter:description" content="Master vocabulary in multiple languages with spaced repetition and interactive flashcards. Start your language learning journey today!" />
-        <meta name="twitter:image" content="https://lingentoo.com/og-image.svg" />
+        <meta name="twitter:image" content="https://lingentoo.com/og-image.png" />
         <meta name="twitter:image:alt" content="Lingento - Learn Languages with Smart Flashcards" />
         
         {/* Additional meta tags for better compatibility */}
@@ -153,7 +156,14 @@ export default function RootLayout({ children }) {
         <meta name="description" content="Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language learning journey." />
         <meta name="image" content="https://lingentoo.com/og-image.svg" />
         <meta name="robots" content="index, follow" />
+        <meta name="author" content="Lingento Team" />
+        <meta name="keywords" content="language learning, vocabulary builder, flashcards, spaced repetition, learn languages, multilingual education, pronunciation practice, grammar learning, online language course" />
         <link rel="canonical" href="https://lingentoo.com" />
+        
+        {/* Additional Open Graph properties for richer content */}
+        <meta property="og:determiner" content="the" />
+        <meta property="article:author" content="Lingento Team" />
+        <meta property="article:publisher" content="Lingento" />
         
         {/* Structured data */}
         <script
