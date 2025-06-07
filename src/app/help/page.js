@@ -6,15 +6,13 @@ import { motion } from 'framer-motion';
 export default function HelpCenterPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-
   const helpCategories = [
-    { id: 'all', name: 'All Topics', icon: '📚', count: 24 },
-    { id: 'getting-started', name: 'Getting Started', icon: '🚀', count: 6 },
-    { id: 'features', name: 'Features', icon: '⭐', count: 8 },
-    { id: 'account', name: 'Account Management', icon: '👤', count: 5 },
-    { id: 'troubleshooting', name: 'Troubleshooting', icon: '🔧', count: 5 }
+    { id: 'all', name: 'All Topics', icon: '📚', count: 34 },
+    { id: 'getting-started', name: 'Getting Started', icon: '🚀', count: 5 },
+    { id: 'features', name: 'Features', icon: '⭐', count: 12 },
+    { id: 'account', name: 'Account Management', icon: '👤', count: 2 },
+    { id: 'troubleshooting', name: 'Troubleshooting', icon: '🔧', count: 2 }
   ];
-
   const helpArticles = [
     // Getting Started
     {
@@ -44,6 +42,24 @@ export default function HelpCenterPage() {
       difficulty: 'Beginner',
       tags: ['goals', 'progress', 'planning']
     },
+    {
+      id: 24,
+      title: 'Onboarding Flow Guide',
+      category: 'getting-started',
+      description: 'Navigate through the initial setup process and language preferences.',
+      readTime: '3 min read',
+      difficulty: 'Beginner',
+      tags: ['onboarding', 'setup', 'preferences']
+    },
+    {
+      id: 25,
+      title: 'Tutorial System Overview',
+      category: 'getting-started',
+      description: 'Learn how the interactive tutorial guides you through key features.',
+      readTime: '4 min read',
+      difficulty: 'Beginner',
+      tags: ['tutorial', 'guidance', 'features']
+    },
     
     // Features
     {
@@ -72,6 +88,87 @@ export default function HelpCenterPage() {
       readTime: '5 min read',
       difficulty: 'Advanced',
       tags: ['analytics', 'statistics', 'optimization']
+    },
+    {
+      id: 26,
+      title: 'AI-Powered Quiz System',
+      category: 'features',
+      description: 'Master the intelligent quiz system with adaptive difficulty and AI explanations.',
+      readTime: '6 min read',
+      difficulty: 'Intermediate',
+      tags: ['quiz', 'AI', 'adaptive-learning']
+    },
+    {
+      id: 27,
+      title: 'Reading & Writing Hub',
+      category: 'features',
+      description: 'Explore AI-generated reading passages and writing prompts for skill development.',
+      readTime: '7 min read',
+      difficulty: 'Intermediate',
+      tags: ['reading', 'writing', 'AI-content']
+    },
+    {
+      id: 28,
+      title: 'Vocabulary Manager',
+      category: 'features',
+      description: 'Organize, categorize, and manage your vocabulary collection effectively.',
+      readTime: '5 min read',
+      difficulty: 'Intermediate',
+      tags: ['vocabulary', 'organization', 'management']
+    },
+    {
+      id: 29,
+      title: 'Dashboard Overview',
+      category: 'features',
+      description: 'Navigate your learning dashboard and understand all progress metrics.',
+      readTime: '5 min read',
+      difficulty: 'Beginner',
+      tags: ['dashboard', 'metrics', 'overview']
+    },
+    {
+      id: 30,
+      title: 'Word Modal & Creation',
+      category: 'features',
+      description: 'Learn to add and edit vocabulary words with all available features.',
+      readTime: '4 min read',
+      difficulty: 'Beginner',
+      tags: ['word-creation', 'modal', 'vocabulary']
+    },
+    {
+      id: 31,
+      title: 'Audio & Pronunciation',
+      category: 'features',
+      description: 'Use audio features for pronunciation practice and language learning.',
+      readTime: '4 min read',
+      difficulty: 'Beginner',
+      tags: ['audio', 'pronunciation', 'practice']
+    },
+    {
+      id: 32,
+      title: 'Conjugation System',
+      category: 'features',
+      description: 'Master verb conjugations with our comprehensive conjugation modal.',
+      readTime: '6 min read',
+      difficulty: 'Advanced',
+      tags: ['conjugations', 'verbs', 'grammar']
+    },
+    {
+      id: 33,
+      title: 'Navigation & Menu System',
+      category: 'features',
+      description: 'Navigate efficiently through all app sections and features.',
+      readTime: '3 min read',
+      difficulty: 'Beginner',
+      tags: ['navigation', 'menu', 'interface']
+    },
+    {
+      id: 34,
+      title: 'PWA Features',
+      category: 'features',
+      description: 'Install and use Lingento as a Progressive Web App on any device.',
+      readTime: '4 min read',
+      difficulty: 'Intermediate',
+      tags: ['PWA', 'offline', 'installation']
     },
     
     // Account Management
@@ -124,8 +221,13 @@ export default function HelpCenterPage() {
     
     return matchesCategory && matchesSearch;
   });
-
   const quickActions = [
+    {
+      title: 'Complete User Guide',
+      description: 'Learn every feature in detail',
+      icon: '📖',
+      action: '/help/user-guide'
+    },
     {
       title: 'Reset Password',
       description: 'Having trouble logging in?',
@@ -183,7 +285,32 @@ export default function HelpCenterPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-lg"
               />
-            </div>
+            </div>          </div>
+        </motion.div>
+
+        {/* Featured User Guide */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="max-w-4xl mx-auto mb-12"
+        >
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-white text-center">
+            <div className="text-4xl mb-4">📖</div>
+            <h2 className="text-2xl font-bold mb-3">Complete User Guide</h2>
+            <p className="text-indigo-100 mb-6 max-w-2xl mx-auto">
+              Master every feature of Lingento with our comprehensive user guide. Learn about flashcards, quizzes, 
+              reading practice, vocabulary management, and all the powerful tools to accelerate your language learning.
+            </p>
+            <a
+              href="/help/user-guide"
+              className="inline-flex items-center bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Read Complete Guide
+            </a>
           </div>
         </motion.div>
 
@@ -192,7 +319,7 @@ export default function HelpCenterPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12"
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-12"
         >
           {quickActions.map((action, index) => (
             <a
