@@ -104,15 +104,14 @@ export default function FlashcardsPage() {
   // Reset active index when filters change or when filtered cards change
   useEffect(() => {
     setActiveIndex(0);
-  }, [selectedCategory, studyMode]);
-
-  // Additional effect to handle case where filtered cards array changes due to ratings
+  }, [selectedCategory, studyMode]);  // Additional effect to handle case where filtered cards array changes due to ratings
   useEffect(() => {
-    if (filteredFlashcards.length > 0 && activeIndex >= filteredFlashcards.length) {
+    // Only adjust if we're not in the middle of processing a rating and the index is actually out of bounds
+    if (!isProcessingRating && filteredFlashcards.length > 0 && activeIndex >= filteredFlashcards.length) {
       console.log("🔧 Adjusting activeIndex due to filtered cards change - was:", activeIndex, "setting to 0");
       setActiveIndex(0);
     }
-  }, [filteredFlashcards.length, activeIndex]);
+  }, [filteredFlashcards.length, activeIndex, isProcessingRating]);
 
   // Update session stats when flashcards change
   useEffect(() => {
@@ -217,15 +216,18 @@ export default function FlashcardsPage() {
         quality
       );
 
-      // Store current filtered cards count and current index before state update
-      const currentFilteredLength = filteredFlashcards.length;
+      // Store current filtered cards and active index BEFORE state update
+      const currentFilteredCards = filteredFlashcards;
       const currentActiveIndex = activeIndex;
+      const currentFilteredLength = currentFilteredCards.length;
       console.log("📊 Before update - activeIndex:", currentActiveIndex, "filteredLength:", currentFilteredLength);
 
       // Update local state with spaced repetition data
       setAllFlashcards((prev) =>
         prev.map((card) => (card.id === cardId ? updatedCard : card))
-      ); // Save complete spaced repetition data to Firebase
+      );
+
+      // Save complete spaced repetition data to Firebase
       await updateVocabularySpacedRepetition(currentUser, cardId, updatedCard);
       console.log("💾 Firebase updated successfully");
 
@@ -233,42 +235,49 @@ export default function FlashcardsPage() {
       if (autoAdvanceTimeoutId) {
         console.log("🔄 Clearing existing auto-advance timeout");
         clearTimeout(autoAdvanceTimeoutId);
-      }      // Auto-advance to next card with a longer delay to prevent double triggers
-      console.log("⏰ Setting timeout to advance to next card...");
+      }
+
+      // Auto-advance logic: In review mode, rated cards are removed from the list
+      // so we need to stay at the same index (which now shows the next card)
       const timeoutId = setTimeout(() => {
-        console.log("⏰ Timeout triggered, advancing cards...");
+        console.log("⏰ Timeout triggered for advancement");
         
-        // Get fresh filtered cards after the state update has propagated
-        const newFilteredCards = getFilteredFlashcards();
-        console.log("📊 After update - newFilteredLength:", newFilteredCards.length);
-        
-        // Handle advancement more carefully
-        if (newFilteredCards.length > 0) {
-          // If the filtered array length changed, the current card might have been removed
-          if (newFilteredCards.length !== currentFilteredLength) {
-            console.log("🔄 Filtered cards length changed, adjusting index...");
-            // Stay at the same index (which now shows the next card) or wrap to 0
-            const newIndex = currentActiveIndex >= newFilteredCards.length ? 0 : currentActiveIndex;
-            console.log("🔄 Setting adjusted activeIndex:", newIndex);
-            setActiveIndex(newIndex);
-          } else {
-            // Normal advancement to next card
-            const newIndex = (currentActiveIndex + 1) % newFilteredCards.length;
-            console.log("🔄 Normal advancement to activeIndex:", newIndex);
-            setActiveIndex(newIndex);
-          }
+        if (studyMode === "review") {
+          // In review mode, rated cards get filtered out, so we stay at same index
+          console.log("🔄 Review mode: staying at current index", currentActiveIndex);
+          // The current index now points to the next card since the rated card was removed
+          // Only adjust if the current index is now out of bounds
+          setActiveIndex((currentIdx) => {
+            const newFilteredCards = getFilteredFlashcards();
+            if (currentIdx >= newFilteredCards.length && newFilteredCards.length > 0) {
+              console.log("🔄 Index out of bounds, wrapping to 0");
+              return 0;
+            }
+            return currentIdx;
+          });
+        } else {
+          // In other modes, advance normally
+          setActiveIndex((currentIdx) => {
+            const newFilteredCards = getFilteredFlashcards();
+            if (newFilteredCards.length > 0) {
+              const newIndex = (currentIdx + 1) % newFilteredCards.length;
+              console.log("🔄 Normal advancement to index:", newIndex);
+              return newIndex;
+            }
+            return currentIdx;
+          });
         }
         
-        setIsProcessingRating(false); // Reset after advancing
-        setAutoAdvanceTimeoutId(null); // Clear timeout ID
+        setIsProcessingRating(false);
+        setAutoAdvanceTimeoutId(null);
         console.log("✅ Quality rating process complete");
-      }, 800);
+      }, 500); // Reduced timeout since we're being more precise
 
       setAutoAdvanceTimeoutId(timeoutId);
     } catch (error) {
       console.error("Error updating spaced repetition data:", error);
-      setIsProcessingRating(false); // Reset on error
-      setAutoAdvanceTimeoutId(null); // Clear timeout ID on error
+      setIsProcessingRating(false);
+      setAutoAdvanceTimeoutId(null);
     }
   };
   // Handle example update from Flashcard component
