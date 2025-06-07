@@ -28,11 +28,10 @@ export default function MetaTags({
       <meta name="twitter:url" content={url} />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={fullImageUrl} />
-      <meta name="twitter:site" content="@lingento" />
+      <meta name="twitter:image" content={fullImageUrl} />      <meta name="twitter:site" content="@lingento" />
       
       {/* Additional meta tags */}
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       <meta name="robots" content="index, follow" />
       <link rel="canonical" href={url} />
     </Head>
