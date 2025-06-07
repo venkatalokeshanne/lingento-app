@@ -1,6 +1,37 @@
 // AWS Bedrock API Route - Server-side AI functionality
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
+// Helper function to get ordered French pronouns
+function getOrderedFrenchPronouns() {
+  return ['je', 'tu', 'il/elle/on', 'nous', 'vous', 'ils/elles'];
+}
+
+// Helper function to order conjugations by French pronoun order
+function orderConjugations(conjugations) {
+  if (!conjugations || typeof conjugations !== 'object') {
+    return conjugations;
+  }
+  
+  const orderedPronouns = getOrderedFrenchPronouns();
+  const ordered = {};
+  
+  // First, add pronouns in the correct order
+  orderedPronouns.forEach(pronoun => {
+    if (conjugations[pronoun]) {
+      ordered[pronoun] = conjugations[pronoun];
+    }
+  });
+  
+  // Then add any remaining pronouns that might not match exactly
+  Object.entries(conjugations).forEach(([pronoun, form]) => {
+    if (!ordered[pronoun]) {
+      ordered[pronoun] = form;
+    }
+  });
+  
+  return ordered;
+}
+
 // Use US East 1 for better Bedrock model availability
 const BEDROCK_REGION = 'us-east-1';
 
@@ -660,8 +691,8 @@ function transformComprehensiveConjugations(conjugations) {
   
   Object.entries(conjugations).forEach(([tense, forms]) => {
     if (typeof forms === 'object' && forms !== null) {
-      // Keep the forms as they are if they're already in the right format
-      transformed[tense] = forms;
+      // Order the conjugations for each tense
+      transformed[tense] = orderConjugations(forms);
     }
   });
   

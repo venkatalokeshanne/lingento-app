@@ -9,6 +9,37 @@ import audioService from "@/services/audioService";
 import { addUserData, updateUserData } from "@/utils/firebaseUtils";
 import translateService from "@/services/translateService";
 
+// Helper function to get ordered French pronouns
+function getOrderedFrenchPronouns() {
+  return ['je', 'tu', 'il/elle/on', 'nous', 'vous', 'ils/elles'];
+}
+
+// Helper function to order conjugations by French pronoun order
+function orderConjugations(conjugations) {
+  if (!conjugations || typeof conjugations !== 'object') {
+    return conjugations;
+  }
+  
+  const orderedPronouns = getOrderedFrenchPronouns();
+  const ordered = {};
+  
+  // First, add pronouns in the correct order
+  orderedPronouns.forEach(pronoun => {
+    if (conjugations[pronoun]) {
+      ordered[pronoun] = conjugations[pronoun];
+    }
+  });
+  
+  // Then add any remaining pronouns that might not match exactly
+  Object.entries(conjugations).forEach(([pronoun, form]) => {
+    if (!ordered[pronoun]) {
+      ordered[pronoun] = form;
+    }
+  });
+  
+  return ordered;
+}
+
 /**
  * Reusable Word Modal Component for adding vocabulary across the app
  */
@@ -21,13 +52,11 @@ function WordModal({
   language = 'en',
   userId = null
 }) {
-  const router = useRouter();
-  // Form state
+  const router = useRouter();  // Form state
   const [formData, setFormData] = useState({
     word: '',
     translation: '',
     pronunciation: '',
-    definition: '',
     example: '',
     category: 'vocabulary',
     partOfSpeech: '',
@@ -36,9 +65,7 @@ function WordModal({
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
   const [showExamples, setShowExamples] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translationTimeout, setTranslationTimeout] = useState(null);
-  const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);  const [translationTimeout, setTranslationTimeout] = useState(null);
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
@@ -56,12 +83,10 @@ function WordModal({
   // Return null if modal is not open
   if (!isOpen) return null;
     // Initialize form with data when editing
-  useEffect(() => {    if (editingWord) {
-      setFormData({
+  useEffect(() => {    if (editingWord) {      setFormData({
         word: editingWord.word || '',
         translation: editingWord.translation || '',
         pronunciation: editingWord.pronunciation || '',
-        definition: editingWord.definition || '',
         example: editingWord.example || '',
         category: editingWord.category || '',
         partOfSpeech: editingWord.partOfSpeech || '',
@@ -158,8 +183,7 @@ function WordModal({
     if (name === 'word') {
       // Generate suggestions as user types
       handleGenerateWordSuggestions(value);
-      
-      // Reset state when word field is cleared
+        // Reset state when word field is cleared
       if (!value.trim()) {
         // Clear all auto-generated content
         setFormData(prev => ({
@@ -167,7 +191,6 @@ function WordModal({
           word: '',
           translation: '',
           pronunciation: '',
-          definition: '',
           example: '',
           partOfSpeech: ''
         }));
@@ -176,7 +199,6 @@ function WordModal({
         setIsAutoFilling(false);
         setIsTranslating(false);
         setIsGeneratingPronunciation(false);
-        setIsGeneratingDefinition(false);
         setIsGeneratingExamples(false);
         setIsGeneratingSuggestions(false);
         
@@ -218,12 +240,10 @@ function WordModal({
     // Use setTimeout to allow suggestion clicks to register before hiding
     setTimeout(() => {
       setShowSuggestions(false);
-      
-      // Trigger auto-fill if word field has content and other fields are empty
+        // Trigger auto-fill if word field has content and other fields are empty
       const wordValue = formData.word.trim();
       if (wordValue && 
           !formData.translation && 
-          !formData.definition && 
           !formData.pronunciation &&
           !formData.partOfSpeech &&
           !isAutoFilling) {
@@ -320,38 +340,9 @@ function WordModal({
       }
     } finally {
       setIsGeneratingPronunciation(false);
-    }
-  };
+    }  };
   
-  // Generate definition with AI
-  const handleGenerateDefinition = async () => {
-    if (!formData.word || !formData.translation || !bedrockService.isReady()) {
-      toast.error('Please ensure word and translation are filled, and AI service is configured');
-      return;
-    }
-    
-    setIsGeneratingDefinition(true);
-    try {
-      const definition = await bedrockService.generateDefinition(
-        formData.word, 
-        formData.translation,
-        formData.language
-      );
-      
-      setFormData(prev => ({
-        ...prev,
-        definition
-      }));
-      
-      toast.success('Definition generated successfully!');
-    } catch (error) {
-      console.error('Error generating definition:', error);
-      toast.error('Failed to generate definition');
-    } finally {
-      setIsGeneratingDefinition(false);
-    }
-  };
-    // Generate examples with AI
+  // Generate examples with AI
   const handleGenerateExamples = async () => {
     if (!formData.word || !formData.translation || !bedrockService.isReady()) {
       toast.error('Please ensure word and translation are filled, and AI service is configured');
@@ -359,12 +350,11 @@ function WordModal({
     }
 
     setIsGeneratingExamples(true);
-    try {      
-      const examples = await bedrockService.generateExamples(
+    try {        const examples = await bedrockService.generateExamples(
         formData.word,
         formData.translation,
         formData.language,
-        formData.definition,
+        '', // definition removed
         'intermediate'
       );
       
@@ -400,12 +390,11 @@ function WordModal({
       return; // Silently fail for auto-generation
     }
 
-    try {      
-      const examples = await bedrockService.generateExamples(
+    try {        const examples = await bedrockService.generateExamples(
         word,
         translation,
         formData.language,
-        formData.definition,
+        '', // definition removed
         'intermediate'
       );
       
@@ -509,8 +498,7 @@ function WordModal({
       setShowSuggestions(false);
       setWordSuggestions([]);
     }
-  };
-  // Handle suggestion selection
+  };  // Handle suggestion selection
   const handleSelectSuggestion = (suggestion) => {
     // Extract just the word part (before the parentheses)
     const wordPart = suggestion.split('(')[0].trim();
@@ -524,9 +512,9 @@ function WordModal({
       setSuggestionTimeout(null);
     }
     
-    // Trigger auto-translate for the selected word
+    // Use comprehensive auto-fill for selected suggestions to include verb conjugations
     if (!editingWord) {
-      handleAutoTranslate(wordPart);
+      handleComprehensiveAutoFill(wordPart);
     }
   };
 
@@ -571,9 +559,18 @@ function WordModal({
       toast.error('Please fill in at least the word and translation fields');
       return;
     }    try {
+      // Order conjugations before saving
+      let orderedConjugations = null;
+      if (verbConjugations && Object.keys(verbConjugations).length > 0) {
+        orderedConjugations = {};
+        Object.entries(verbConjugations).forEach(([tense, conjugations]) => {
+          orderedConjugations[tense] = orderConjugations(conjugations);
+        });
+      }
+      
       const wordData = {
         ...formData,
-        conjugations: verbConjugations, // Include verb conjugations in saved data
+        conjugations: orderedConjugations, // Include ordered verb conjugations in saved data
         createdAt: new Date(),
         lastReviewDate: null,
         nextReviewDate: new Date(),
@@ -587,7 +584,7 @@ function WordModal({
       };
       
       console.log('Saving word data:', wordData);
-      console.log('Conjugations to save:', verbConjugations);
+      console.log('Ordered conjugations to save:', orderedConjugations);
       
       // If onSubmit callback is provided, use it
       if (onSubmit) {
@@ -654,7 +651,6 @@ function WordModal({
               ...prev,
               translation: comprehensiveData.translation || prev.translation,
               pronunciation: comprehensiveData.pronunciation || prev.pronunciation,
-              definition: comprehensiveData.definition || prev.definition,
               example: comprehensiveData.example || prev.example,
               partOfSpeech: comprehensiveData.partOfSpeech || prev.partOfSpeech,
               translatedExample: comprehensiveData.translatedExample || prev.translatedExample
@@ -892,48 +888,11 @@ function WordModal({
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${isAutoFilling ? 'border-green-500' : 'border-blue-500'}`}></div>
                 </div>
-              )}
-            </div>
+              )}            </div>
           </div>
-          
-          {/* Definition */}
+
+          {/* Verb Conjugation Display */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                Definition
-              </label>
-              <button
-                type="button"
-                onClick={handleGenerateDefinition}
-                disabled={isGeneratingDefinition || !formData.word || !formData.translation}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-md transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
-              >
-                {isGeneratingDefinition ? (
-                  <>
-                    <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    AI Definition
-                  </>
-                )}
-              </button>
-            </div>
-            <textarea
-              name="definition"
-              rows="2"
-              value={formData.definition}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all resize-none placeholder-gray-500 text-sm"
-              placeholder="Enter definition or explanation (or generate with AI)"
-            />            
-            {/* Verb Conjugation Display */}
             {verbConjugations && (
               <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <h4 className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mb-2 flex items-center gap-1.5">
@@ -941,35 +900,42 @@ function WordModal({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Verb Conjugations
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                </h4>                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Object.entries(verbConjugations).map(([tense, conjugations]) => (
                     <div key={tense} className="bg-white dark:bg-gray-700 rounded-md p-2 border border-emerald-200 dark:border-emerald-700">
                       <h5 className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-1">
                         {tense === 'passe' ? 'Passé Composé' : 
                          tense.charAt(0).toUpperCase() + tense.slice(1)}
-                      </h5>
-                      <div className="space-y-0.5">
-                        {Object.entries(conjugations).map(([pronoun, form]) => (
-                          <div key={pronoun} className="flex justify-between items-center text-xs">
-                            <span className="text-gray-600 dark:text-gray-400">{pronoun}:</span>
-                            <button
-                              type="button"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await audioService.playAudio(form, formData.language);
-                                } catch (error) {
-                                  console.error('Error playing conjugation audio:', error);
-                                }
-                              }}
-                              className="font-medium text-gray-800 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer underline-offset-2 hover:underline"
-                              title={`Click to pronounce ${form}`}
-                            >
-                              {form}
-                            </button>
-                          </div>
-                        ))}
+                      </h5>                      <div className="space-y-0.5">
+                        {Object.entries(orderConjugations(conjugations)).map(([pronoun, form]) => {
+                          // Handle French contractions (je + vowel = j')
+                          let fullPhrase;
+                          if (formData.language === 'fr' && pronoun.toLowerCase() === 'je' && /^[aeiouéèàh]/.test(form)) {
+                            fullPhrase = `J'${form}`;
+                          } else {
+                            fullPhrase = `${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ${form}`;
+                          }
+                          
+                          return (
+                            <div key={pronoun} className="flex items-center text-xs">
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await audioService.playAudio(fullPhrase, formData.language);
+                                  } catch (error) {
+                                    console.error('Error playing conjugation audio:', error);
+                                  }
+                                }}
+                                className="font-medium text-gray-800 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer underline-offset-2 hover:underline w-full text-left"
+                                title={`Click to pronounce ${fullPhrase}`}
+                              >
+                                {fullPhrase}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -1077,7 +1043,6 @@ function WordModal({
               </label>
               <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm">
                 {formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1) : 'English'}
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(From user preferences)</span>
               </div>
             </div>
           </div>

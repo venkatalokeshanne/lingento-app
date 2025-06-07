@@ -77,7 +77,7 @@ export default function ReadingWritingHub() {
         pronunciation: wordData.pronunciation || "",
         definition: wordData.definition || "",
         example: wordData.example || "",
-        category: "Vocabulary",
+        category: "vocabulary",
         language: userLanguage,
         dateAdded: new Date().toISOString(),
         source: "reading_writing_practice",

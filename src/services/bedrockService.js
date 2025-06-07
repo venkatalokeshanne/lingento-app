@@ -1,11 +1,42 @@
 // AWS Bedrock Service - Centralized AI functionality
 'use client';
 
+// Helper function to get ordered French pronouns
+function getOrderedFrenchPronouns() {
+  return ['je', 'tu', 'il/elle/on', 'nous', 'vous', 'ils/elles'];
+}
+
+// Helper function to order conjugations by French pronoun order
+function orderConjugations(conjugations) {
+  if (!conjugations || typeof conjugations !== 'object') {
+    return conjugations;
+  }
+  
+  const orderedPronouns = getOrderedFrenchPronouns();
+  const ordered = {};
+  
+  // First, add pronouns in the correct order
+  orderedPronouns.forEach(pronoun => {
+    if (conjugations[pronoun]) {
+      ordered[pronoun] = conjugations[pronoun];
+    }
+  });
+  
+  // Then add any remaining pronouns that might not match exactly
+  Object.entries(conjugations).forEach(([pronoun, form]) => {
+    if (!ordered[pronoun]) {
+      ordered[pronoun] = form;
+    }
+  });
+  
+  return ordered;
+}
+
 class BedrockService {
   constructor() {
     this.cache = new Map();
     this.isInitialized = true; // Always ready since we use API routes
-  }  // Generate examples for a word with context
+  }// Generate examples for a word with context
   async generateExamples(word, translation, language, definition = '') {
     const cacheKey = `examples_${word}_${language}`;
     if (this.cache.has(cacheKey)) {
@@ -308,7 +339,11 @@ This must be a BRAND NEW response that has never been generated before.`;
             conjugations[mappedTenseName][`form${index + 1}`] = cleanForm;
           }
         });
-      }
+      }    });
+    
+    // Apply ordering to all conjugations before returning
+    Object.keys(conjugations).forEach(tense => {
+      conjugations[tense] = orderConjugations(conjugations[tense]);
     });
     
     return conjugations;
@@ -526,7 +561,6 @@ This must be a BRAND NEW response that has never been generated before.`;
       throw error;
     }
   }
-
   // Transform comprehensive conjugations to match UI expectations
   transformComprehensiveConjugations(conjugations) {
     if (!conjugations || conjugations === null) {
@@ -538,7 +572,8 @@ This must be a BRAND NEW response that has never been generated before.`;
     // Handle both object format and existing transformed format
     Object.entries(conjugations).forEach(([tense, forms]) => {
       if (typeof forms === 'object' && forms !== null) {
-        transformed[tense] = forms;
+        // Order the conjugations for each tense
+        transformed[tense] = orderConjugations(forms);
       }
     });
     

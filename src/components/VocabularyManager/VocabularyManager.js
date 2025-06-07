@@ -36,6 +36,37 @@ const getPartOfSpeechAbbreviation = (partOfSpeech) => {
   return abbreviations[partOfSpeech] || partOfSpeech;
 };
 
+// Helper function to get ordered French pronouns
+function getOrderedFrenchPronouns() {
+  return ['je', 'tu', 'il/elle/on', 'nous', 'vous', 'ils/elles'];
+}
+
+// Helper function to order conjugations by French pronoun order
+function orderConjugations(conjugations) {
+  if (!conjugations || typeof conjugations !== 'object') {
+    return conjugations;
+  }
+  
+  const orderedPronouns = getOrderedFrenchPronouns();
+  const ordered = {};
+  
+  // First, add pronouns in the correct order
+  orderedPronouns.forEach(pronoun => {
+    if (conjugations[pronoun]) {
+      ordered[pronoun] = conjugations[pronoun];
+    }
+  });
+  
+  // Then add any remaining pronouns that might not match exactly
+  Object.entries(conjugations).forEach(([pronoun, form]) => {
+    if (!ordered[pronoun]) {
+      ordered[pronoun] = form;
+    }
+  });
+  
+  return ordered;
+}
+
 // Enhanced WordCard Component with modern design
 function WordCard({ word, onEdit, onDelete, onShowConjugations }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -321,7 +352,6 @@ function ConjugationModal({ isOpen, onClose, word }) {
       onClose();
     }
   };
-
   const handleConjugationAudio = async (conjugatedForm, pronoun, tense) => {
     const audioKey = `${tense}-${pronoun}`;
 
@@ -332,7 +362,15 @@ function ConjugationModal({ isOpen, onClose, word }) {
     }
 
     try {
-      await audioService.playAudio(conjugatedForm, word.language, {
+      // Create full phrase with pronoun and conjugated form
+      let fullPhrase;
+      if (word.language === 'fr' && pronoun.toLowerCase() === 'je' && /^[aeiouéèàh]/.test(conjugatedForm)) {
+        fullPhrase = `J'${conjugatedForm}`;
+      } else {
+        fullPhrase = `${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ${conjugatedForm}`;
+      }
+
+      await audioService.playAudio(fullPhrase, word.language, {
         onStart: () => {
           setPlayingAudio(audioKey);
         },
@@ -404,18 +442,7 @@ function ConjugationModal({ isOpen, onClose, word }) {
                 <span className="text-gray-500 dark:text-gray-400 italic">
                   /{word.pronunciation}/
                 </span>
-              )}
-            </div>
-            {word.definition && (
-              <div className="mb-3">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Definition:
-                </p>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {word.definition}
-                </p>
-              </div>
-            )}
+              )}            </div>
             {word.example && (
               <div className="mb-3">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -456,59 +483,56 @@ function ConjugationModal({ isOpen, onClose, word }) {
                     >
                       <h4 className="text-lg font-bold text-emerald-800 dark:text-emerald-200 mb-3 text-center uppercase tracking-wide">
                         {tense === "passe" ? "Passé Composé" : tense}
-                      </h4>{" "}
-                      <div className="space-y-2">
-                        {Object.entries(conjugations).map(([pronoun, form]) => {
+                      </h4>{" "}                      <div className="space-y-2">
+                        {Object.entries(orderConjugations(conjugations)).map(([pronoun, form]) => {
                           const audioKey = `${tense}-${pronoun}`;
                           const isPlaying = playingAudio === audioKey;
+                          
+                          // Handle French contractions (je + vowel = j')
+                          let fullPhrase;
+                          if (word.language === 'fr' && pronoun.toLowerCase() === 'je' && /^[aeiouéèàh]/.test(form)) {
+                            fullPhrase = `J'${form}`;
+                          } else {
+                            fullPhrase = `${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ${form}`;
+                          }
 
                           return (
                             <div
                               key={pronoun}
-                              className="flex justify-between items-center py-1 px-2 bg-white dark:bg-gray-700 rounded border border-emerald-100 dark:border-emerald-800"
-                            >
-                              <span className="font-medium text-emerald-700 dark:text-emerald-300 text-sm">
-                                {pronoun}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-gray-800 dark:text-gray-200">
-                                  {form}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    handleConjugationAudio(form, pronoun, tense)
-                                  }
-                                  className={`p-1 rounded-full transition-all flex-shrink-0 ${
-                                    isPlaying
-                                      ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 scale-110"
-                                      : "text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                                  }`}
-                                  title="Play pronunciation"
-                                >
-                                  {isPlaying ? (
-                                    <motion.svg
-                                      animate={{ scale: [1, 1.2, 1] }}
-                                      transition={{
-                                        repeat: Infinity,
-                                        duration: 0.8,
-                                      }}
-                                      className="w-3 h-3"
-                                      fill="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                                    </motion.svg>
-                                  ) : (
-                                    <svg
-                                      className="w-3 h-3"
-                                      fill="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path d="M3 9v6h4l5 5V4L7 9H3z" />
-                                    </svg>
-                                  )}
-                                </button>
-                              </div>
+                              className="flex items-center py-1 px-2 bg-white dark:bg-gray-700 rounded border border-emerald-100 dark:border-emerald-800"
+                            >                              <button
+                                onClick={() =>
+                                  handleConjugationAudio(form, pronoun, tense)
+                                }
+                                className={`w-full text-left font-medium text-gray-800 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer underline-offset-2 hover:underline flex items-center justify-between ${
+                                  isPlaying ? 'text-emerald-600 dark:text-emerald-400' : ''
+                                }`}
+                                title={`Click to pronounce ${fullPhrase}`}
+                              >
+                                <span>{fullPhrase}</span>
+                                {isPlaying ? (
+                                  <motion.svg
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{
+                                      repeat: Infinity,
+                                      duration: 0.8,
+                                    }}
+                                    className="w-3 h-3 ml-2 flex-shrink-0"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                  </motion.svg>
+                                ) : (
+                                  <svg
+                                    className="w-3 h-3 ml-2 flex-shrink-0 text-gray-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M3 9v6h4l5 5V4L7 9H3z" />
+                                  </svg>
+                                )}
+                              </button>
                             </div>
                           );
                         })}
@@ -611,14 +635,18 @@ export default function VocabularyManager() {
     "all",
     ...new Set(words.map((word) => word.partOfSpeech)),
   ].filter(Boolean);
-
-  // Debug logging for categories
+  // Debug logging for categories and parts of speech
   console.log("Debug - Words:", words.length);
   console.log("Debug - Categories extracted:", categories);
+  console.log("Debug - Parts of speech extracted:", partsOfSpeech);
   console.log(
     "Debug - Words with categories:",
     words.map((word) => ({ word: word.word, category: word.category }))
-  ); // Fetch words on component mount
+  );
+  console.log(
+    "Debug - Words with parts of speech:",
+    words.map((word) => ({ word: word.word, partOfSpeech: word.partOfSpeech }))
+  );// Fetch words on component mount
   useEffect(() => {
     if (currentUser) {
       fetchWords(currentUser, setWords, setLoading);
@@ -647,14 +675,17 @@ export default function VocabularyManager() {
     try {
       // Prepare the data to save from the new WordModal component
       const saveData = { ...wordData };
-      const currentEditingWord = editingWordToUpdate || editingWord;
-
-      // If we have verb conjugations, add them
+      const currentEditingWord = editingWordToUpdate || editingWord;      // If we have verb conjugations, add them with proper ordering
       if (
         wordData.verbConjugations &&
         Object.keys(wordData.verbConjugations).length > 0
       ) {
-        saveData.conjugations = wordData.verbConjugations;
+        // Order the conjugations properly before saving
+        const orderedConjugations = {};
+        Object.entries(wordData.verbConjugations).forEach(([tense, conjugations]) => {
+          orderedConjugations[tense] = orderConjugations(conjugations);
+        });
+        saveData.conjugations = orderedConjugations;
         // Mark as verb type for easier identification
         if (!saveData.category || saveData.category === "vocabulary") {
           saveData.category = "verbs";
@@ -1108,8 +1139,7 @@ export default function VocabularyManager() {
                       <div className="col-span-3 sm:col-span-4">
                         Translation
                       </div>
-                      <div className="col-span-2 hidden sm:block">Part of Speech</div>
-                      <div className="col-span-2 hidden sm:block">Language</div>
+                      <div className="col-span-2 hidden sm:block">Example</div>
                       <div className="col-span-2 sm:col-span-3 text-right">
                         Actions
                       </div>
@@ -1189,15 +1219,11 @@ export default function VocabularyManager() {
                                   {word.translation}
                                 </div>
                               </div>
-                              {/* Part of Speech Column - Hidden on mobile */}                              <div className="col-span-2 hidden sm:block">
-                                <span className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full">
-                                  {word.partOfSpeech ? `(${getPartOfSpeechAbbreviation(word.partOfSpeech)})` : 'N/A'}
-                                </span>
-                              </div>
+                              {/* Part of Speech Column - Hidden on mobile */}                              
                               {/* Language Column - Hidden on mobile */}
-                              <div className="col-span-2 hidden sm:block">
+                              <div className="col-span-3 hidden sm:block">
                                 <span className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
-                                  {word.language}
+                                  {word.example}
                                 </span>
                               </div>
                               {/* Actions Column */}
