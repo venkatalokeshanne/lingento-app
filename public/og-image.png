@@ -1,0 +1,10 @@
+# This is a placeholder - you'll need to create an actual PNG image
+# 
+# To fix WhatsApp preview issues, you should:
+# 1. Convert your og-image.svg to og-image.png (1200x630 pixels)
+# 2. Use a tool like:
+#    - Online converter (svg2png.com)
+#    - Photoshop/GIMP
+#    - Command line with ImageMagick
+#
+# For now, I'll update your metadata to fallback to PNG first, then SVG

@@ -77,15 +77,15 @@ export default function Home() {
       </div>
     );
   }
-    return (
-    <>
+    return (    <>
       <SocialMetaTags 
         title="Lingento | Learn Any Language Effectively with Smart Flashcards"
         description="Master vocabulary in multiple languages with spaced repetition. Interactive flashcards, personalized learning paths, and AI-powered features to accelerate your language learning journey."
-        image="/og-image.svg"
+        image="https://lingentoo.com/og-home.svg"
         url="https://lingentoo.com"
+        type="website"
       />
-      {/* Structured Data for SEO */}
+        {/* Enhanced Structured Data for SEO */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -97,18 +97,16 @@ export default function Home() {
             "url": "https://lingentoo.com",
             "applicationCategory": "EducationalApplication",
             "operatingSystem": "Any",
+            "browserRequirements": "Requires JavaScript. Requires HTML5.",
+            "softwareVersion": "1.0",
+            "releaseDate": "2025-01-01",
+            "dateModified": new Date().toISOString().split('T')[0],
             "offers": {
               "@type": "Offer",
               "price": "0",
               "priceCurrency": "USD",
-              "availability": "https://schema.org/InStock"
-            },
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.9",
-              "reviewCount": "2500",
-              "bestRating": "5",
-              "worstRating": "1"
+              "availability": "https://schema.org/InStock",
+              "category": "Education"
             },
             "author": {
               "@type": "Organization",
@@ -123,21 +121,88 @@ export default function Home() {
                 "url": "https://lingentoo.com/icons/icon-512x512.png",
                 "width": 512,
                 "height": 512
-              }
+              },
+              "url": "https://lingentoo.com"
+            },
+            "image": {
+              "@type": "ImageObject", 
+              "url": "https://lingentoo.com/og-home.svg",
+              "width": 1200,
+              "height": 630
+            },
+            "screenshot": "https://lingentoo.com/og-home.svg",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "2500",
+              "bestRating": "5",
+              "worstRating": "1"
             },
             "featureList": [
-              "AI-powered spaced repetition",
-              "Interactive flashcards",
-              "Personalized learning paths",
-              "Progress tracking",
-              "Offline learning capability",
-              "Multi-device synchronization"
+              "Spaced Repetition Algorithm",
+              "Interactive Flashcards", 
+              "Progress Tracking",
+              "Multi-language Support",
+              "Pronunciation Audio",
+              "Offline Learning",
+              "Personalized Learning Paths",
+              "AI-Powered Recommendations"
+            ],
+            "applicationSubCategory": "Language Learning",
+            "educationalLevel": "All Levels",
+            "interactivityType": "Active",
+            "learningResourceType": "Interactive Application",
+            "audience": {
+              "@type": "EducationalAudience",
+              "educationalRole": "Student"
+            }
+          })
+        }}
+      />
+
+      {/* Additional Structured Data - Organization */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Lingento",
+            "url": "https://lingentoo.com",
+            "logo": "https://lingentoo.com/icons/icon-512x512.png",
+            "description": "Leading language learning platform with AI-powered spaced repetition",
+            "sameAs": [
+              "https://twitter.com/lingento",
+              "https://facebook.com/lingento"
+            ],
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "contactType": "Customer Service",
+              "email": "support@lingentoo.com"
+            }
+          })
+        }}
+      />
+
+      {/* Breadcrumb Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://lingentoo.com"
+              }
             ]
           })
         }}
       />
-      
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>

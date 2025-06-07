@@ -1,0 +1,73 @@
+// Enhanced metadata for home page
+export const metadata = {
+  title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+  description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language learning journey.",
+  keywords: [
+    "language learning",
+    "vocabulary flashcards", 
+    "spaced repetition",
+    "learn languages online",
+    "vocabulary builder",
+    "language study app",
+    "flashcard app",
+    "multilingual education",
+    "pronunciation practice",
+    "grammar learning",
+    "language mastery",
+    "interactive flashcards",
+    "personalized learning",
+    "AI language learning"
+  ].join(", "),
+  authors: [{ name: "Lingento Team" }],
+  creator: "Lingento",
+  publisher: "Lingento",
+  metadataBase: new URL('https://lingentoo.com'),
+  alternates: {
+    canonical: 'https://lingentoo.com',
+    languages: {
+      'en-US': 'https://lingentoo.com',
+      'fr-FR': 'https://lingentoo.com/fr',
+    },
+  },
+  openGraph: {
+    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+    description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language learning journey.",
+    url: 'https://lingentoo.com',
+    siteName: 'Lingento',
+    images: [
+      {
+        url: 'https://lingentoo.com/og-home.svg',
+        width: 1200,
+        height: 630,
+        alt: 'Lingento - Learn Languages with Smart Flashcards',
+        type: 'image/svg+xml',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
+    description: "Master vocabulary in multiple languages with spaced repetition and interactive flashcards. Start your language learning journey today!",
+    site: '@lingento',
+    creator: '@lingento',
+    images: ['https://lingentoo.com/og-home.svg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  category: 'education',
+  classification: 'language learning platform',
+  referrer: 'origin-when-cross-origin',
+};

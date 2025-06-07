@@ -25,51 +25,50 @@ export const metadata = {
   keywords: "language learning, vocabulary builder, flashcards, spaced repetition, learn languages, multilingual education, pronunciation practice, grammar learning, online language course",
   authors: [{ name: "Lingento Team" }],
   creator: "Lingento",
-  publisher: "Lingento",
-  formatDetection: {
+  publisher: "Lingento",  formatDetection: {
     email: false,
     address: false,
     telephone: false,
-  },  metadataBase: new URL('https://lingentoo.com'),
+  },
+  metadataBase: new URL('https://lingentoo.com'),
   alternates: {
-    canonical: 'https://lingentoo.com',
-    languages: {
+    canonical: 'https://lingentoo.com',    languages: {
       'en-US': 'https://lingentoo.com',
       'fr-FR': 'https://lingentoo.com/fr',
     },
-  },  icons: {
+  },
+  icons: {
     icon: [
       { url: '/icon', sizes: '32x32', type: 'image/png' },
       { url: '/favicon.svg', type: 'image/svg+xml' }
     ],
-    shortcut: '/favicon.svg',
-    apple: [
+    shortcut: '/favicon.svg',    apple: [
       { url: '/apple-icon', sizes: '180x180', type: 'image/png' }
     ],
-  },// Enhanced Open Graph metadata for better social sharing
+  },  // Enhanced Open Graph metadata for better social sharing
   openGraph: {
     title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
     description: "Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths.",
     url: 'https://lingentoo.com',
-    siteName: 'Lingento',
-    images: [
+    siteName: 'Lingento',    images: [
       {
-        url: '/opengraph-image',
+        url: 'https://lingentoo.com/og-image.svg',
         width: 1200,
         height: 630,
         alt: 'Lingento - Learn Languages with Smart Flashcards',
+        type: 'image/svg+xml',
       },
-    ],
-    locale: 'en_US',
+    ],locale: 'en_US',
     type: 'website',
-  },  // Enhanced Twitter metadata
+  },
+  // Enhanced Twitter metadata
   twitter: {
     card: 'summary_large_image',
     title: "Lingento | Learn Any Language Effectively with Smart Flashcards",
     description: "Master vocabulary in multiple languages with spaced repetition and interactive flashcards. Start your language learning journey today!",
     site: '@lingento',
     creator: '@lingento',
-    images: ['/opengraph-image'],
+    images: ['https://lingentoo.com/og-image.svg'],
   },
   robots: {
     index: true,
@@ -78,11 +77,11 @@ export const metadata = {
     googleBot: {
       index: true,
       follow: true,
-      noimageindex: false,
-      'max-video-preview': -1,
+      noimageindex: false,      'max-video-preview': -1,
       'max-image-preview': 'large',
       'max-snippet': -1,
-    },  },
+    },
+  },
   manifest: "/manifest.json",
   themeColor: "#4f46e5",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
@@ -124,30 +123,44 @@ export default function RootLayout({ children }) {
         "url": "https://lingentoo.com/icons/icon-512x512.png"
       }
     }
-  };
-  return (
-    <html lang="en">
-      <head>
-        {/* Favicon - Force override of default Vercel favicon */}
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="shortcut icon" href="/favicon.svg" />        <link rel="apple-touch-icon" href="/favicon.svg" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-touch-fullscreen" content="yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="format-detection" content="telephone=no" />
-        <meta name="msapplication-tap-highlight" content="no" />
+  };  return (
+    <html lang="en">      <head>
+        {/* Essential meta tags for WhatsApp and other social platforms */}
+        <meta property="og:title" content="Lingento | Learn Any Language Effectively with Smart Flashcards" />
+        <meta property="og:description" content="Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards and personalized learning paths." />
+        <meta property="og:image" content="https://lingentoo.com/og-image.svg" />
+        <meta property="og:image:secure_url" content="https://lingentoo.com/og-image.svg" />
+        <meta property="og:image:type" content="image/svg+xml" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Lingento - Learn Languages with Smart Flashcards" />
+        <meta property="og:url" content="https://lingentoo.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Lingento" />
+        <meta property="og:locale" content="en_US" />
+        
+        {/* Twitter Card tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@lingento" />
+        <meta name="twitter:creator" content="@lingento" />
+        <meta name="twitter:title" content="Lingento | Learn Any Language Effectively with Smart Flashcards" />
+        <meta name="twitter:description" content="Master vocabulary in multiple languages with spaced repetition and interactive flashcards. Start your language learning journey today!" />
+        <meta name="twitter:image" content="https://lingentoo.com/og-image.svg" />
+        <meta name="twitter:image:alt" content="Lingento - Learn Languages with Smart Flashcards" />
+        
+        {/* Additional meta tags for better compatibility */}
+        <meta name="title" content="Lingento | Learn Any Language Effectively with Smart Flashcards" />
+        <meta name="description" content="Master vocabulary in multiple languages with an effective memorization method based on spaced repetition. Interactive flashcards, personalized learning paths, and proven techniques to accelerate your language learning journey." />
+        <meta name="image" content="https://lingentoo.com/og-image.svg" />
+        <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://lingentoo.com" />
+        
+        {/* Structured data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
-        <meta name="language" content="English" />
-        <meta name="geo.region" content="US" />
-        <meta name="geo.placename" content="United States" />
-        <meta httpEquiv="content-language" content="en-us" />
-      </head>      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      </head><body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <MobileZoomPrevention />
         <AuthProvider>
           <ThemeProvider>
