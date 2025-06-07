@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AddButton from '../AddButton';
 import WordModal from '../WordModal/WordModal';
 import toast, { Toaster } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 // Enhanced MetricCard with advanced analytics and better visual design
 const MetricCard = ({ title, value, subtitle, icon, color, trend, trendDirection, onClick, analytics }) => {
@@ -632,6 +633,7 @@ const ActivityTimeline = ({ recentActivity }) => {
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const { preferences, updatePreferences } = useUserPreferences();
+  const router = useRouter();
 
   const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -811,8 +813,7 @@ const Dashboard = () => {
       console.error('Error saving word:', error);
       toast.error('Error saving word. Please try again.');
     }
-  };
-  // Extract loadData function to reuse it
+  };  // Extract loadData function to reuse it
   const loadData = async () => {
     if (currentUser) {
       try {
@@ -821,7 +822,14 @@ const Dashboard = () => {
           setFlashcards,
           setLoading
         );
-          if (cards && cards.length > 0) {          // Filter cards by user's learning language from preferences
+        
+        // Check if user has no vocabulary words and redirect to flashcards page
+        if (!cards || cards.length === 0) {
+router.push('/flashcards');
+          return;
+        }
+        
+        if (cards && cards.length > 0) {          // Filter cards by user's learning language from preferences
           const filteredCards = preferences?.language 
             ? cards.filter(card => card.language === preferences.language)
             : cards;
@@ -887,7 +895,7 @@ const Dashboard = () => {
       }
     }
     setLoading(false);
-  };  const retentionPercentage = Math.round(stats?.retentionRate || 0);
+  };const retentionPercentage = Math.round(stats?.retentionRate || 0);
   const masteredPercentage = stats?.total > 0 ? Math.round((stats?.matured / stats?.total) * 100) : 0;
   const progressTowardsGoal = Math.round((goalCompleted / dailyGoal) * 100);
 

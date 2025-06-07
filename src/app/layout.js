@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import PWAComponents from "@/components/PWAComponents";
 import PWADebugLoader from "@/components/PWADebugLoader";
 import TutorialManager from "@/components/TutorialManager";
+import MobileZoomPrevention from "@/components/MobileZoomPrevention";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -129,11 +130,14 @@ export default function RootLayout({ children }) {
       <head>
         {/* Favicon - Force override of default Vercel favicon */}
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="shortcut icon" href="/favicon.svg" />
-        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.svg" />        <link rel="apple-touch-icon" href="/favicon.svg" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-touch-fullscreen" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
         <link rel="canonical" href="https://lingentoo.com" />
         <script
           type="application/ld+json"
@@ -144,6 +148,7 @@ export default function RootLayout({ children }) {
         <meta name="geo.placename" content="United States" />
         <meta httpEquiv="content-language" content="en-us" />
       </head>      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <MobileZoomPrevention />
         <AuthProvider>
           <ThemeProvider>
             <UserPreferencesProvider>
