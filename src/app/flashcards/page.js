@@ -786,9 +786,11 @@ export default function FlashcardsPage() {
                       filteredFlashcards[activeIndex].translatedExample
                     }
                     originalWord={filteredFlashcards[activeIndex].originalWord}
-                    translation={filteredFlashcards[activeIndex].translation}
-                    pronunciation={
+                    translation={filteredFlashcards[activeIndex].translation}                    pronunciation={
                       filteredFlashcards[activeIndex].pronunciation
+                    }
+                    conjugations={
+                      filteredFlashcards[activeIndex].conjugations
                     }
                     // Spaced repetition props
                     easinessFactor={

@@ -278,9 +278,7 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
             translatedExample = `[Translation needed] ${word.example}`;
           }
         }
-      }
-
-      return {
+      }      return {
         id: word.id,
         // Always show the word on the front
         frontText: word.word,
@@ -297,6 +295,9 @@ export const fetchVocabularyAsFlashcards = async (currentUser, setFlashcards, se
         originalCategory: word.category,        language: word.language || 'english',
         createdAt: word.createdAt,
         updatedAt: word.updatedAt,
+        
+        // Conjugations for verbs
+        conjugations: word.conjugations || null,
 
         // Spaced repetition fields
         easinessFactor: word.easinessFactor || 2.5,
