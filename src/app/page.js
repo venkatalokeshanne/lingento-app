@@ -10,10 +10,10 @@ import SocialMetaTags from "@/components/SocialMetaTags";
 
 export default function Home() {
   const { currentUser, loading } = useAuth();
-  const { hasCompletedOnboarding } = useUserPreferences();
+  const { hasCompletedOnboarding, loading: preferencesLoading } = useUserPreferences();
   const router = useRouter();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);  const featuredWords = [
+  const [isAnimating, setIsAnimating] = useState(false);const featuredWords = [
     { word: "happiness", translation: "bonheur", language: "French", pronunciation: "/bɔ.nœʁ/" },
     { word: "freedom", translation: "libertad", language: "Spanish", pronunciation: "/li.βeɾ.ˈtað/" },
     { word: "love", translation: "Liebe", language: "German", pronunciation: "/ˈliːbə/" },
@@ -31,18 +31,18 @@ export default function Home() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [featuredWords.length]);
-  // Automatic redirection for authenticated users
+  }, [featuredWords.length]);  // Automatic redirection for authenticated users
   useEffect(() => {
     console.log('Home page useEffect - Auth state:', { 
       loading, 
+      preferencesLoading,
       currentUser: !!currentUser, 
       hasCompletedOnboarding: currentUser ? hasCompletedOnboarding() : 'N/A' 
     });
     
-    // Wait for authentication state to be determined
-    if (!loading && currentUser) {
-      console.log('User is authenticated, redirecting...');
+    // Wait for both authentication and preferences to be loaded
+    if (!loading && !preferencesLoading && currentUser) {
+      console.log('User is authenticated and preferences loaded, redirecting...');
       // Redirect to /dashboard if onboarding is not completed, /flashcards otherwise
       if (!hasCompletedOnboarding()) {
         console.log('Redirecting to /dashboard - onboarding not completed');
@@ -52,7 +52,31 @@ export default function Home() {
         router.push("/flashcards");
       }
     }
-  }, [currentUser, loading, hasCompletedOnboarding, router]);
+  }, [currentUser, loading, preferencesLoading, hasCompletedOnboarding, router]);
+
+  // Show loading state while checking authentication and preferences
+  if (loading || preferencesLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render content if user is authenticated (they will be redirected)
+  if (currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
     return (
     <>
       <SocialMetaTags 
