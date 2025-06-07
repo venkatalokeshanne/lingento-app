@@ -22,7 +22,6 @@ function WordModal({
   userId = null
 }) {
   const router = useRouter();
-  
   // Form state
   const [formData, setFormData] = useState({
     word: '',
@@ -30,10 +29,10 @@ function WordModal({
     pronunciation: '',
     definition: '',
     example: '',
-    category: '',
+    category: 'vocabulary',
+    partOfSpeech: '',
     language: language || 'fr'
-  });
-  // Modal state for AI features
+  });// Modal state for AI features
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
   const [showExamples, setShowExamples] = useState(false);
@@ -42,6 +41,8 @@ function WordModal({
   const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
   const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autoFillTimeout, setAutoFillTimeout] = useState(null);
   
   // Word suggestions state
   const [wordSuggestions, setWordSuggestions] = useState([]);
@@ -54,10 +55,8 @@ function WordModal({
   
   // Return null if modal is not open
   if (!isOpen) return null;
-  
-  // Initialize form with data when editing
-  useEffect(() => {
-    if (editingWord) {
+    // Initialize form with data when editing
+  useEffect(() => {    if (editingWord) {
       setFormData({
         word: editingWord.word || '',
         translation: editingWord.translation || '',
@@ -65,21 +64,33 @@ function WordModal({
         definition: editingWord.definition || '',
         example: editingWord.example || '',
         category: editingWord.category || '',
+        partOfSpeech: editingWord.partOfSpeech || '',
         language: editingWord.language || language || 'fr'
       });
-    } else if (initialWord) {
-      setFormData(prev => ({
+      
+      // Load verb conjugations if they exist
+      if (editingWord.conjugations) {
+        setVerbConjugations(editingWord.conjugations);
+      } else {
+        setVerbConjugations(null);
+      }
+    } else if (initialWord) {      setFormData(prev => ({
         ...prev,
         word: initialWord
       }));
       
-      // Auto-translate when initialWord is provided
+      // Clear conjugations for new words (they'll be auto-generated)
+      setVerbConjugations(null);
+      
+      // Auto-fill all fields when initialWord is provided
       if (initialWord) {
-        handleAutoTranslate(initialWord);
+        handleComprehensiveAutoFill(initialWord);
       }
+    } else {
+      // Clear conjugations when opening modal for new words
+      setVerbConjugations(null);
     }
-  }, [editingWord, initialWord, language]);
-  // Cleanup timeouts on unmount
+  }, [editingWord, initialWord, language]);  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (translationTimeout) {
@@ -88,8 +99,11 @@ function WordModal({
       if (suggestionTimeout) {
         clearTimeout(suggestionTimeout);
       }
+      if (autoFillTimeout) {
+        clearTimeout(autoFillTimeout);
+      }
     };
-  }, [translationTimeout, suggestionTimeout]);
+  }, [translationTimeout, suggestionTimeout, autoFillTimeout]);
 
   // Handle click outside to hide suggestions
   useEffect(() => {
@@ -135,20 +149,57 @@ function WordModal({
     } catch (error) {
       console.error('Auto-translate example failed:', error);
     }
-  };
-  // Handle input changes and auto-generate content
+  };  // Handle input changes and auto-generate content
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Generate word suggestions and auto-translate when word field changes
+    // Generate word suggestions when word field changes
     if (name === 'word') {
       // Generate suggestions as user types
       handleGenerateWordSuggestions(value);
       
-      // Auto-translate for complete words
-      if (value.trim() && !editingWord) {
-        handleAutoTranslate(value);
+      // Reset state when word field is cleared
+      if (!value.trim()) {
+        // Clear all auto-generated content
+        setFormData(prev => ({
+          ...prev,
+          word: '',
+          translation: '',
+          pronunciation: '',
+          definition: '',
+          example: '',
+          partOfSpeech: ''
+        }));
+        
+        // Reset all loading states
+        setIsAutoFilling(false);
+        setIsTranslating(false);
+        setIsGeneratingPronunciation(false);
+        setIsGeneratingDefinition(false);
+        setIsGeneratingExamples(false);
+        setIsGeneratingSuggestions(false);
+        
+        // Clear suggestions and conjugations
+        setWordSuggestions([]);
+        setShowSuggestions(false);
+        setVerbConjugations(null);
+        setGeneratedExamples([]);
+        setShowExamples(false);
+        
+        // Clear timeouts
+        if (translationTimeout) {
+          clearTimeout(translationTimeout);
+          setTranslationTimeout(null);
+        }
+        if (autoFillTimeout) {
+          clearTimeout(autoFillTimeout);
+          setAutoFillTimeout(null);
+        }
+        if (suggestionTimeout) {
+          clearTimeout(suggestionTimeout);
+          setSuggestionTimeout(null);
+        }
       }
     } else {
       // Hide suggestions when user focuses on other fields
@@ -162,12 +213,22 @@ function WordModal({
       setShowSuggestions(true);
     }
   };
-
   // Handle word field blur with delay to allow suggestion clicks
   const handleWordFieldBlur = () => {
     // Use setTimeout to allow suggestion clicks to register before hiding
     setTimeout(() => {
       setShowSuggestions(false);
+      
+      // Trigger auto-fill if word field has content and other fields are empty
+      const wordValue = formData.word.trim();
+      if (wordValue && 
+          !formData.translation && 
+          !formData.definition && 
+          !formData.pronunciation &&
+          !formData.partOfSpeech &&
+          !isAutoFilling) {
+        handleComprehensiveAutoFill(wordValue);
+      }
     }, 200);
   };
     // Auto translate functionality - always translates from native language to English
@@ -509,11 +570,10 @@ function WordModal({
     if (!formData.word.trim() || !formData.translation.trim()) {
       toast.error('Please fill in at least the word and translation fields');
       return;
-    }
-    
-    try {
+    }    try {
       const wordData = {
         ...formData,
+        conjugations: verbConjugations, // Include verb conjugations in saved data
         createdAt: new Date(),
         lastReviewDate: null,
         nextReviewDate: new Date(),
@@ -526,19 +586,24 @@ function WordModal({
         incorrectCount: 0,
       };
       
+      console.log('Saving word data:', wordData);
+      console.log('Conjugations to save:', verbConjugations);
+      
       // If onSubmit callback is provided, use it
       if (onSubmit) {
         await onSubmit(wordData, editingWord);
         return;
       }
-      
-      // Otherwise handle submission directly
+        // Otherwise handle submission directly
       if (userId) {
+        // Create user object for Firebase utils (they expect user object with uid)
+        const userObj = { uid: userId };
+        
         if (editingWord) {
-          await updateUserData(userId, 'vocabulary', editingWord.id, wordData);
+          await updateUserData(userObj, 'vocabulary', editingWord.id, wordData);
           toast.success('Word updated successfully!');
         } else {
-          await addUserData(userId, 'vocabulary', wordData);
+          await addUserData(userObj, 'vocabulary', wordData);
           toast.success('Word added successfully!');
         }
         
@@ -551,6 +616,74 @@ function WordModal({
     } catch (error) {
       console.error('Error saving word:', error);
       toast.error('Failed to save word. Please try again.');
+    }
+  };
+  
+  // Comprehensive auto-fill functionality - generates all fields in a single AI request
+  const handleComprehensiveAutoFill = (wordValue) => {
+    // Clear any pending auto-fill request
+    if (autoFillTimeout) {
+      clearTimeout(autoFillTimeout);
+    }
+    
+    // Only auto-fill if the word is valid and AI service is available
+    if (wordValue?.trim() && bedrockService.isReady()) {
+      // Set a delay to avoid too many API calls while typing
+      const timeoutId = setTimeout(async () => {
+        try {
+          setIsAutoFilling(true);
+          
+          // Get user's native language preference
+          const userNativeLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
+                                   ? window.__userNativeLanguage 
+                                   : 'english';
+          
+          console.log(`Auto-filling comprehensive data for "${wordValue}" from ${formData.language} to ${userNativeLanguage}`);
+          
+          const comprehensiveData = await bedrockService.generateComprehensiveWordData(
+            wordValue, 
+            formData.language, 
+            userNativeLanguage
+          );
+            if (comprehensiveData) {
+            console.log('Comprehensive data received:', comprehensiveData);
+            console.log('Part of speech:', comprehensiveData.partOfSpeech);
+            console.log('Conjugations:', comprehensiveData.conjugations);
+              // Update all form fields with the comprehensive data
+            setFormData(prev => ({
+              ...prev,
+              translation: comprehensiveData.translation || prev.translation,
+              pronunciation: comprehensiveData.pronunciation || prev.pronunciation,
+              definition: comprehensiveData.definition || prev.definition,
+              example: comprehensiveData.example || prev.example,
+              partOfSpeech: comprehensiveData.partOfSpeech || prev.partOfSpeech,
+              translatedExample: comprehensiveData.translatedExample || prev.translatedExample
+            }));
+            
+            // Set verb conjugations if available
+            if (comprehensiveData.conjugations) {
+              console.log('Setting verb conjugations:', comprehensiveData.conjugations);
+              setVerbConjugations(comprehensiveData.conjugations);
+            } else {
+              console.log('No conjugations found in comprehensive data');
+            }
+            
+            // Store additional examples for manual selection
+            if (comprehensiveData.additionalExamples && comprehensiveData.additionalExamples.length > 0) {
+              const allExamples = [comprehensiveData.example, ...comprehensiveData.additionalExamples].filter(Boolean);
+              setGeneratedExamples(allExamples);
+            }
+          }
+        } catch (error) {
+          console.error('Comprehensive auto-fill failed:', error);
+          // Fallback to old method if comprehensive fails
+          handleAutoTranslate(wordValue);
+        } finally {
+          setIsAutoFilling(false);
+        }
+      }, 800); // 800ms delay to allow user to finish typing
+      
+      setAutoFillTimeout(timeoutId);
     }
   };
   
@@ -678,12 +811,14 @@ function WordModal({
                   )}
                 </AnimatePresence>
               </div>
-            </div>
-            
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                Translation *
-                {isTranslating && (
+            </div>            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">                Translation *
+                {isAutoFilling && (
+                  <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+                    (Auto-filling all fields...)
+                  </span>
+                )}
+                {isTranslating && !isAutoFilling && (
                   <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
                     (Auto-translating...)
                   </span>
@@ -697,11 +832,10 @@ function WordModal({
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
                   placeholder="Enter translation (auto-translates when typing word)"
-                  required
-                />
-                {isTranslating && (
+                  required                />
+                {(isTranslating || isAutoFilling) && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                    <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${isAutoFilling ? 'border-green-500' : 'border-blue-500'}`}></div>
                   </div>
                 )}
               </div>
@@ -710,10 +844,14 @@ function WordModal({
           
           {/* Pronunciation */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <div className="flex items-center justify-between">              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Pronunciation
-                {isGeneratingPronunciation && (
+                {isAutoFilling && (
+                  <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+                    (Auto-filling...)
+                  </span>
+                )}
+                {isGeneratingPronunciation && !isAutoFilling && (
                   <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
                     (Auto-generating...)
                   </span>
@@ -749,11 +887,10 @@ function WordModal({
                 value={formData.pronunciation}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-                placeholder="Phonetic pronunciation (e.g., sah-loo) - auto-generates when typing word"
-              />
-              {isGeneratingPronunciation && (
+                placeholder="Phonetic pronunciation (e.g., sah-loo) - auto-generates when typing word"              />
+              {(isGeneratingPronunciation || isAutoFilling) && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${isAutoFilling ? 'border-green-500' : 'border-blue-500'}`}></div>
                 </div>
               )}
             </div>
@@ -879,9 +1016,8 @@ function WordModal({
               placeholder="Example sentence using this word (or generate with AI)"
             />
           </div>
-          
-          {/* Category and Language */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Category, Part of Speech, and Language */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Category
@@ -892,6 +1028,7 @@ function WordModal({
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all text-sm"
               >
+                <option value="">Select Category</option>
                 <option value="vocabulary">Vocabulary</option>
                 <option value="phrases">Phrases</option>
                 <option value="grammar">Grammar</option>
@@ -902,6 +1039,35 @@ function WordModal({
                 <option value="travel">Travel</option>
                 <option value="food">Food</option>
                 <option value="technology">Technology</option>
+              </select>
+            </div>
+            
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Part of Speech
+                {isAutoFilling && (
+                  <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+                    (Auto-detecting...)
+                  </span>
+                )}
+              </label>
+              <select
+                name="partOfSpeech"
+                value={formData.partOfSpeech}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all text-sm"
+              >
+                <option value="">Select Part of Speech</option>
+                <option value="noun">Noun</option>
+                <option value="verb">Verb</option>
+                <option value="adjective">Adjective</option>
+                <option value="adverb">Adverb</option>
+                <option value="pronoun">Pronoun</option>
+                <option value="preposition">Preposition</option>
+                <option value="conjunction">Conjunction</option>
+                <option value="interjection">Interjection</option>
+                <option value="article">Article</option>
+                <option value="determiner">Determiner</option>
               </select>
             </div>
             

@@ -477,6 +477,73 @@ This must be a BRAND NEW response that has never been generated before.`;
   isReady() {
     return this.isInitialized;
   }
+
+
+  // Generate comprehensive word data in a single AI request
+  async generateComprehensiveWordData(word, language, userNativeLanguage = 'english') {
+    // Don't cache comprehensive data to ensure fresh content
+    try {
+      const response = await fetch('/api/bedrock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'comprehensive',
+          word,
+          language,
+          userNativeLanguage
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Bedrock comprehensive API error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate comprehensive word data');
+      }
+
+      const data = await response.json();
+      let result = data.result;
+      
+      // Parse result if it comes as a string
+      if (typeof result === 'string') {
+        try {
+          result = JSON.parse(result);
+        } catch (e) {
+          console.error('Failed to parse comprehensive data JSON:', e);
+          throw new Error('Invalid response format from AI');
+        }
+      }
+      
+      // Transform verb conjugations if present
+      if (result.conjugations && typeof result.conjugations === 'object') {
+        result.conjugations = this.transformComprehensiveConjugations(result.conjugations);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error generating comprehensive word data:', error);
+      throw error;
+    }
+  }
+
+  // Transform comprehensive conjugations to match UI expectations
+  transformComprehensiveConjugations(conjugations) {
+    if (!conjugations || conjugations === null) {
+      return null;
+    }
+    
+    const transformed = {};
+    
+    // Handle both object format and existing transformed format
+    Object.entries(conjugations).forEach(([tense, forms]) => {
+      if (typeof forms === 'object' && forms !== null) {
+        transformed[tense] = forms;
+      }
+    });
+    
+    return Object.keys(transformed).length > 0 ? transformed : null;
+  }
 }
 
 // Export singleton instance

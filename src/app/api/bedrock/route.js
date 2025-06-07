@@ -21,7 +21,7 @@ export async function POST(request) {
         !process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       console.error('Missing AWS credentials');
-      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord } = await request.json();
+      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord, userNativeLanguage } = await request.json();
     console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });    // For generate action, we need a prompt instead of word/language
     if (action === 'generate' && !prompt) {
       return Response.json({ error: 'Missing required parameter: prompt' }, { status: 400 });
@@ -32,7 +32,12 @@ export async function POST(request) {
       return Response.json({ error: 'Missing required parameters (partialWord and language)' }, { status: 400 });
     }
 
-    if (action !== 'generate' && action !== 'wordSuggestions' && (!word || !language)) {
+    // For comprehensive action, we need word and language
+    if (action === 'comprehensive' && (!word || !language)) {
+      return Response.json({ error: 'Missing required parameters (word and language)' }, { status: 400 });
+    }
+
+    if (action !== 'generate' && action !== 'wordSuggestions' && action !== 'comprehensive' && (!word || !language)) {
       return Response.json({ error: 'Missing required parameters (word and language)' }, { status: 400 });
     }
 
@@ -41,6 +46,10 @@ export async function POST(request) {
       case 'generate':
         aiPrompt = prompt;
         maxTokens = 1000; // Allow more tokens for reading/writing content
+        break;
+      case 'comprehensive':
+        aiPrompt = buildComprehensivePrompt(word, language, userNativeLanguage || 'english');
+        maxTokens = 1200; // More tokens for comprehensive data
         break;
       case 'examples':
         aiPrompt = buildExamplePrompt(word, translation, language, definition);
@@ -115,10 +124,13 @@ export async function POST(request) {
     if (!response) {
       throw new Error(`No available models. Last error: ${lastError?.message || 'Unknown error'}`);
     }    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    
-    let result;
+      let result;
     if (action === 'examples') {
-      result = parseExamples(responseBody.content[0].text);
+      result = parseExamples(responseBody.content[0].text);    } else if (action === 'comprehensive') {
+      console.log('Processing comprehensive response for word:', word);
+      console.log('Raw response:', responseBody.content[0].text);
+      result = parseComprehensiveResponse(responseBody.content[0].text);
+      console.log('Parsed comprehensive result:', result);
     } else if (action === 'definition' && (partOfSpeech?.toLowerCase() === 'verb' || definition?.toLowerCase().includes('verb'))) {
       result = parseVerbConjugation(responseBody.content[0].text);
     } else {
@@ -335,6 +347,73 @@ Format your response as a JSON array of strings, like this:
 Only return the JSON array, no other text.`;
 }
 
+// Build prompt for comprehensive word data generation
+function buildComprehensivePrompt(word, language, userNativeLanguage = 'english') {
+  let languageSpecificInstructions = '';
+  
+  // Language-specific pronunciation rules
+  if (language.toLowerCase() === 'french') {
+    languageSpecificInstructions = `
+French pronunciation rules:
+- 'u' sounds like 'oo' in English
+- 'ou' sounds like 'oo' in English  
+- Silent final consonants in most cases
+- 'r' is rolled/guttural
+- Nasal vowels: 'an/en' = 'ahn', 'in/im' = 'an', 'on/om' = 'ohn', 'un/um' = 'uhn'
+- 'tion' = 'see-ohn'
+- 'lle' = 'l' (silent e)`;
+  } else if (language.toLowerCase() === 'spanish') {
+    languageSpecificInstructions = `
+Spanish pronunciation rules:
+- 'j' sounds like 'h' in English
+- 'rr' is rolled
+- 'ñ' sounds like 'ny'
+- Stress usually on second-to-last syllable
+- All vowels are pronounced clearly`;
+  } else if (language.toLowerCase() === 'italian') {
+    languageSpecificInstructions = `
+Italian pronunciation rules:
+- 'c' before 'e' or 'i' = 'ch'
+- 'g' before 'e' or 'i' = 'j'
+- 'gli' = 'lyee'
+- Double consonants are pronounced longer`;
+  }
+  return `You are an expert linguist and language teacher. Provide comprehensive information for the ${language} word "${word}".
+
+Generate a complete JSON response with ALL of the following fields:
+
+{
+  "translation": "accurate translation to ${userNativeLanguage}",
+  "pronunciation": "phonetic pronunciation using English sounds and hyphens",
+  "definition": "[PartOfSpeech] Clear definition with usage context",
+  "example": "natural example sentence using the word in ${language}",
+  "translatedExample": "translation of the example sentence to ${userNativeLanguage}",
+  "partOfSpeech": "noun/verb/adjective/adverb/etc",
+  "conjugations": null or verb conjugation object if it's a verb,
+  "additionalExamples": ["example2", "example3"]
+}
+
+Requirements:
+- Translation: Provide the most common/appropriate translation to ${userNativeLanguage}
+- Pronunciation: Use simple English sounds with hyphens (e.g., "sah-loo", "bohn-zhoor")
+${languageSpecificInstructions}
+- Definition: Start with part of speech in brackets, provide clear meaning and usage context
+- Example: Create a practical, everyday sentence (under 15 words)
+- TranslatedExample: Translate the example sentence to ${userNativeLanguage}
+- PartOfSpeech: Identify as noun, verb, adjective, adverb, etc. For verbs, always use exactly "verb"
+- Conjugations: IMPORTANT - If partOfSpeech is "verb", you MUST provide conjugations in this exact format:
+  {
+    "present": {"je": "form", "tu": "form", "il": "form", "nous": "form", "vous": "form", "ils": "form"},
+    "passe": {"je": "form", "tu": "form", "il": "form", "nous": "form", "vous": "form", "ils": "form"},
+    "future": {"je": "form", "tu": "form", "il": "form", "nous": "form", "vous": "form", "ils": "form"},
+    "imperfect": {"je": "form", "tu": "form", "il": "form", "nous": "form", "vous": "form", "ils": "form"}
+  }
+  Otherwise set to null for non-verbs.
+- AdditionalExamples: Provide 2 more example sentences in ${language}
+
+Be accurate, practical, and focus on common usage. Return ONLY the JSON object, no other text.`;
+}
+
 // Parse examples from AI response
 function parseExamples(response) {
   try {
@@ -504,4 +583,87 @@ function parseVerbConjugation(response) {
     notes: ['Error parsing conjugation data'],
     rawText: response
   };
+}
+
+// Parse comprehensive response from AI
+function parseComprehensiveResponse(response) {
+  try {
+    // First try to parse as JSON
+    const parsed = JSON.parse(response);
+    
+    // Validate that we have the expected structure
+    const requiredFields = ['translation', 'pronunciation', 'definition', 'example'];
+    const hasRequiredFields = requiredFields.every(field => field in parsed);
+      if (hasRequiredFields) {
+      console.log('Comprehensive response - partOfSpeech:', parsed.partOfSpeech);
+      console.log('Comprehensive response - conjugations:', parsed.conjugations);
+      
+      // Transform conjugations if present and it's a verb
+      if (parsed.conjugations && typeof parsed.conjugations === 'object' && parsed.conjugations !== null) {
+        console.log('Found conjugations object, checking if verb...');
+        // If conjugations come in the old format, transform them
+        if (parsed.partOfSpeech?.toLowerCase().includes('verb')) {
+          console.log('Word is a verb, transforming conjugations...');
+          parsed.conjugations = transformComprehensiveConjugations(parsed.conjugations);
+          console.log('Transformed conjugations:', parsed.conjugations);
+        }
+      } else {
+        console.log('No conjugations found in parsed response');
+      }
+      
+      return parsed;
+    }
+  } catch (error) {
+    console.error('Error parsing comprehensive JSON:', error);
+  }
+  
+  // If JSON parsing fails, try to extract data from text
+  console.warn('Comprehensive response was not valid JSON, attempting text parsing');
+  
+  const result = {
+    translation: '',
+    pronunciation: '',
+    definition: '',
+    example: '',
+    translatedExample: '',
+    partOfSpeech: '',
+    conjugations: null,
+    additionalExamples: []
+  };
+  
+  // Basic text parsing as fallback
+  const lines = response.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    if (lowerLine.includes('translation:')) {
+      result.translation = line.split(':').slice(1).join(':').trim();
+    } else if (lowerLine.includes('pronunciation:')) {
+      result.pronunciation = line.split(':').slice(1).join(':').trim();
+    } else if (lowerLine.includes('definition:')) {
+      result.definition = line.split(':').slice(1).join(':').trim();
+    } else if (lowerLine.includes('example:')) {
+      result.example = line.split(':').slice(1).join(':').trim();
+    }
+  }
+  
+  return result;
+}
+
+// Transform comprehensive conjugations to match UI expectations
+function transformComprehensiveConjugations(conjugations) {
+  if (!conjugations || typeof conjugations !== 'object') {
+    return null;
+  }
+  
+  const transformed = {};
+  
+  Object.entries(conjugations).forEach(([tense, forms]) => {
+    if (typeof forms === 'object' && forms !== null) {
+      // Keep the forms as they are if they're already in the right format
+      transformed[tense] = forms;
+    }
+  });
+  
+  return Object.keys(transformed).length > 0 ? transformed : null;
 }
