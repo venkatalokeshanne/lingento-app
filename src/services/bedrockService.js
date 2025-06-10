@@ -344,7 +344,6 @@ This must be a BRAND NEW response that has never been generated before.`;
     });
     
     return conjugations;  }
-
   // Generate word suggestions based on partial input
   async generateWordSuggestions(partialWord, language, translationLanguage = 'english') {
     // Don't cache suggestions to allow for fresh suggestions each time
@@ -389,6 +388,44 @@ This must be a BRAND NEW response that has never been generated before.`;
       // Return empty array instead of fallback suggestions - rely only on AI
       return [];
     }  }
+
+  // Generate combined language detection and word suggestions in a single request
+  async generateLanguageDetectionAndSuggestions(partialWord, userLearningLanguage, userNativeLanguage) {
+    // Don't cache combined requests to ensure fresh results
+    try {
+      const response = await fetch('/api/bedrock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'languageDetectionAndSuggestions',
+          partialWord,
+          userLearningLanguage,
+          userNativeLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Bedrock combined language detection and suggestions API error:', errorData);
+        throw new Error(errorData.error || 'Failed to generate language detection and suggestions');
+      }
+
+      const data = await response.json();
+      const result = data.result;
+      
+      // Validate the response structure
+      if (!result.detectedLanguage || typeof result.confidence !== 'number' || !Array.isArray(result.suggestions)) {
+        throw new Error('Invalid response structure from AI');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error generating combined language detection and suggestions:', error);
+      throw error;
+    }
+  }
 
   // Clear cache
   clearCache() {

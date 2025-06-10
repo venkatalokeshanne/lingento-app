@@ -10,12 +10,18 @@ import { addUserData, updateUserData } from "@/utils/firebaseUtils";
 import translateService from "@/services/translateService";
 import languageDetectionService from "@/services/languageDetectionService";
 
-// Helper function to get ordered French pronouns
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Get ordered French pronouns for conjugation display
+ */
 function getOrderedFrenchPronouns() {
   return ["je", "tu", "il/elle/on", "nous", "vous", "ils/elles"];
 }
 
-// Helper function to order conjugations by French pronoun order
+/**
+ * Order conjugations by French pronoun order
+ */
 function orderConjugations(conjugations) {
   if (!conjugations || typeof conjugations !== "object") {
     return conjugations;
@@ -41,6 +47,8 @@ function orderConjugations(conjugations) {
   return ordered;
 }
 
+// ==================== MAIN COMPONENT ====================
+
 /**
  * Reusable Word Modal Component for adding vocabulary across the app
  */
@@ -53,7 +61,11 @@ function WordModal({
   language = "en",
   userId = null,
 }) {
-  const router = useRouter(); // Form state
+  const router = useRouter();
+
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Form state
   const [formData, setFormData] = useState({
     word: "",
     translation: "",
@@ -62,33 +74,38 @@ function WordModal({
     category: "vocabulary",
     partOfSpeech: "",
     language: language || "fr",
-  }); // Modal state for AI features
+  });
+
+  // AI features state
   const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
   const [generatedExamples, setGeneratedExamples] = useState([]);
   const [showExamples, setShowExamples] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationTimeout, setTranslationTimeout] = useState(null);
-  const [isGeneratingPronunciation, setIsGeneratingPronunciation] =
-    useState(false);
+  const [isGeneratingPronunciation, setIsGeneratingPronunciation] = useState(false);
   const [verbConjugations, setVerbConjugations] = useState(null);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [autoFillTimeout, setAutoFillTimeout] = useState(null);
+
   // Word suggestions state
   const [wordSuggestions, setWordSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [suggestionTimeout, setSuggestionTimeout] = useState(null);
-  const [detectedSuggestionLanguage, setDetectedSuggestionLanguage] = useState(null); // Track detected language for suggestions
-  const [swapNeeded, setSwapNeeded] = useState(false); // Swap needed for translation direction
+  const [detectedSuggestionLanguage, setDetectedSuggestionLanguage] = useState(null);
+  const [detectedTranslationLanguage, setDetectedTranslationLanguage] = useState(null);
+  const [swapNeeded, setSwapNeeded] = useState(false);
 
   // Audio state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   // Return null if modal is not open
-  if (!isOpen) return null;
+  if (!isOpen) return null;  // ==================== EFFECTS ====================
+
   // Initialize form with data when editing
   useEffect(() => {
-    if (editingWord) {      setFormData({
+    if (editingWord) {
+      setFormData({
         word: (editingWord.word || "").toLowerCase(),
         translation: editingWord.translation || "",
         pronunciation: editingWord.pronunciation || "",
@@ -103,7 +120,8 @@ function WordModal({
         setVerbConjugations(editingWord.conjugations);
       } else {
         setVerbConjugations(null);
-      }    } else if (initialWord) {
+      }
+    } else if (initialWord) {
       const lowercaseInitialWord = initialWord.toLowerCase();
       setFormData((prev) => ({
         ...prev,
@@ -121,7 +139,9 @@ function WordModal({
       // Clear conjugations when opening modal for new words
       setVerbConjugations(null);
     }
-  }, [editingWord, initialWord, language]); // Cleanup timeouts on unmount
+  }, [editingWord, initialWord, language]);
+
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (translationTimeout) {
@@ -154,14 +174,15 @@ function WordModal({
         document.removeEventListener("mousedown", handleClickOutside);
       };
     }
-  }, [showSuggestions]);
-  // Auto-translate example sentences from native language to English
+  }, [showSuggestions]);  // ==================== HELPER FUNCTIONS ====================
+
+  /**
+   * Auto-translate example sentences from native language to English
+   */
   const autoTranslateExample = async (exampleText, sourceLanguage) => {
-    if (
-      !exampleText ||
-      !translateService.isValidTextForTranslation(exampleText)
-    )
+    if (!exampleText || !translateService.isValidTextForTranslation(exampleText)) {
       return;
+    }
 
     try {
       // Get user's native language preference
@@ -170,9 +191,7 @@ function WordModal({
           ? window.__userNativeLanguage
           : "english";
 
-      console.log(
-        `Translating example from ${sourceLanguage} to ${userNativeLanguage}`
-      );
+      console.log(`Translating example from ${sourceLanguage} to ${userNativeLanguage}`);
       const result = await translateService.translateText(
         exampleText,
         sourceLanguage, // Source language (language being learned)
@@ -188,15 +207,26 @@ function WordModal({
     } catch (error) {
       console.error("Auto-translate example failed:", error);
     }
-  };  // Handle input changes and auto-generate content
+  };
+
+  // ==================== INPUT HANDLERS ====================
+
+  /**
+   * Handle input changes and auto-generate content
+   */  /**
+   * Handle input changes and auto-generate content
+   */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     // Convert word to lowercase to ensure consistency
     const processedValue = name === "word" ? value.toLowerCase() : value;
-    setFormData((prev) => ({ ...prev, [name]: processedValue }));    // Generate word suggestions when word field changes
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+
+    // Generate word suggestions when word field changes
     if (name === "word") {
       // Generate suggestions as user types (using the processed lowercase value)
       handleGenerateWordSuggestions(processedValue);
+      
       // Reset state when word field is cleared
       if (!processedValue.trim()) {
         // Clear all auto-generated content
@@ -214,10 +244,14 @@ function WordModal({
         setIsTranslating(false);
         setIsGeneratingPronunciation(false);
         setIsGeneratingExamples(false);
-        setIsGeneratingSuggestions(false);        // Clear suggestions and conjugations
+        setIsGeneratingSuggestions(false);
+        
+        // Clear suggestions and conjugations
         setWordSuggestions([]);
         setShowSuggestions(false);
         setDetectedSuggestionLanguage(null);
+        setDetectedTranslationLanguage(null);
+        setSwapNeeded(false);
         setVerbConjugations(null);
         setGeneratedExamples([]);
         setShowExamples(false);
@@ -241,14 +275,20 @@ function WordModal({
       setShowSuggestions(false);
     }
   };
-  // Handle word field focus
+
+  /**
+   * Handle word field focus
+   */
   const handleWordFieldFocus = () => {
     // Show suggestions if we have them and the word field has content
     if (wordSuggestions.length > 0 && formData.word.trim().length >= 2) {
       setShowSuggestions(true);
     }
   };
-  // Handle word field blur with delay to allow suggestion clicks
+
+  /**
+   * Handle word field blur with delay to allow suggestion clicks
+   */
   const handleWordFieldBlur = () => {
     // Use setTimeout to allow suggestion clicks to register before hiding
     setTimeout(() => {
@@ -265,96 +305,15 @@ function WordModal({
         handleComprehensiveAutoFill(wordValue);
       }
     }, 200);
-  };  // Smart auto translate functionality with language detection
-  const handleAutoTranslate = (wordValue) => {
-    // Clear any pending translation request
-    if (translationTimeout) {
-      clearTimeout(translationTimeout);
-    }
-
-    // Only translate if the word is a valid input and translation service is available
-    if (wordValue?.trim() && translateService.isReady()) {
-      // Set a small delay to avoid too many API calls while typing
-      const timeoutId = setTimeout(async () => {
-        try {
-          setIsTranslating(true);
-
-          // Check if text is valid for translation
-          if (!translateService.isValidTextForTranslation(wordValue)) {
-            console.log(`Word not suitable for translation: "${wordValue}"`);
-            setIsTranslating(false);
-            return;
-          }
-
-          // Get user's language preferences
-          const userNativeLanguage =
-            typeof window !== "undefined" && window.__userNativeLanguage
-              ? window.__userNativeLanguage
-              : "english";
-          const userLearningLanguage = formData.language;          // Use AI language detection to determine translation direction
-          const direction = await languageDetectionService.getTranslationDirection(
-            wordValue,
-            userLearningLanguage,
-            userNativeLanguage
-          );
-
-          console.log(
-            `AI Smart translation: "${wordValue}" detected as ${direction.detectedLanguage} (confidence: ${direction.confidence.toFixed(2)}) via ${direction.method}`
-          );
-          console.log(`Translation flow: ${direction.translationFlow}`);
-
-          // Translate using the detected direction
-          const result = await translateService.translateText(
-            wordValue,
-            direction.sourceLanguage,
-            direction.targetLanguage
-          );
-
-          if (result?.translatedText) {
-            // Prepare word data ensuring correct language assignment
-            const wordData = languageDetectionService.prepareWordData(
-              wordValue,
-              result.translatedText,
-              direction,
-              userLearningLanguage,
-              userNativeLanguage
-            );
-
-            // Update form with properly assigned word and translation
-            setFormData((prev) => ({
-              ...prev,
-              word: wordData.word,
-              translation: wordData.translation,
-            }));
-
-            // Show user which language was detected and direction used
-            console.log(`✓ Word saved: "${wordData.word}" (${userLearningLanguage}) → "${wordData.translation}" (${userNativeLanguage})`);
-
-            // After translating, try to auto-generate pronunciation and examples
-            // Always use the learning language word for pronunciation
-            handleGeneratePronunciation(false, wordData.word);
-
-            // Auto-generate examples after a short delay to ensure translation is set
-            setTimeout(() => {
-              handleAutoGenerateExamples(wordData.word, wordData.translation);
-            }, 300);
-          }
-        } catch (error) {
-          console.error("Smart auto-translate failed:", error);
-        } finally {
-          setIsTranslating(false);
-        }
-      }, 600); // 600ms delay
-
-      setTranslationTimeout(timeoutId);
-    }
   };
 
-  // Generate pronunciation with AI
-  const handleGeneratePronunciation = async (
-    manualTrigger = true,
-    wordToUse = null
-  ) => {
+  // ==================== AI GENERATION FUNCTIONS ====================
+  // ==================== AI GENERATION FUNCTIONS ====================
+
+  /**
+   * Generate pronunciation with AI
+   */
+  const handleGeneratePronunciation = async (manualTrigger = true, wordToUse = null) => {
     const wordValue = wordToUse || formData.word;
 
     if (!wordValue || (isGeneratingPronunciation && manualTrigger)) return;
@@ -396,7 +355,9 @@ function WordModal({
     }
   };
 
-  // Generate examples with AI
+  /**
+   * Generate examples with AI
+   */
   const handleGenerateExamples = async () => {
     if (!formData.word || !formData.translation || !bedrockService.isReady()) {
       toast.error(
@@ -441,7 +402,9 @@ function WordModal({
     }
   };
 
-  // Auto-generate examples silently (without showing modal)
+  /**
+   * Auto-generate examples silently (without showing modal)
+   */
   const handleAutoGenerateExamples = async (word, translation) => {
     if (!word || !translation || !bedrockService.isReady()) {
       return; // Silently fail for auto-generation
@@ -477,7 +440,9 @@ function WordModal({
     }
   };
 
-  // Check if word is a verb and generate conjugations
+  /**
+   * Check if word is a verb and generate conjugations
+   */
   const handleCheckVerbConjugations = async () => {
     if (!formData.word || !bedrockService.isReady()) {
       return;
@@ -496,12 +461,18 @@ function WordModal({
       console.error("Error checking verb conjugations:", error);
       // Don't show error for this passive check
     }
-  };  // Generate word suggestions with AI based on detected language
+  };
+
+  // ==================== WORD SUGGESTIONS ====================  // ==================== WORD SUGGESTIONS ====================
+
+  /**
+   * Generate word suggestions with AI based on detected language - COMBINED APPROACH
+   */
   const handleGenerateWordSuggestions = async (partialWord) => {
     // Clear any pending suggestion request
     if (suggestionTimeout) {
       clearTimeout(suggestionTimeout);
-    } 
+    }
 
     // Generate suggestions if the word is 2+ characters
     if (partialWord?.trim().length >= 2) {
@@ -511,10 +482,6 @@ function WordModal({
           setIsGeneratingSuggestions(true);
           setShowSuggestions(true);
 
-          let suggestions = [];
-          let detectedLanguage = formData.language; // Default to form language
-          let swapNeeded = false; // Track if we need to swap languages
-
           // Get user's language preferences for detection context
           const userNativeLanguage =
             typeof window !== "undefined" && window.__userNativeLanguage
@@ -522,38 +489,53 @@ function WordModal({
               : "english";
           const userLearningLanguage = formData.language;
 
-          // Use language detection to identify the input language
+          let suggestions = [];
+          let detectedLanguage = userLearningLanguage; // Default fallback
+
+          // Use the new combined service method first
           try {
-            const detectionResult = await languageDetectionService.detectLanguageWithAI(
-              partialWord.trim(),
-              userLearningLanguage,
-              userNativeLanguage
+            console.log(
+              `Starting combined language detection and suggestions for "${partialWord}"`
             );
-              if (detectionResult && detectionResult.confidence > 0.6) {
-              detectedLanguage = detectionResult.language;
-              setDetectedSuggestionLanguage(detectedLanguage); // Store detected language for UI
-              console.log(`Word suggestion: Detected language "${detectedLanguage}" for "${partialWord}" (confidence: ${detectionResult.confidence.toFixed(2)})`);
-            } else {
-              setDetectedSuggestionLanguage(null); // Clear detected language if low confidence
-              console.log(`Word suggestion: Using default language "${detectedLanguage}" for "${partialWord}" (low confidence: ${detectionResult?.confidence?.toFixed(2) || 'N/A'})`);
+            const combinedResult =
+              await languageDetectionService.getLanguageDetectionAndSuggestions(
+                partialWord.trim(),
+                userLearningLanguage,
+                userNativeLanguage
+              );
+
+            if (combinedResult) {
+              console.log(`Combined service result:`, combinedResult);
+              detectedLanguage = combinedResult.detectedLanguage;
+              suggestions = combinedResult.suggestions || [];
+              
+              if (combinedResult.confidence > 0.6) {
+                setDetectedSuggestionLanguage(detectedLanguage);
+                setDetectedTranslationLanguage(detectedLanguage === userNativeLanguage ? userLearningLanguage : userNativeLanguage);
+                setSwapNeeded(detectedLanguage === userNativeLanguage);
+
+                console.log(
+                  `Combined service: Detected language "${detectedLanguage}" for "${partialWord}" (confidence: ${combinedResult.confidence.toFixed(
+                    2
+                  )})`
+                );
+              } else {
+                setDetectedSuggestionLanguage(null);
+                console.log(
+                  `Combined service: Using default language "${detectedLanguage}" for "${partialWord}" (low confidence: ${combinedResult.confidence.toFixed(
+                    2
+                  )})`
+                );
+              }
             }
           } catch (error) {
-            console.error("Language detection failed for word suggestions:", error);
-            // Continue with default language
-          }          // Try AI suggestions first if available
+            console.error(
+              "Error in combined language detection and suggestions service:",
+              error
+            );
+          }
 
-          if (bedrockService.isReady()) {
-            try {
-              suggestions = await bedrockService.generateWordSuggestions(
-                partialWord.trim(),
-                detectedLanguage,
-                detectedLanguage === userNativeLanguage ? userLearningLanguage :  userNativeLanguage// Pass detected language as both parameters
-              );
-            } catch (error) {
-              console.error("Error generating AI word suggestions:", error);
-            }          }
-
-          // Only show suggestions if we got them from AI
+          // Only show suggestions if we got them
           if (suggestions && suggestions.length > 0) {
             setWordSuggestions(suggestions);
 
@@ -572,18 +554,22 @@ function WordModal({
         }
       }, 500); // 500ms delay for faster response
 
-      setSuggestionTimeout(timeoutId);    } else {
+      setSuggestionTimeout(timeoutId);
+    } else {
       // Hide suggestions if word is too short
       setShowSuggestions(false);
       setWordSuggestions([]);
       setDetectedSuggestionLanguage(null); // Clear detected language
     }
   };
-  
-  // Handle suggestion selection
+
+  /**
+   * Handle suggestion selection
+   */
   const handleSelectSuggestion = (suggestion) => {
     // Extract just the word part (before the parentheses) and convert to lowercase
-    const wordPart = suggestion.split("(")[0].trim().toLowerCase();    setFormData((prev) => ({ ...prev, word: wordPart }));
+    const wordPart = suggestion.split("(")[0].trim().toLowerCase();
+    setFormData((prev) => ({ ...prev, word: wordPart }));
     setShowSuggestions(false);
     setWordSuggestions([]);
     setDetectedSuggestionLanguage(null);
@@ -600,32 +586,43 @@ function WordModal({
     }
   };
 
-  // Use a selected example
+  /**
+   * Use a selected example
+   */
   const useExample = (example) => {
     setFormData((prev) => ({ ...prev, example }));
     setShowExamples(false);
     autoTranslateExample(example, formData.language);
   };
 
-  // Handle word audio pronunciation
+  // ==================== AUDIO FUNCTIONS ====================
+  // ==================== AUDIO FUNCTIONS ====================
+
+  /**
+   * Handle word audio pronunciation
+   */
   const handleWordAudio = async () => {
     if (!formData.word || isPlayingAudio) return;
 
     try {
       setIsPlayingAudio(true);
-      await audioService.playAudio(swapNeeded ? formData.translation : formData.word, formData.language, {
-        onStart: () => {
-          setIsPlayingAudio(true);
-        },
-        onEnd: () => {
-          setIsPlayingAudio(false);
-        },
-        onError: (error) => {
-          console.error("Error playing word audio:", error);
-          setIsPlayingAudio(false);
-          toast.error("Failed to play pronunciation");
-        },
-      });
+      await audioService.playAudio(
+        swapNeeded ? formData.translation : formData.word,
+        formData.language,
+        {
+          onStart: () => {
+            setIsPlayingAudio(true);
+          },
+          onEnd: () => {
+            setIsPlayingAudio(false);
+          },
+          onError: (error) => {
+            console.error("Error playing word audio:", error);
+            setIsPlayingAudio(false);
+            toast.error("Failed to play pronunciation");
+          },
+        }
+      );
     } catch (error) {
       console.error("Error with word audio service:", error);
       setIsPlayingAudio(false);
@@ -633,7 +630,11 @@ function WordModal({
     }
   };
 
-  // Handle form submission
+  // ==================== FORM SUBMISSION ====================
+
+  /**
+   * Handle form submission
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -641,6 +642,7 @@ function WordModal({
       toast.error("Please fill in at least the word and translation fields");
       return;
     }
+    
     try {
       // Order conjugations before saving
       let orderedConjugations = null;
@@ -650,13 +652,14 @@ function WordModal({
           orderedConjugations[tense] = orderConjugations(conjugations);
         });
       }
-let finalFormData = formData;
-      if(swapNeeded) {
+      
+      let finalFormData = formData;
+      if (swapNeeded) {
         finalFormData = {
           ...formData,
           word: formData.translation, // Use translation as word
           translation: formData.word, // Use word as translation
-        }
+        };
       }
 
       const wordData = {
@@ -682,6 +685,7 @@ let finalFormData = formData;
         await onSubmit(wordData, editingWord);
         return;
       }
+      
       // Otherwise handle submission directly
       if (userId) {
         // Create user object for Firebase utils (they expect user object with uid)
@@ -706,9 +710,13 @@ let finalFormData = formData;
       toast.error("Failed to save word. Please try again.");
     }
   };
-  // Comprehensive auto-fill functionality with smart language detection
+
+  // ==================== AUTO-FILL FUNCTIONALITY ====================  // ==================== AUTO-FILL FUNCTIONALITY ====================
+
+  /**
+   * Comprehensive auto-fill functionality with smart language detection
+   */
   const handleComprehensiveAutoFill = (wordValue) => {
-    console.log("@saibaba1")
     // Clear any pending auto-fill request
     if (autoFillTimeout) {
       clearTimeout(autoFillTimeout);
@@ -716,7 +724,6 @@ let finalFormData = formData;
 
     // Only auto-fill if the word is valid and AI service is available
     if (wordValue?.trim() && bedrockService.isReady()) {
-      console.log("@saibaba2")
       // Set a delay to avoid too many API calls while typing
       const timeoutId = setTimeout(async () => {
         try {
@@ -727,36 +734,28 @@ let finalFormData = formData;
             typeof window !== "undefined" && window.__userNativeLanguage
               ? window.__userNativeLanguage
               : "english";
-          const userLearningLanguage = formData.language;          // Use AI language detection to determine translation direction
-          const direction = await languageDetectionService.getTranslationDirection(
-            wordValue,
-            userLearningLanguage,
-            userNativeLanguage
-          );
-
-          console.log(
-            `Saibaba AI Smart comprehensive fill: "${wordValue}" detected as ${direction}`
-          );
-          console.log(`Translation flow: ${direction.translationFlow}`);
+          const userLearningLanguage = formData.language;
 
           // Determine which word to send to AI for comprehensive data
           let wordForAI = wordValue;
           let shouldTranslateFirst = false;
 
-          if (direction.swapNeeded) {
+          if (swapNeeded) {
             // Input is in native language, need to translate to learning language first
             shouldTranslateFirst = true;
-            
+
             try {
               const translationResult = await translateService.translateText(
                 wordValue,
-                direction.sourceLanguage,
-                direction.targetLanguage
+                detectedSuggestionLanguage,
+                detectedTranslationLanguage
               );
-              
+
               if (translationResult?.translatedText) {
                 wordForAI = translationResult.translatedText;
-                console.log(`Pre-translated for AI: "${wordValue}" → "${wordForAI}"`);
+                console.log(
+                  `Pre-translated for AI: "${wordValue}" → "${wordForAI}"`
+                );
               }
             } catch (error) {
               console.error("Pre-translation failed:", error);
@@ -779,8 +778,7 @@ let finalFormData = formData;
 
             // Prepare word data ensuring correct language assignment
             let finalWordData;
-            setSwapNeeded(direction.swapNeeded);
-            if (shouldTranslateFirst && direction.swapNeeded) {
+            if (shouldTranslateFirst && swapNeeded) {
               // We translated from native to learning, so use AI word as learning language
               finalWordData = {
                 word: wordValue, // Learning language (from AI)
@@ -790,7 +788,7 @@ let finalFormData = formData;
               // Input was already in learning language
               finalWordData = {
                 word: wordValue, // Learning language (original input)
-                translation: comprehensiveData.translation // Native language (from AI)
+                translation: comprehensiveData.translation, // Native language (from AI)
               };
             }
 
@@ -807,10 +805,7 @@ let finalFormData = formData;
 
             // Set verb conjugations if available
             if (comprehensiveData.conjugations) {
-              console.log(
-                "Setting verb conjugations:",
-                comprehensiveData.conjugations
-              );
+              console.log("Setting verb conjugations:", comprehensiveData.conjugations);
               setVerbConjugations(comprehensiveData.conjugations);
             } else {
               console.log("No conjugations found in comprehensive data");
@@ -829,12 +824,13 @@ let finalFormData = formData;
             }
 
             // Show user the detection result
-            console.log(`✓ Smart fill complete: "${finalWordData.word}" (${userLearningLanguage}) → "${finalWordData.translation}" (${userNativeLanguage})`);
+            console.log(
+              `✓ Smart fill complete: "${finalWordData.word}" (${userLearningLanguage}) → "${finalWordData.translation}" (${userNativeLanguage})`
+            );
           }
         } catch (error) {
           console.error("Comprehensive auto-fill failed:", error);
           // Fallback to smart auto-translate method if comprehensive fails
-          handleAutoTranslate(wordValue);
         } finally {
           setIsAutoFilling(false);
         }
@@ -843,6 +839,9 @@ let finalFormData = formData;
       setAutoFillTimeout(timeoutId);
     }
   };
+
+  // ==================== RENDER ====================
+  // ==================== RENDER ====================
 
   return (
     <motion.div
@@ -859,6 +858,7 @@ let finalFormData = formData;
         className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Modal Header */}
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 rounded-t-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -875,18 +875,8 @@ let finalFormData = formData;
               onClick={onClose}
               className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -895,16 +885,14 @@ let finalFormData = formData;
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Main Word Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {" "}
+            {/* Word Input */}
             <div className="space-y-1">
-              {" "}              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                Word *
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Word *{" "}
                 {isGeneratingSuggestions && (
-                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                    (Getting smart suggestions...)
-                  </span>
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400"></span>
                 )}
-              </label>{" "}
+              </label>
               <div className="relative">
                 <input
                   type="text"
@@ -912,7 +900,8 @@ let finalFormData = formData;
                   value={formData.word}
                   onChange={handleInputChange}
                   onFocus={handleWordFieldFocus}
-                  onBlur={handleWordFieldBlur}                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                  onBlur={handleWordFieldBlur}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
                   placeholder="Enter word in any language (AI will detect and translate automatically)"
                   required
                 />
@@ -929,24 +918,17 @@ let finalFormData = formData;
                     title="Play pronunciation"
                   >
                     {isPlayingAudio ? (
-                      <svg
-                        className="w-4 h-4 animate-pulse"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                      <svg className="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
                       </svg>
                     ) : (
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
                       </svg>
                     )}
                   </button>
                 )}
+                
                 {/* Word Suggestions Dropdown */}
                 <AnimatePresence>
                   {showSuggestions && wordSuggestions.length > 0 && (
@@ -957,19 +939,10 @@ let finalFormData = formData;
                       transition={{ duration: 0.2 }}
                       className="suggestions-dropdown absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
                     >
-                      <div className="p-2">                        <div className="flex items-center gap-2 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1">
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 10V3L4 14h7v7l9-11h-7z"
-                            />
+                      <div className="p-2">
+                        <div className="flex items-center gap-2 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                           AI Suggestions
                           {detectedSuggestionLanguage && (
@@ -991,18 +964,8 @@ let finalFormData = formData;
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors duration-150 flex items-center justify-between group"
                           >
                             <span className="font-medium">{suggestion}</span>
-                            <svg
-                              className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                              />
+                            <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                           </button>
                         ))}
@@ -1011,9 +974,11 @@ let finalFormData = formData;
                   )}
                 </AnimatePresence>
               </div>
-            </div>{" "}
-            <div className="space-y-1">              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                {" "}
+            </div>
+
+            {/* Translation Input */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Translation *
                 {isAutoFilling && (
                   <span className="ml-2 text-xs text-green-600 dark:text-green-400">
@@ -1031,27 +996,21 @@ let finalFormData = formData;
                   type="text"
                   name="translation"
                   value={formData.translation}
-                  onChange={handleInputChange}                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
                   placeholder="Translation (auto-detects input language and translates intelligently)"
                   required
                 />
                 {(isTranslating || isAutoFilling) && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div
-                      className={`animate-spin rounded-full h-4 w-4 border-b-2 ${
-                        isAutoFilling ? "border-green-500" : "border-blue-500"
-                      }`}
-                    ></div>
+                    <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${isAutoFilling ? "border-green-500" : "border-blue-500"}`}></div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Pronunciation */}
+          </div>          {/* Pronunciation */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              {" "}
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Pronunciation
                 {isAutoFilling && (
@@ -1073,35 +1032,15 @@ let finalFormData = formData;
               >
                 {isGeneratingPronunciation ? (
                   <>
-                    <svg
-                      className="w-3 h-3 animate-spin"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
+                    <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Generating...
                   </>
                 ) : (
                   <>
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 9v6l4-3-4-3z"
-                      />
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M9 9v6l4-3-4-3z" />
                     </svg>
                     Generate IPA
                   </>
@@ -1119,106 +1058,72 @@ let finalFormData = formData;
               />
               {(isGeneratingPronunciation || isAutoFilling) && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div
-                    className={`animate-spin rounded-full h-4 w-4 border-b-2 ${
-                      isAutoFilling ? "border-green-500" : "border-blue-500"
-                    }`}
-                  ></div>
+                  <div className={`animate-spin rounded-full h-4 w-4 border-b-2 ${isAutoFilling ? "border-green-500" : "border-blue-500"}`}></div>
                 </div>
-              )}{" "}
+              )}
             </div>
-          </div>
-
-          {/* Verb Conjugation Display */}
-          <div className="space-y-1">
-            {verbConjugations && (
+          </div>          {/* Verb Conjugation Display */}
+          {verbConjugations && (
+            <div className="space-y-1">
               <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <h4 className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mb-2 flex items-center gap-1.5">
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Verb Conjugations
-                </h4>{" "}
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Object.entries(verbConjugations).map(
-                    ([tense, conjugations]) => (
-                      <div
-                        key={tense}
-                        className="bg-white dark:bg-gray-700 rounded-md p-2 border border-emerald-200 dark:border-emerald-700"
-                      >
-                        <h5 className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-1">
-                          {tense === "passe"
-                            ? "Passé Composé"
-                            : tense.charAt(0).toUpperCase() + tense.slice(1)}
-                        </h5>{" "}
-                        <div className="space-y-0.5">
-                          {Object.entries(orderConjugations(conjugations)).map(
-                            ([pronoun, form]) => {
-                              // Handle French contractions (je + vowel = j')
-                              let fullPhrase;
-                              if (
-                                formData.language === "fr" &&
-                                pronoun.toLowerCase() === "je" &&
-                                /^[aeiouéèàh]/.test(form)
-                              ) {
-                                fullPhrase = `J'${form}`;
-                              } else {
-                                fullPhrase = `${
-                                  pronoun.charAt(0).toUpperCase() +
-                                  pronoun.slice(1)
-                                } ${form}`;
-                              }
+                  {Object.entries(verbConjugations).map(([tense, conjugations]) => (
+                    <div
+                      key={tense}
+                      className="bg-white dark:bg-gray-700 rounded-md p-2 border border-emerald-200 dark:border-emerald-700"
+                    >
+                      <h5 className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-1">
+                        {tense === "passe" ? "Passé Composé" : tense.charAt(0).toUpperCase() + tense.slice(1)}
+                      </h5>
+                      <div className="space-y-0.5">
+                        {Object.entries(orderConjugations(conjugations)).map(([pronoun, form]) => {
+                          // Handle French contractions (je + vowel = j')
+                          let fullPhrase;
+                          if (
+                            formData.language === "fr" &&
+                            pronoun.toLowerCase() === "je" &&
+                            /^[aeiouéèàh]/.test(form)
+                          ) {
+                            fullPhrase = `J'${form}`;
+                          } else {
+                            fullPhrase = `${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ${form}`;
+                          }
 
-                              return (
-                                <div
-                                  key={pronoun}
-                                  className="flex items-center text-xs"
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        await audioService.playAudio(
-                                          fullPhrase,
-                                          formData.language
-                                        );
-                                      } catch (error) {
-                                        console.error(
-                                          "Error playing conjugation audio:",
-                                          error
-                                        );
-                                      }
-                                    }}
-                                    className="font-medium text-gray-800 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer underline-offset-2 hover:underline w-full text-left"
-                                    title={`Click to pronounce ${fullPhrase}`}
-                                  >
-                                    {fullPhrase}
-                                  </button>
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
+                          return (
+                            <div key={pronoun} className="flex items-center text-xs">
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await audioService.playAudio(fullPhrase, formData.language);
+                                  } catch (error) {
+                                    console.error("Error playing conjugation audio:", error);
+                                  }
+                                }}
+                                className="font-medium text-gray-800 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer underline-offset-2 hover:underline w-full text-left"
+                                title={`Click to pronounce ${fullPhrase}`}
+                              >
+                                {fullPhrase}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
-                    )
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Example */}
+          {/* Example Sentence */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
@@ -1227,44 +1132,20 @@ let finalFormData = formData;
               <button
                 type="button"
                 onClick={handleGenerateExamples}
-                disabled={
-                  isGeneratingExamples ||
-                  !formData.word ||
-                  !formData.translation
-                }
+                disabled={isGeneratingExamples || !formData.word || !formData.translation}
                 className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-md transition-all duration-200 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
               >
                 {isGeneratingExamples ? (
                   <>
-                    <svg
-                      className="w-3 h-3 animate-spin"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
+                    <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Generating...
                   </>
                 ) : (
                   <>
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     AI Examples
                   </>
@@ -1279,9 +1160,8 @@ let finalFormData = formData;
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all resize-none placeholder-gray-500 text-sm"
               placeholder="Example sentence using this word (or generate with AI)"
             />
-          </div>
-          {/* Category, Part of Speech, and Language */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          </div>          {/* Category and Language */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Category
@@ -1294,7 +1174,6 @@ let finalFormData = formData;
               >
                 <option value="">Select Category</option>
                 <option value="vocabulary">Vocabulary</option>
-                <option value="food">Driving</option>
                 <option value="phrases">Phrases</option>
                 <option value="grammar">Grammar</option>
                 <option value="idioms">Idioms</option>
@@ -1307,14 +1186,13 @@ let finalFormData = formData;
               </select>
             </div>
 
-<div className="space-y-1">
+            <div className="space-y-1">
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Language
               </label>
               <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm">
                 {formData.language
-                  ? formData.language.charAt(0).toUpperCase() +
-                    formData.language.slice(1)
+                  ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1)
                   : "English"}
               </div>
             </div>
@@ -1350,21 +1228,12 @@ let finalFormData = formData;
                   onClick={() => setShowExamples(false)}
                   className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
+              
               <div className="space-y-3">
                 {generatedExamples.map((example, index) => (
                   <div
@@ -1381,6 +1250,7 @@ let finalFormData = formData;
                   </div>
                 ))}
               </div>
+              
               <div className="mt-4 text-center">
                 <button
                   onClick={() => setShowExamples(false)}

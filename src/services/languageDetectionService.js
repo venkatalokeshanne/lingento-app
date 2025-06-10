@@ -592,6 +592,66 @@ Return only the JSON response, no other text.`;
 
     return wordData;
   }
+
+  /**
+   * Get combined language detection and word suggestions in a single AI request
+   * This is more efficient than separate requests and provides consistent results
+   * @param {string} partialWord - The partial word to analyze and get suggestions for
+   * @param {string} userLearningLanguage - User's learning language
+   * @param {string} userNativeLanguage - User's native language
+   * @returns {object} - Combined result with detection and suggestions
+   */
+  async getLanguageDetectionAndSuggestions(partialWord, userLearningLanguage = 'french', userNativeLanguage = 'english') {
+    if (!partialWord || partialWord.trim().length === 0) {
+      return { 
+        detectedLanguage: userLearningLanguage, 
+        confidence: 0, 
+        reason: 'empty_input',
+        suggestions: []
+      };
+    }
+
+    // Check if AI service is available
+    if (!bedrockService.isReady()) {
+      console.log('AI service not available for combined detection and suggestions, falling back to separate methods');
+      
+      // Fallback to separate language detection and empty suggestions
+      const detection = await this.detectLanguageWithAI(partialWord, userLearningLanguage, userNativeLanguage);
+      return {
+        ...detection,
+        suggestions: [] // No suggestions without AI
+      };
+    }
+
+    try {
+      const result = await bedrockService.generateLanguageDetectionAndSuggestions(
+        partialWord.trim(),
+        userLearningLanguage,
+        userNativeLanguage
+      );
+      
+      console.log(`Combined AI detection result:`, result);
+      
+      return {
+        detectedLanguage: result.detectedLanguage.toLowerCase(),
+        confidence: Math.max(0, Math.min(1, result.confidence)),
+        reason: result.reason || 'ai_combined_detection',
+        method: 'ai_combined',
+        suggestions: result.suggestions || []
+      };
+      
+    } catch (error) {
+      console.error('Combined AI detection and suggestions failed:', error);
+      console.log('Falling back to separate language detection');
+      
+      // Fallback to separate language detection
+      const detection = await this.detectLanguageWithAI(partialWord, userLearningLanguage, userNativeLanguage);
+      return {
+        ...detection,
+        suggestions: [] // No suggestions on fallback
+      };
+    }
+  }
 }
 
 // Create singleton instance

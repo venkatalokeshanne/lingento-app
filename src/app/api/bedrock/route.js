@@ -52,23 +52,24 @@ export async function POST(request) {
         !process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       console.error('Missing AWS credentials');
-      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord, userNativeLanguage, translationLanguage } = await request.json();
-    console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });    // For generate action, we need a prompt instead of word/language
+      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord, userNativeLanguage, translationLanguage, userLearningLanguage } = await request.json();
+    console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });// For generate action, we need a prompt instead of word/language
     if (action === 'generate' && !prompt) {
       return Response.json({ error: 'Missing required parameter: prompt' }, { status: 400 });
-    }
-
-    // For word suggestions, we need partialWord and language
+    }    // For word suggestions, we need partialWord and language
     if (action === 'wordSuggestions' && (!partialWord || !language)) {
       return Response.json({ error: 'Missing required parameters (partialWord and language)' }, { status: 400 });
+    }
+
+    // For combined language detection and word suggestions
+    if (action === 'languageDetectionAndSuggestions' && (!partialWord || !userLearningLanguage || !userNativeLanguage)) {
+      return Response.json({ error: 'Missing required parameters (partialWord, userLearningLanguage, and userNativeLanguage)' }, { status: 400 });
     }
 
     // For comprehensive action, we need word and language
     if (action === 'comprehensive' && (!word || !language)) {
       return Response.json({ error: 'Missing required parameters (word and language)' }, { status: 400 });
-    }
-
-    if (action !== 'generate' && action !== 'wordSuggestions' && action !== 'comprehensive' && (!word || !language)) {
+    }    if (action !== 'generate' && action !== 'wordSuggestions' && action !== 'comprehensive' && action !== 'languageDetectionAndSuggestions' && (!word || !language)) {
       return Response.json({ error: 'Missing required parameters (word and language)' }, { status: 400 });
     }
 
@@ -99,10 +100,13 @@ export async function POST(request) {
       case 'pronunciation':
         aiPrompt = buildPronunciationPrompt(word, language);
         maxTokens = 150;
-        break;
-      case 'wordSuggestions':
+        break;      case 'wordSuggestions':
         aiPrompt = buildWordSuggestionsPrompt(partialWord, language, translationLanguage || 'french');
         maxTokens = 300;
+        break;
+      case 'languageDetectionAndSuggestions':
+        aiPrompt = buildLanguageDetectionAndSuggestionsPrompt(partialWord, userLearningLanguage, userNativeLanguage);
+        maxTokens = 500;
         break;
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 });
@@ -162,6 +166,11 @@ export async function POST(request) {
       console.log('Raw response:', responseBody.content[0].text);
       result = parseComprehensiveResponse(responseBody.content[0].text);
       console.log('Parsed comprehensive result:', result);
+    } else if (action === 'languageDetectionAndSuggestions') {
+      console.log('Processing combined language detection and suggestions response');
+      console.log('Raw response:', responseBody.content[0].text);
+      result = parseLanguageDetectionAndSuggestionsResponse(responseBody.content[0].text);
+      console.log('Parsed combined result:', result);
     } else if (action === 'definition' && (partOfSpeech?.toLowerCase() === 'verb' || definition?.toLowerCase().includes('verb'))) {
       result = parseVerbConjugation(responseBody.content[0].text);
     } else {
@@ -375,6 +384,54 @@ Format your response as a JSON array of strings, like this:
 ["word1 (translation)", "word2 (translation)", "word3 (translation)", "word4 (translation)", "word5 (translation)"]
 
 Only return the JSON array, no other text.`;
+}
+
+// Build prompt for combined language detection and word suggestions
+function buildLanguageDetectionAndSuggestionsPrompt(partialWord, userLearningLanguage, userNativeLanguage) {
+  return `Analyze the partial word "${partialWord}" and perform two tasks:
+
+1. LANGUAGE DETECTION: Determine which language this partial word is most likely from:
+   - ${userNativeLanguage} (user's native language)
+   - ${userLearningLanguage} (user's learning language)
+   - Consider common word patterns, character usage, and linguistic features
+
+2. WORD SUGGESTIONS: Based on the detected language, provide 5 actual words that START with "${partialWord}":
+   - Words must literally begin with "${partialWord}" (case-insensitive)
+   - Order by frequency and usefulness for language learners
+   - Include common vocabulary: nouns, verbs, adjectives
+   - Avoid proper nouns, brand names, and technical terms
+   - Focus on everyday vocabulary
+
+Available languages:
+- ${userNativeLanguage} (user's native language)
+- ${userLearningLanguage} (user's learning language)
+- english (if not already listed)
+- french (if not already listed)
+- spanish (if not already listed)
+- german (if not already listed)
+- italian (if not already listed)
+
+Instructions:
+1. Identify the most likely language of the input text
+2. Provide a confidence score from 0.0 to 1.0
+3. Consider language-specific characteristics like:
+   - Common words and grammar patterns
+   - Character usage (accents, special characters)
+   - Vocabulary and spelling patterns
+
+Response format (JSON only):
+{
+  "detectedLanguage": "detected_language_name",
+  "confidence": 0.95,
+  "reason": "explanation of detection logic",
+  "suggestions": ["word1 (translation)", "word2 (translation)", "word3 (translation)", "word4 (translation)", "word5 (translation)"]
+}
+
+The translation in suggestions should be in the opposite language:
+- If detected language is ${userNativeLanguage}, translate to ${userLearningLanguage}
+- If detected language is ${userLearningLanguage}, translate to ${userNativeLanguage}
+
+Return only the JSON response, no other text.`;
 }
 
 // Build prompt for comprehensive word data generation
@@ -703,4 +760,49 @@ function transformComprehensiveConjugations(conjugations) {
   });
   
   return Object.keys(transformed).length > 0 ? transformed : null;
+}
+
+// Parse combined language detection and suggestions response from AI
+function parseLanguageDetectionAndSuggestionsResponse(response) {
+  try {
+    // Clean the response
+    let cleanResponse = response
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+    
+    // Find JSON content
+    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanResponse = jsonMatch[0];
+    }
+    
+    const result = JSON.parse(cleanResponse);
+    console.log('Parsed combined language detection and suggestions response:', result);
+    
+    // Validate the response structure
+    if (!result.detectedLanguage || typeof result.confidence !== 'number' || !Array.isArray(result.suggestions)) {
+      console.error('Invalid response structure - missing required fields:', {
+        hasDetectedLanguage: !!result.detectedLanguage,
+        hasConfidence: typeof result.confidence === 'number',
+        hasSuggestions: Array.isArray(result.suggestions)
+      });
+      throw new Error('Invalid response structure: missing detectedLanguage, confidence, or suggestions');
+    }
+    
+    // Ensure confidence is between 0 and 1
+    result.confidence = Math.max(0, Math.min(1, result.confidence));
+    
+    console.log('✅ Combined response validation successful:', {
+      detectedLanguage: result.detectedLanguage,
+      confidence: result.confidence,
+      suggestionsCount: result.suggestions.length
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to parse combined response:', error);
+    console.log('Raw response:', response);
+    throw new Error(`Invalid JSON response from AI: ${error.message}`);
+  }
 }
