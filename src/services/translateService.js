@@ -32,7 +32,7 @@ class TranslateService {
       
       // Check if using AWS and log initialization
       console.log('AWS Translate initialized successfully (using internal API)');
-      console.log('💡 Cache optimization enabled: enhanced caching, validation, and common word mappings');
+      console.log('💡 Cache optimization enabled: enhanced caching and validation');
       console.log('📊 Use the Translation Usage Monitor to track your daily API usage');
       
     } catch (error) {
@@ -60,175 +60,8 @@ class TranslateService {
     swedish: 'sv',
     norwegian: 'no',
     danish: 'da',
-    finnish: 'fi'
-  };
-  // Common word corrections for better translation accuracy and reduced API usage
-  commonWordMappings = {
-    french: {
-      'salut': 'hi',
-      'bonjour': 'hello',
-      'bonsoir': 'good evening',
-      'au revoir': 'goodbye',
-      'merci': 'thank you',
-      'oui': 'yes',
-      'non': 'no',
-      's\'il vous plaît': 'please',
-      'excusez-moi': 'excuse me',
-      'pardon': 'sorry',
-      'chat': 'cat',
-      'chien': 'dog',
-      'eau': 'water',
-      'pain': 'bread',
-      'maison': 'house',
-      'voiture': 'car',
-      'livre': 'book',
-      'temps': 'time',
-      'jour': 'day',
-      'nuit': 'night',
-      'ami': 'friend',
-      'famille': 'family',
-      'école': 'school',
-      'travail': 'work',
-      'argent': 'money',
-      'rouge': 'red',
-      'bleu': 'blue',
-      'vert': 'green',
-      'blanc': 'white',
-      'noir': 'black',
-      'grand': 'big',
-      'petit': 'small'
-    },
-    spanish: {
-      'hola': 'hello',
-      'adiós': 'goodbye',
-      'gracias': 'thank you',
-      'sí': 'yes',
-      'no': 'no',
-      'por favor': 'please',
-      'perdón': 'sorry',
-      'disculpe': 'excuse me',
-      'gato': 'cat',
-      'perro': 'dog',
-      'agua': 'water',
-      'pan': 'bread',
-      'casa': 'house',
-      'coche': 'car',
-      'libro': 'book',
-      'tiempo': 'time',
-      'día': 'day',
-      'noche': 'night',
-      'amigo': 'friend',
-      'familia': 'family',
-      'escuela': 'school',
-      'trabajo': 'work',
-      'dinero': 'money',
-      'rojo': 'red',
-      'azul': 'blue',
-      'verde': 'green',
-      'blanco': 'white',
-      'negro': 'black',
-      'grande': 'big',
-      'pequeño': 'small'
-    },
-    german: {
-      'hallo': 'hello',
-      'auf wiedersehen': 'goodbye',
-      'danke': 'thank you',
-      'ja': 'yes',
-      'nein': 'no',
-      'bitte': 'please',
-      'entschuldigung': 'excuse me',
-      'katze': 'cat',
-      'hund': 'dog',
-      'wasser': 'water',
-      'brot': 'bread',
-      'haus': 'house',
-      'auto': 'car',
-      'buch': 'book',
-      'zeit': 'time',
-      'tag': 'day',
-      'nacht': 'night',
-      'freund': 'friend',
-      'familie': 'family',
-      'schule': 'school',
-      'arbeit': 'work',
-      'geld': 'money',
-      'rot': 'red',
-      'blau': 'blue',
-      'grün': 'green',
-      'weiß': 'white',
-      'schwarz': 'black',
-      'groß': 'big',
-      'klein': 'small'
-    },
-    italian: {
-      'ciao': 'hello',
-      'arrivederci': 'goodbye',
-      'grazie': 'thank you',
-      'sì': 'yes',
-      'no': 'no',
-      'per favore': 'please',
-      'scusi': 'excuse me',
-      'gatto': 'cat',
-      'cane': 'dog',
-      'acqua': 'water',
-      'pane': 'bread',
-      'casa': 'house',
-      'macchina': 'car',
-      'libro': 'book',
-      'tempo': 'time',
-      'giorno': 'day',
-      'notte': 'night',
-      'amico': 'friend',
-      'famiglia': 'family',
-      'scuola': 'school',
-      'lavoro': 'work',
-      'soldi': 'money',
-      'rosso': 'red',
-      'blu': 'blue',
-      'verde': 'green',
-      'bianco': 'white',
-      'nero': 'black',
-      'grande': 'big',
-      'piccolo': 'small'
-    },
-    portuguese: {
-      'olá': 'hello',
-      'tchau': 'goodbye',
-      'obrigado': 'thank you',
-      'sim': 'yes',
-      'não': 'no',
-      'por favor': 'please',
-      'desculpe': 'excuse me',
-      'gato': 'cat',
-      'cão': 'dog',
-      'água': 'water',
-      'pão': 'bread',
-      'casa': 'house',
-      'carro': 'car',
-      'livro': 'book',
-      'tempo': 'time',
-      'dia': 'day',
-      'noite': 'night',
-      'amigo': 'friend',
-      'família': 'family',
-      'escola': 'school',
-      'trabalho': 'work',
-      'dinheiro': 'money'
-    }
-  };
-
-  // Check if word has a common mapping for better accuracy
-  getCommonWordMapping(text, sourceLanguage) {
-    const normalizedText = text.toLowerCase().trim();
-    const mappings = this.commonWordMappings[sourceLanguage.toLowerCase()];
-    
-    if (mappings && mappings[normalizedText]) {
-      return mappings[normalizedText];
-    }
-    
-    return null;
-  }
+    finnish: 'fi'  };
+  // No hardcoded translations - use AI for all translations
 
   // Generate a unique cache key for the text and language combination
   generateCacheKey(text, sourceLanguage, targetLanguage) {
@@ -411,15 +244,12 @@ class TranslateService {
     this.translationCache.clear();
     this.translationPromiseCache.clear();
   }
-
   // Get cache statistics and usage info
   getCacheStats() {
     const cacheStats = {
       translationCacheSize: this.translationCache.size,
       promiseCacheSize: this.translationPromiseCache.size,
-      isInitialized: this.isInitialized,
-      commonWordsAvailable: Object.keys(this.commonWordMappings).reduce((total, lang) => 
-        total + Object.keys(this.commonWordMappings[lang]).length, 0)
+      isInitialized: this.isInitialized
     };
     
     // Add API usage tracking info
@@ -528,14 +358,7 @@ class TranslateService {
 
   // Validate if a language is supported
   isLanguageSupported(language) {
-    return this.languageCodes.hasOwnProperty(language.toLowerCase());
-  }
-  // Check if a word is likely to be in common mappings (avoid API call)
-  isCommonWord(text, language) {
-    const normalizedText = text.toLowerCase().trim();
-    const mappings = this.commonWordMappings[language?.toLowerCase()];
-    return mappings && mappings.hasOwnProperty(normalizedText);
-  }
+    return this.languageCodes.hasOwnProperty(language.toLowerCase());  }
 
   // Check if service is ready
   isReady() {
@@ -546,16 +369,14 @@ class TranslateService {
   getCharacterCount(text) {
     return text ? text.length : 0;
   }
-
-  // Batch check if words exist in cache or common mappings
+  // Batch check if words exist in cache
   checkWordsExist(words, language) {
     return words.map(word => ({
       word,
       inCache: this.getCachedTranslation(word, language, 'english') !== undefined,
-      isCommon: this.isCommonWord(word, language),
-      needsTranslation: !this.getCachedTranslation(word, language, 'english') && !this.isCommonWord(word, language)
+      needsTranslation: !this.getCachedTranslation(word, language, 'english')
     }));
-  }  // Translate from source language to user's native language with optimization
+  }// Translate from source language to user's native language with optimization
   async simpleTranslate(inputText, sourceLanguage) {
     // Validate input text - allow short words for vocabulary
     if (!this.isValidTextForTranslation(inputText, true)) {
@@ -581,17 +402,9 @@ class TranslateService {
         word: trimmedText,
         translation: trimmedText,
         sourceLanguage: sourceLanguage || targetLanguage
-      };
-    }// First check for common word mappings for better accuracy
-    const commonMapping = this.getCommonWordMapping(trimmedText, sourceLanguage);
-    if (commonMapping) {
-      this.trackCacheHit(); // Count common word mapping as cache hit
-      return {
-        word: trimmedText,
-        translation: commonMapping,
-        sourceLanguage: sourceLanguage
-      };
-    }    try {
+      };    }
+
+    try {
       // Translate from the specified language to user's native language
       const targetLanguage = typeof window !== 'undefined' && window.__userNativeLanguage 
                             ? window.__userNativeLanguage 

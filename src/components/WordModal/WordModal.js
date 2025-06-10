@@ -8,6 +8,7 @@ import { bedrockService } from "@/services/bedrockService";
 import audioService from "@/services/audioService";
 import { addUserData, updateUserData } from "@/utils/firebaseUtils";
 import translateService from "@/services/translateService";
+import languageDetectionService from "@/services/languageDetectionService";
 
 // Helper function to get ordered French pronouns
 function getOrderedFrenchPronouns() {
@@ -72,12 +73,13 @@ function WordModal({
   const [verbConjugations, setVerbConjugations] = useState(null);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [autoFillTimeout, setAutoFillTimeout] = useState(null);
-
   // Word suggestions state
   const [wordSuggestions, setWordSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [suggestionTimeout, setSuggestionTimeout] = useState(null);
+  const [detectedSuggestionLanguage, setDetectedSuggestionLanguage] = useState(null); // Track detected language for suggestions
+  const [swapNeeded, setSwapNeeded] = useState(false); // Swap needed for translation direction
 
   // Audio state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -212,11 +214,10 @@ function WordModal({
         setIsTranslating(false);
         setIsGeneratingPronunciation(false);
         setIsGeneratingExamples(false);
-        setIsGeneratingSuggestions(false);
-
-        // Clear suggestions and conjugations
+        setIsGeneratingSuggestions(false);        // Clear suggestions and conjugations
         setWordSuggestions([]);
         setShowSuggestions(false);
+        setDetectedSuggestionLanguage(null);
         setVerbConjugations(null);
         setGeneratedExamples([]);
         setShowExamples(false);
@@ -264,8 +265,7 @@ function WordModal({
         handleComprehensiveAutoFill(wordValue);
       }
     }, 200);
-  };
-  // Auto translate functionality - always translates from native language to English
+  };  // Smart auto translate functionality with language detection
   const handleAutoTranslate = (wordValue) => {
     // Clear any pending translation request
     if (translationTimeout) {
@@ -285,35 +285,62 @@ function WordModal({
             setIsTranslating(false);
             return;
           }
-          // Get user's native language preference
+
+          // Get user's language preferences
           const userNativeLanguage =
             typeof window !== "undefined" && window.__userNativeLanguage
               ? window.__userNativeLanguage
               : "english";
+          const userLearningLanguage = formData.language;          // Use AI language detection to determine translation direction
+          const direction = await languageDetectionService.getTranslationDirection(
+            wordValue,
+            userLearningLanguage,
+            userNativeLanguage
+          );
 
           console.log(
-            `Translating "${wordValue}" from ${formData.language} to ${userNativeLanguage}`
+            `AI Smart translation: "${wordValue}" detected as ${direction.detectedLanguage} (confidence: ${direction.confidence.toFixed(2)}) via ${direction.method}`
           );
-          const result = await translateService.simpleTranslate(
+          console.log(`Translation flow: ${direction.translationFlow}`);
+
+          // Translate using the detected direction
+          const result = await translateService.translateText(
             wordValue,
-            formData.language
+            direction.sourceLanguage,
+            direction.targetLanguage
           );
-          if (result?.translation) {
+
+          if (result?.translatedText) {
+            // Prepare word data ensuring correct language assignment
+            const wordData = languageDetectionService.prepareWordData(
+              wordValue,
+              result.translatedText,
+              direction,
+              userLearningLanguage,
+              userNativeLanguage
+            );
+
+            // Update form with properly assigned word and translation
             setFormData((prev) => ({
               ...prev,
-              translation: result.translation,
+              word: wordData.word,
+              translation: wordData.translation,
             }));
 
+            // Show user which language was detected and direction used
+            console.log(`✓ Word saved: "${wordData.word}" (${userLearningLanguage}) → "${wordData.translation}" (${userNativeLanguage})`);
+
             // After translating, try to auto-generate pronunciation and examples
-            handleGeneratePronunciation(false, wordValue);
+            // Always use the learning language word for pronunciation
+            handleGeneratePronunciation(false, wordData.word);
 
             // Auto-generate examples after a short delay to ensure translation is set
             setTimeout(() => {
-              handleAutoGenerateExamples(wordValue, result.translation);
+              handleAutoGenerateExamples(wordData.word, wordData.translation);
             }, 300);
           }
         } catch (error) {
-          console.error("Auto-translate failed:", error);
+          console.error("Smart auto-translate failed:", error);
         } finally {
           setIsTranslating(false);
         }
@@ -469,13 +496,14 @@ function WordModal({
       console.error("Error checking verb conjugations:", error);
       // Don't show error for this passive check
     }
-  };
-  // Generate word suggestions with AI
+  };  // Generate word suggestions with AI based on detected language
   const handleGenerateWordSuggestions = async (partialWord) => {
     // Clear any pending suggestion request
     if (suggestionTimeout) {
       clearTimeout(suggestionTimeout);
-    } // Generate suggestions if the word is 2+ characters
+    } 
+
+    // Generate suggestions if the word is 2+ characters
     if (partialWord?.trim().length >= 2) {
       // Set a small delay to avoid too many API calls while typing
       const timeoutId = setTimeout(async () => {
@@ -484,27 +512,48 @@ function WordModal({
           setShowSuggestions(true);
 
           let suggestions = [];
+          let detectedLanguage = formData.language; // Default to form language
+          let swapNeeded = false; // Track if we need to swap languages
 
-          // Try AI suggestions first if available
+          // Get user's language preferences for detection context
+          const userNativeLanguage =
+            typeof window !== "undefined" && window.__userNativeLanguage
+              ? window.__userNativeLanguage
+              : "english";
+          const userLearningLanguage = formData.language;
+
+          // Use language detection to identify the input language
+          try {
+            const detectionResult = await languageDetectionService.detectLanguageWithAI(
+              partialWord.trim(),
+              userLearningLanguage,
+              userNativeLanguage
+            );
+              if (detectionResult && detectionResult.confidence > 0.6) {
+              detectedLanguage = detectionResult.language;
+              setDetectedSuggestionLanguage(detectedLanguage); // Store detected language for UI
+              console.log(`Word suggestion: Detected language "${detectedLanguage}" for "${partialWord}" (confidence: ${detectionResult.confidence.toFixed(2)})`);
+            } else {
+              setDetectedSuggestionLanguage(null); // Clear detected language if low confidence
+              console.log(`Word suggestion: Using default language "${detectedLanguage}" for "${partialWord}" (low confidence: ${detectionResult?.confidence?.toFixed(2) || 'N/A'})`);
+            }
+          } catch (error) {
+            console.error("Language detection failed for word suggestions:", error);
+            // Continue with default language
+          }          // Try AI suggestions first if available
+
           if (bedrockService.isReady()) {
             try {
               suggestions = await bedrockService.generateWordSuggestions(
                 partialWord.trim(),
-                formData.language
+                detectedLanguage,
+                detectedLanguage === userNativeLanguage ? userLearningLanguage :  userNativeLanguage// Pass detected language as both parameters
               );
             } catch (error) {
               console.error("Error generating AI word suggestions:", error);
-            }
-          }
+            }          }
 
-          // If no AI suggestions or AI not available, use fallback
-          if (!suggestions || suggestions.length === 0) {
-            suggestions = bedrockService.generateFallbackSuggestions(
-              partialWord.trim(),
-              formData.language
-            );
-          }
-
+          // Only show suggestions if we got them from AI
           if (suggestions && suggestions.length > 0) {
             setWordSuggestions(suggestions);
 
@@ -523,20 +572,21 @@ function WordModal({
         }
       }, 500); // 500ms delay for faster response
 
-      setSuggestionTimeout(timeoutId);
-    } else {
+      setSuggestionTimeout(timeoutId);    } else {
       // Hide suggestions if word is too short
       setShowSuggestions(false);
       setWordSuggestions([]);
-    }  }; 
+      setDetectedSuggestionLanguage(null); // Clear detected language
+    }
+  };
   
   // Handle suggestion selection
   const handleSelectSuggestion = (suggestion) => {
     // Extract just the word part (before the parentheses) and convert to lowercase
-    const wordPart = suggestion.split("(")[0].trim().toLowerCase();
-    setFormData((prev) => ({ ...prev, word: wordPart }));
+    const wordPart = suggestion.split("(")[0].trim().toLowerCase();    setFormData((prev) => ({ ...prev, word: wordPart }));
     setShowSuggestions(false);
     setWordSuggestions([]);
+    setDetectedSuggestionLanguage(null);
 
     // Clear any pending suggestion timeout
     if (suggestionTimeout) {
@@ -563,7 +613,7 @@ function WordModal({
 
     try {
       setIsPlayingAudio(true);
-      await audioService.playAudio(formData.word, formData.language, {
+      await audioService.playAudio(swapNeeded ? formData.translation : formData.word, formData.language, {
         onStart: () => {
           setIsPlayingAudio(true);
         },
@@ -600,9 +650,17 @@ function WordModal({
           orderedConjugations[tense] = orderConjugations(conjugations);
         });
       }
+let finalFormData = formData;
+      if(swapNeeded) {
+        finalFormData = {
+          ...formData,
+          word: formData.translation, // Use translation as word
+          translation: formData.word, // Use word as translation
+        }
+      }
 
       const wordData = {
-        ...formData,
+        ...finalFormData,
         conjugations: orderedConjugations, // Include ordered verb conjugations in saved data
         createdAt: new Date(),
         lastReviewDate: null,
@@ -648,9 +706,9 @@ function WordModal({
       toast.error("Failed to save word. Please try again.");
     }
   };
-
-  // Comprehensive auto-fill functionality - generates all fields in a single AI request
+  // Comprehensive auto-fill functionality with smart language detection
   const handleComprehensiveAutoFill = (wordValue) => {
+    console.log("@saibaba1")
     // Clear any pending auto-fill request
     if (autoFillTimeout) {
       clearTimeout(autoFillTimeout);
@@ -658,41 +716,93 @@ function WordModal({
 
     // Only auto-fill if the word is valid and AI service is available
     if (wordValue?.trim() && bedrockService.isReady()) {
+      console.log("@saibaba2")
       // Set a delay to avoid too many API calls while typing
       const timeoutId = setTimeout(async () => {
         try {
           setIsAutoFilling(true);
 
-          // Get user's native language preference
+          // Get user's language preferences
           const userNativeLanguage =
             typeof window !== "undefined" && window.__userNativeLanguage
               ? window.__userNativeLanguage
               : "english";
-
-          console.log(
-            `Auto-filling comprehensive data for "${wordValue}" from ${formData.language} to ${userNativeLanguage}`
+          const userLearningLanguage = formData.language;          // Use AI language detection to determine translation direction
+          const direction = await languageDetectionService.getTranslationDirection(
+            wordValue,
+            userLearningLanguage,
+            userNativeLanguage
           );
 
+          console.log(
+            `Saibaba AI Smart comprehensive fill: "${wordValue}" detected as ${direction}`
+          );
+          console.log(`Translation flow: ${direction.translationFlow}`);
+
+          // Determine which word to send to AI for comprehensive data
+          let wordForAI = wordValue;
+          let shouldTranslateFirst = false;
+
+          if (direction.swapNeeded) {
+            // Input is in native language, need to translate to learning language first
+            shouldTranslateFirst = true;
+            
+            try {
+              const translationResult = await translateService.translateText(
+                wordValue,
+                direction.sourceLanguage,
+                direction.targetLanguage
+              );
+              
+              if (translationResult?.translatedText) {
+                wordForAI = translationResult.translatedText;
+                console.log(`Pre-translated for AI: "${wordValue}" → "${wordForAI}"`);
+              }
+            } catch (error) {
+              console.error("Pre-translation failed:", error);
+              // Fall back to original word
+            }
+          }
+
+          // Generate comprehensive data using the learning language word
           const comprehensiveData =
             await bedrockService.generateComprehensiveWordData(
-              wordValue,
-              formData.language,
+              wordForAI,
+              userLearningLanguage,
               userNativeLanguage
             );
+
           if (comprehensiveData) {
             console.log("Comprehensive data received:", comprehensiveData);
             console.log("Part of speech:", comprehensiveData.partOfSpeech);
             console.log("Conjugations:", comprehensiveData.conjugations);
+
+            // Prepare word data ensuring correct language assignment
+            let finalWordData;
+            setSwapNeeded(direction.swapNeeded);
+            if (shouldTranslateFirst && direction.swapNeeded) {
+              // We translated from native to learning, so use AI word as learning language
+              finalWordData = {
+                word: wordValue, // Learning language (from AI)
+                translation: wordForAI, // Native language (original input)
+              };
+            } else {
+              // Input was already in learning language
+              finalWordData = {
+                word: wordValue, // Learning language (original input)
+                translation: comprehensiveData.translation // Native language (from AI)
+              };
+            }
+
             // Update all form fields with the comprehensive data
             setFormData((prev) => ({
               ...prev,
-              translation: comprehensiveData.translation || prev.translation,
-              pronunciation:
-                comprehensiveData.pronunciation || prev.pronunciation,
+              word: finalWordData.word,
+              translation: finalWordData.translation,
+              pronunciation: comprehensiveData.pronunciation || prev.pronunciation,
               example: comprehensiveData.example || prev.example,
               partOfSpeech: comprehensiveData.partOfSpeech || prev.partOfSpeech,
-              translatedExample:
-                comprehensiveData.translatedExample || prev.translatedExample,
+              translatedExample: comprehensiveData.translatedExample || prev.translatedExample,
             }));
 
             // Set verb conjugations if available
@@ -717,10 +827,13 @@ function WordModal({
               ].filter(Boolean);
               setGeneratedExamples(allExamples);
             }
+
+            // Show user the detection result
+            console.log(`✓ Smart fill complete: "${finalWordData.word}" (${userLearningLanguage}) → "${finalWordData.translation}" (${userNativeLanguage})`);
           }
         } catch (error) {
           console.error("Comprehensive auto-fill failed:", error);
-          // Fallback to old method if comprehensive fails
+          // Fallback to smart auto-translate method if comprehensive fails
           handleAutoTranslate(wordValue);
         } finally {
           setIsAutoFilling(false);
@@ -784,12 +897,11 @@ function WordModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {" "}
             <div className="space-y-1">
-              {" "}
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {" "}              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Word *
                 {isGeneratingSuggestions && (
                   <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                    (Getting suggestions...)
+                    (Getting smart suggestions...)
                   </span>
                 )}
               </label>{" "}
@@ -800,9 +912,8 @@ function WordModal({
                   value={formData.word}
                   onChange={handleInputChange}
                   onFocus={handleWordFieldFocus}
-                  onBlur={handleWordFieldBlur}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-                  placeholder="Enter the word (AI suggestions will appear)"
+                  onBlur={handleWordFieldBlur}                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                  placeholder="Enter word in any language (AI will detect and translate automatically)"
                   required
                 />
                 {formData.word && (
@@ -846,8 +957,7 @@ function WordModal({
                       transition={{ duration: 0.2 }}
                       className="suggestions-dropdown absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
                     >
-                      <div className="p-2">
-                        <div className="flex items-center gap-2 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1">
+                      <div className="p-2">                        <div className="flex items-center gap-2 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1">
                           <svg
                             className="w-3 h-3"
                             fill="none"
@@ -862,6 +972,11 @@ function WordModal({
                             />
                           </svg>
                           AI Suggestions
+                          {detectedSuggestionLanguage && (
+                            <span className="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+                              {detectedSuggestionLanguage.charAt(0).toUpperCase() + detectedSuggestionLanguage.slice(1)}
+                            </span>
+                          )}
                           {isGeneratingSuggestions && (
                             <div className="ml-auto">
                               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
@@ -897,18 +1012,17 @@ function WordModal({
                 </AnimatePresence>
               </div>
             </div>{" "}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <div className="space-y-1">              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {" "}
                 Translation *
                 {isAutoFilling && (
                   <span className="ml-2 text-xs text-green-600 dark:text-green-400">
-                    (Auto-filling all fields...)
+                    (Smart auto-filling all fields...)
                   </span>
                 )}
                 {isTranslating && !isAutoFilling && (
                   <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                    (Auto-translating...)
+                    (Smart translating with AI detection...)
                   </span>
                 )}
               </label>
@@ -917,9 +1031,8 @@ function WordModal({
                   type="text"
                   name="translation"
                   value={formData.translation}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
-                  placeholder="Enter translation (auto-translates when typing word)"
+                  onChange={handleInputChange}                  className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all placeholder-gray-500 text-sm"
+                  placeholder="Translation (auto-detects input language and translates intelligently)"
                   required
                 />
                 {(isTranslating || isAutoFilling) && (

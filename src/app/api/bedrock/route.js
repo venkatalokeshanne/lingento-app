@@ -52,7 +52,7 @@ export async function POST(request) {
         !process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || 
         !process.env.NEXT_PUBLIC_AWS_REGION) {
       console.error('Missing AWS credentials');
-      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord, userNativeLanguage } = await request.json();
+      return Response.json({ error: 'AWS credentials not configured' }, { status: 500 });    }    const { action, word, translation, language, definition, partOfSpeech, prompt, temperature, timestamp, sessionId, partialWord, userNativeLanguage, translationLanguage } = await request.json();
     console.log('Request parameters:', { action, word, translation, language, definition, partOfSpeech, prompt: prompt ? 'provided' : 'none', temperature, sessionId });    // For generate action, we need a prompt instead of word/language
     if (action === 'generate' && !prompt) {
       return Response.json({ error: 'Missing required parameter: prompt' }, { status: 400 });
@@ -101,7 +101,7 @@ export async function POST(request) {
         maxTokens = 150;
         break;
       case 'wordSuggestions':
-        aiPrompt = buildWordSuggestionsPrompt(partialWord, language);
+        aiPrompt = buildWordSuggestionsPrompt(partialWord, language, translationLanguage || 'french');
         maxTokens = 300;
         break;
       default:
@@ -359,7 +359,7 @@ Return ONLY the JSON object, no other text.`;
 }
 
 // Build prompt for word suggestions
-function buildWordSuggestionsPrompt(partialWord, language) {
+function buildWordSuggestionsPrompt(partialWord, language, translationLanguage = 'french') {
   return `Complete the word "${partialWord}" by providing 5 actual words in ${language} that START with these exact letters: "${partialWord}".
 
 Requirements:
@@ -369,8 +369,7 @@ Requirements:
 - Provide English translation in parentheses
 - Avoid proper nouns, brand names, and overly technical terms
 - Focus on everyday vocabulary that language learners would use
-
-Examples for "reg" in French: ["regarder (to look)", "région (region)", "régime (diet)", "régler (to adjust)", "régulier (regular)"]
+- Translation should be in "${translationLanguage}" with accurate and commonly used 
 
 Format your response as a JSON array of strings, like this:
 ["word1 (translation)", "word2 (translation)", "word3 (translation)", "word4 (translation)", "word5 (translation)"]
@@ -408,8 +407,7 @@ Italian pronunciation rules:
 - 'g' before 'e' or 'i' = 'j'
 - 'gli' = 'lyee'
 - Double consonants are pronounced longer`;
-  }
-  return `You are an expert linguist and language teacher. Provide comprehensive information for the ${language} word "${word}".
+  }  return `You are an expert linguist and language teacher. Provide comprehensive information for the ${language} word "${word}".
 
 Generate a complete JSON response with ALL of the following fields:
 
@@ -425,7 +423,15 @@ Generate a complete JSON response with ALL of the following fields:
 }
 
 Requirements:
-- Translation: Provide the most common/appropriate translation to ${userNativeLanguage}
+- Translation: Provide the most accurate and commonly used translation to ${userNativeLanguage}. Consider the context and usage:
+  * For interrogative words like "what", "who", "where", etc., provide the most natural standalone translation that a native speaker would use in everyday conversation
+  * For "what" in French, use "quoi" (the common informal/standalone form), not "que" or formal constructions
+  * For "who" in French, use "qui"
+  * For "where" in French, use "où"
+  * For "when" in French, use "quand"
+  * For "why" in French, use "pourquoi"
+  * For "how" in French, use "comment"
+  * Always prioritize natural, conversational usage over formal grammatical constructions
 - Pronunciation: Use simple English sounds with hyphens (e.g., "sah-loo", "bohn-zhoor")
 ${languageSpecificInstructions}
 - Definition: Start with part of speech in brackets, provide clear meaning and usage context
