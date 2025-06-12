@@ -55,10 +55,13 @@ const nextConfig = withPWA({
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
-          },
-          {
+          },          {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
           },
         ],
       },
@@ -92,13 +95,25 @@ const nextConfig = withPWA({
       },
     ];
   },
-  
-  // Redirects for SEO
+    // Redirects for SEO
   async redirects() {
     return [
       {
         source: '/home',
         destination: '/',
+        permanent: true,
+      },
+      // Force HTTPS redirect for any HTTP requests
+      {
+        source: '/(.*)',
+        has: [
+          {
+            type: 'header',
+            key: 'x-forwarded-proto',
+            value: 'http',
+          },
+        ],
+        destination: 'https://lingentoo.com/$1',
         permanent: true,
       },
     ];
