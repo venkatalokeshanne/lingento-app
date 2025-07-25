@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
 
   const sections = [
     {
-      id: 'information-collection',
+      id: 'information-collection ',
       title: 'Information We Collect',
       content: `We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support. This may include:
       
